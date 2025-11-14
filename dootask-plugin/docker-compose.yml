@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  asset-management:
+    image: asset-management-plugin:latest
+    container_name: dootask-asset-management
+    restart: always
+    ports:
+      - "8080:80"
+    volumes:
+      # 数据持久化
+      - ./data:/app/data
+      # 上传文件持久化
+      - ./uploads:/app/uploads
+      # 日志持久化
+      - ./logs:/app/logs
+    environment:
+      # Node 环境
+      - NODE_ENV=production
+      # 数据库路径
+      - DATABASE_PATH=/app/data/asset_management.db
+      # 上传文件路径
+      - UPLOAD_PATH=/app/uploads
+      # API 服务端口
+      - API_PORT=3000
+      # DooTask 主系统地址
+      - DOOTASK_URL=${DOOTASK_URL:-http://dootask}
+      # JWT 密钥
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
+    networks:
+      - dootask-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  dootask-network:
+    external: true

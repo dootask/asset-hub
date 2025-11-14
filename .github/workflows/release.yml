@@ -1,0 +1,112 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Get version from tag
+        id: get_version
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=0.0.0-dev" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Install UI dependencies
+        run: |
+          cd ui
+          npm ci
+      
+      - name: Build UI
+        run: |
+          cd ui
+          npm run build
+      
+      - name: Install Server dependencies
+        run: |
+          cd server
+          npm ci
+      
+      - name: Build Server
+        run: |
+          cd server
+          npm run build
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/asset-management-plugin:latest
+            ${{ secrets.DOCKER_USERNAME }}/asset-management-plugin:${{ steps.get_version.outputs.VERSION }}
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/asset-management-plugin:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/asset-management-plugin:buildcache,mode=max
+      
+      - name: Create plugin package
+        run: |
+          mkdir -p dist
+          # 复制插件配置
+          cp -r dootask-plugin dist/
+          # 复制前端构建产物
+          cp -r ui/dist dist/ui
+          # 复制后端构建产物
+          mkdir -p dist/server
+          cp -r server/dist dist/server/
+          cp -r server/node_modules dist/server/
+          cp server/package*.json dist/server/
+          cp -r server/database dist/server/
+          # 创建 zip 包
+          cd dist
+          zip -r ../asset-management-plugin-${{ steps.get_version.outputs.VERSION }}.zip .
+          cd ..
+      
+      - name: Create Release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            asset-management-plugin-${{ steps.get_version.outputs.VERSION }}.zip
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Notify success
+        if: success()
+        run: |
+          echo "✅ Release ${{ steps.get_version.outputs.VERSION }} completed successfully!"
+          echo "🐳 Docker image: ${{ secrets.DOCKER_USERNAME }}/asset-management-plugin:${{ steps.get_version.outputs.VERSION }}"
+      
+      - name: Notify failure
+        if: failure()
+        run: |
+          echo "❌ Release failed!"
+          exit 1

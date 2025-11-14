@@ -1,0 +1,220 @@
+# DooTask 插件配置文件
+name: asset-management
+title: 资产管理
+titleEn: Asset Management
+version: 1.0.0
+description: 企业资产与耗材全生命周期管理系统
+author: Asset Management Team
+authorUrl: https://github.com/yourusername/asset-management-plugin
+
+# 插件图标
+icon: /icon.png
+
+# 插件主页
+homepage: /
+
+# 菜单配置
+menus:
+  - name: 首页
+    nameEn: Dashboard
+    icon: dashboard
+    path: /
+    sort: 1
+  
+  - name: 资产管理
+    nameEn: Assets
+    icon: archive
+    path: /assets
+    sort: 2
+    children:
+      - name: 资产列表
+        nameEn: Asset List
+        path: /assets/list
+        sort: 1
+      - name: 采购申请
+        nameEn: Purchase
+        path: /assets/purchase
+        sort: 2
+      - name: 资产入库
+        nameEn: Stock In
+        path: /assets/stock-in
+        sort: 3
+      - name: 资产分类
+        nameEn: Categories
+        path: /assets/categories
+        sort: 4
+      - name: 资产盘点
+        nameEn: Inventory
+        path: /assets/inventory
+        sort: 5
+  
+  - name: 耗材管理
+    nameEn: Consumables
+    icon: shopping-cart
+    path: /consumables
+    sort: 3
+    children:
+      - name: 耗材列表
+        nameEn: Consumable List
+        path: /consumables/list
+        sort: 1
+      - name: 耗材采购
+        nameEn: Purchase
+        path: /consumables/purchase
+        sort: 2
+      - name: 耗材领用
+        nameEn: Requisition
+        path: /consumables/requisition
+        sort: 3
+      - name: 出库管理
+        nameEn: Outbound
+        path: /consumables/outbound
+        sort: 4
+      - name: 耗材盘点
+        nameEn: Inventory
+        path: /consumables/inventory
+        sort: 5
+  
+  - name: 审批中心
+    nameEn: Approvals
+    icon: file-text
+    path: /approvals
+    sort: 4
+    children:
+      - name: 待我审批
+        nameEn: Pending
+        path: /approvals/pending
+        sort: 1
+      - name: 我发起的
+        nameEn: Initiated
+        path: /approvals/initiated
+        sort: 2
+      - name: 已完成
+        nameEn: Completed
+        path: /approvals/completed
+        sort: 3
+  
+  - name: 报表统计
+    nameEn: Reports
+    icon: bar-chart
+    path: /reports
+    sort: 5
+    children:
+      - name: 资产报表
+        nameEn: Asset Reports
+        path: /reports/assets
+        sort: 1
+      - name: 耗材报表
+        nameEn: Consumable Reports
+        path: /reports/consumables
+        sort: 2
+      - name: 操作日志
+        nameEn: Operation Logs
+        path: /reports/logs
+        sort: 3
+  
+  - name: 系统管理
+    nameEn: System
+    icon: settings
+    path: /system
+    sort: 6
+    children:
+      - name: 公司管理
+        nameEn: Companies
+        path: /system/companies
+        sort: 1
+      - name: 人员管理
+        nameEn: Users
+        path: /system/users
+        sort: 2
+      - name: 角色管理
+        nameEn: Roles
+        path: /system/roles
+        sort: 3
+      - name: 资产设置
+        nameEn: Asset Settings
+        path: /system/asset-settings
+        sort: 4
+      - name: 耗材设置
+        nameEn: Consumable Settings
+        path: /system/consumable-settings
+        sort: 5
+      - name: 系统设置
+        nameEn: Settings
+        path: /system/settings
+        sort: 6
+
+# 权限配置
+permissions:
+  # 超级管理员权限
+  - name: admin
+    title: 超级管理员
+    titleEn: Super Admin
+    description: 拥有所有权限
+    descriptionEn: Full access to all features
+  
+  # 资产管理员权限
+  - name: asset_admin
+    title: 资产管理员
+    titleEn: Asset Admin
+    description: 管理资产相关功能
+    descriptionEn: Manage asset related features
+  
+  # 耗材管理员权限
+  - name: consumable_admin
+    title: 耗材管理员
+    titleEn: Consumable Admin
+    description: 管理耗材相关功能
+    descriptionEn: Manage consumable related features
+  
+  # 审批人权限
+  - name: approver
+    title: 审批人
+    titleEn: Approver
+    description: 审批资产和耗材申请
+    descriptionEn: Approve asset and consumable requests
+  
+  # 普通用户权限
+  - name: user
+    title: 普通用户
+    titleEn: User
+    description: 查看和申请资产耗材
+    descriptionEn: View and request assets and consumables
+
+# 数据库配置
+database:
+  type: sqlite3
+  path: /data/asset_management.db
+
+# 文件上传配置
+upload:
+  maxSize: 10485760  # 10MB
+  allowedTypes:
+    - image/jpeg
+    - image/png
+    - image/gif
+    - application/pdf
+    - application/vnd.ms-excel
+    - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+  path: /uploads
+
+# 系统配置
+system:
+  # 审批流程配置
+  approval:
+    enabled: true
+    notifyDooTask: true
+  
+  # 通知配置
+  notification:
+    enabled: true
+    channels:
+      - dootask
+      - email
+  
+  # 定时任务
+  cron:
+    # 每天检查逾期提醒
+    overdueCheck: "0 9 * * *"
+    # 每月生成报表
+    monthlyReport: "0 0 1 * *"
