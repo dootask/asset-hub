@@ -1,0 +1,334 @@
+---
+description: DooTask 插件详细配置模板（按需加载）
+---
+
+# DooTask 插件 - 配置模板
+
+本文档提供详细的配置示例和模板。
+
+## 完整 config.yml 示例
+
+```yaml
+name:
+  en: Asset Hub
+  zh: 资产管理
+
+description:
+  en: Enterprise asset lifecycle management system
+  zh: 企业资产全生命周期管理系统
+
+tags:
+  - asset
+  - management
+  - enterprise
+
+author: Your Name
+website: https://example.com
+github: https://github.com/your/asset-hub
+document: https://docs.example.com
+
+# 字段配置
+fields:
+  - name: PORT
+    label:
+      en: Service Port
+      zh: 服务端口
+    placeholder:
+      en: Port number
+      zh: 端口号
+    description:
+      en: The port on which the service will run
+      zh: 服务运行的端口
+    type: number
+    default: 8080
+    required: false
+
+  - name: DB_BACKUP_ENABLED
+    label:
+      en: Enable Database Backup
+      zh: 启用数据库备份
+    type: select
+    options:
+      - label:
+          en: "Yes"
+          zh: "是"
+        value: "true"
+      - label:
+          en: "No"
+          zh: "否"
+        value: "false"
+    default: "true"
+
+# 版本要求
+require_version:
+  version: ">= 1.0.0"
+  reason:
+    en: "Requires menu API features"
+    zh: "需要菜单 API 功能"
+
+# 菜单配置
+menu_items:
+  # 主入口
+  - location: application
+    label:
+      en: Asset Hub
+      zh: 资产管理
+    url: "apps/asset-hub/?user_id={user_id}&theme={system_theme}&lang={system_lang}"
+    url_type: iframe
+    icon: ./logo.png
+    visible_to: all
+    background: "#ffffff|#1a1a1a"
+    immersive: false
+    keep_alive: true
+
+  # 管理后台
+  - location: application/admin
+    label:
+      en: Asset Settings
+      zh: 资产设置
+    url: "apps/asset-hub/admin?user_id={user_id}"
+    url_type: iframe
+    visible_to: admin
+    keep_alive: false
+
+  # 胶囊菜单配置
+  - location: application
+    label:
+      en: Reports
+      zh: 报表中心
+    url: "apps/asset-hub/reports"
+    url_type: iframe
+    capsule:
+      visible: true
+      top: 10
+      right: 10
+      more_menus:
+        - label:
+            en: Export
+            zh: 导出
+          value: export
+        - label:
+            en: Settings
+            zh: 设置
+          value: settings
+```
+
+## GitHub Actions 自动发布
+
+```yaml
+# .github/workflows/release.yml
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Login to Docker Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ secrets.DOCKER_REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      
+      - name: Extract version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_REGISTRY }}/asset-hub:${{ steps.version.outputs.VERSION }}
+            ${{ secrets.DOCKER_REGISTRY }}/asset-hub:latest
+      
+      - name: Package plugin
+        run: |
+          cd dootask-plugin
+          tar -czf asset-hub-${{ steps.version.outputs.VERSION }}.tar.gz \
+            config.yml logo.png README.md \
+            ${{ steps.version.outputs.VERSION }}/
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dootask-plugin/asset-hub-${{ steps.version.outputs.VERSION }}.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+## Makefile
+
+```makefile
+.PHONY: help dev build docker-build docker-push release clean
+
+VERSION ?= 1.0.0
+REGISTRY ?= your-registry
+
+help:
+	@echo "Available commands:"
+	@echo "  make dev           - Start development"
+	@echo "  make build         - Build project"
+	@echo "  make docker-build  - Build Docker image"
+	@echo "  make docker-push   - Push Docker image"
+	@echo "  make release       - Package plugin"
+	@echo "  make clean         - Clean build files"
+
+dev:
+	@echo "Starting development..."
+	cd ui && pnpm dev &
+	cd server && npm run dev
+
+build:
+	@echo "Building frontend..."
+	cd ui && pnpm build
+	@echo "Building backend..."
+	cd server && npm run build
+
+docker-build:
+	@echo "Building Docker image..."
+	docker build -t $(REGISTRY)/asset-hub:$(VERSION) .
+	docker tag $(REGISTRY)/asset-hub:$(VERSION) $(REGISTRY)/asset-hub:latest
+
+docker-push: docker-build
+	@echo "Pushing Docker image..."
+	docker push $(REGISTRY)/asset-hub:$(VERSION)
+	docker push $(REGISTRY)/asset-hub:latest
+
+release:
+	@echo "Packaging plugin..."
+	cd dootask-plugin && \
+	tar -czf asset-hub-$(VERSION).tar.gz \
+		config.yml logo.png README.md $(VERSION)/
+	@echo "Package: dootask-plugin/asset-hub-$(VERSION).tar.gz"
+
+clean:
+	rm -rf ui/dist
+	rm -rf server/dist
+	rm -rf ui/node_modules
+	rm -rf server/node_modules
+```
+
+## WebSocket 代理配置
+
+```nginx
+# nginx.conf with WebSocket support
+location /apps/asset-hub/ws {
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_buffering off;
+    proxy_cache off;
+    proxy_read_timeout 86400s;
+    proxy_send_timeout 86400s;
+    proxy_pass http://asset-hub-service:8080/ws;
+}
+```
+
+## 多环境 Dockerfile
+
+```dockerfile
+# 支持开发和生产环境
+ARG NODE_ENV=production
+
+FROM node:20-alpine AS base
+WORKDIR /app
+
+FROM base AS deps
+COPY server/package*.json ./server/
+COPY ui/package.json ./ui/
+RUN cd server && npm ci
+RUN cd ui && npm ci
+
+FROM deps AS build
+ARG NODE_ENV
+COPY server ./server
+COPY ui ./ui
+WORKDIR /app/ui
+RUN npm run build
+WORKDIR /app/server
+RUN npm run build
+RUN if [ "$NODE_ENV" = "production" ]; then npm prune --omit=dev; fi
+
+FROM base AS runner
+ARG NODE_ENV
+ENV NODE_ENV=${NODE_ENV}
+WORKDIR /app
+
+COPY --from=build /app/server/dist ./dist
+COPY --from=build /app/server/package.json ./
+COPY --from=build /app/server/node_modules ./node_modules
+COPY --from=build /app/ui/dist ./public
+
+RUN mkdir -p /app/data
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:8080/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+
+EXPOSE 8080
+
+CMD ["node", "dist/index.js"]
+```
+
+## docker-compose 开发环境
+
+```yaml
+# docker-compose.dev.yml
+version: '3.8'
+
+services:
+  asset-hub:
+    build:
+      context: .
+      args:
+        NODE_ENV: development
+    container_name: asset-hub-dev
+    ports:
+      - "8080:8080"
+      - "5173:5173"  # Vite dev server
+    volumes:
+      - ./server:/app/server
+      - ./ui:/app/ui
+      - ./database:/app/data
+      - /app/server/node_modules
+      - /app/ui/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=8080
+      - DB_PATH=/app/data/asset-hub.db
+    command: sh -c "cd /app/server && npm run dev"
+```
+
+## 发布检查清单
+
+- [ ] 版本号已更新（所有 package.json 和 config.yml）
+- [ ] 创建了新版本目录（dootask-plugin/{version}/）
+- [ ] Docker 镜像构建成功
+- [ ] Docker 镜像已推送到仓库
+- [ ] 插件包已打包（.tar.gz）
+- [ ] README 文档完善
+- [ ] CHANGELOG 更新
+- [ ] 所有功能测试通过
+- [ ] 在 DooTask 中测试安装
+- [ ] 多语言测试通过
+- [ ] 主题切换测试通过
+
+---
+
+**核心规范**: 查看 `@12-plugin-core.mdc`  
+**工作流程**: 参考 `@30-workflow-templates.mdc`

@@ -1,0 +1,339 @@
+---
+description: 后端核心约束和架构规范
+globs:
+  - server/**
+---
+
+# 后端开发 - 核心规范
+
+## 技术栈
+
+- **Node.js**: 20.x LTS
+- **Koa**: 轻量级 Web 框架
+- **TypeScript**: 类型安全
+- **better-sqlite3**: 同步 SQLite 驱动（高性能）
+- **Zod**: 数据验证
+- **Pino**: 结构化日志
+
+## 目录结构
+
+```
+server/
+├── src/
+│   ├── index.ts              # 应用入口
+│   ├── app.ts                # Koa 应用配置
+│   ├── config.ts             # 配置管理
+│   ├── routes/               # 路由（index.ts + 各模块.ts）
+│   ├── controllers/          # 控制器（参数验证、响应处理）
+│   ├── services/             # 业务逻辑（数据库操作）
+│   ├── models/               # 数据模型（db.ts + schema.ts）
+│   ├── middleware/           # 中间件（auth.ts, errorHandler.ts, logger.ts）
+│   ├── utils/                # 工具函数（response.ts, logger.ts）
+│   └── types/                # TypeScript 类型
+├── database/                 # SQLite 数据库文件
+├── .env
+├── package.json
+└── tsconfig.json
+```
+
+## 统一响应格式
+
+### 工具函数
+```typescript
+// src/utils/response.ts
+export interface SuccessResponse<T = any> {
+  success: true
+  data: T
+  message?: string
+}
+
+export interface ErrorResponse {
+  success: false
+  error: string
+  code: string
+  details?: any
+}
+
+export function success<T>(data: T, message?: string): SuccessResponse<T> {
+  return { success: true, data, message }
+}
+
+export function error(message: string, code: string, details?: any): ErrorResponse {
+  return { success: false, error: message, code, details }
+}
+```
+
+## 控制器模式
+
+### 标准控制器结构
+```typescript
+// src/controllers/assetController.ts
+import { Context } from 'koa'
+import { z } from 'zod'
+import * as assetService from '../services/assetService'
+import { success, error } from '../utils/response'
+
+const querySchema = z.object({
+  page: z.string().optional().transform(v => v ? parseInt(v, 10) : 1),
+  pageSize: z.string().optional().transform(v => v ? parseInt(v, 10) : 20),
+  status: z.enum(['all', 'in-use', 'idle']).optional(),
+})
+
+export async function getList(ctx: Context) {
+  try {
+    const params = querySchema.parse(ctx.query)
+    const result = await assetService.getAssetList(params)
+    ctx.body = success(result)
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      ctx.body = error('参数验证失败', 'VALIDATION_ERROR', err.errors)
+    } else {
+      throw err
+    }
+  }
+}
+```
+
+## 服务层模式
+
+### 数据库操作规范
+```typescript
+// src/services/assetService.ts
+import { db } from '../models/db'
+
+export interface AssetListParams {
+  page: number
+  pageSize: number
+  status?: string
+}
+
+export function getAssetList(params: AssetListParams) {
+  const { page, pageSize, status } = params
+  const offset = (page - 1) * pageSize
+
+  let query = 'SELECT * FROM assets WHERE 1=1'
+  const queryParams: any[] = []
+
+  if (status && status !== 'all') {
+    query += ' AND status = ?'
+    queryParams.push(status)
+  }
+
+  // 计算总数
+  const countQuery = query.replace('SELECT *', 'SELECT COUNT(*) as count')
+  const { count } = db.prepare(countQuery).get(...queryParams) as { count: number }
+
+  // 分页查询
+  query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?'
+  queryParams.push(pageSize, offset)
+  const list = db.prepare(query).all(...queryParams)
+
+  return { list, total: count, page, pageSize }
+}
+```
+
+## 路由配置
+
+### 路由定义
+```typescript
+// src/routes/asset.ts
+import Router from 'koa-router'
+import * as assetController from '../controllers/assetController'
+import { authMiddleware } from '../middleware/auth'
+
+const router = new Router({ prefix: '/api/assets' })
+
+router.use(authMiddleware)
+
+router.get('/', assetController.getList)
+router.get('/:id', assetController.getDetail)
+router.post('/', assetController.create)
+router.put('/:id', assetController.update)
+router.delete('/:id', assetController.remove)
+
+export default router
+```
+
+## 中间件
+
+### 错误处理（必需）
+```typescript
+// src/middleware/errorHandler.ts
+import { Context, Next } from 'koa'
+import { error } from '../utils/response'
+
+export async function errorHandler(ctx: Context, next: Next) {
+  try {
+    await next()
+  } catch (err: any) {
+    const status = err.status || 500
+    const message = err.message || '服务器内部错误'
+    const code = err.code || 'INTERNAL_ERROR'
+
+    ctx.status = status
+    ctx.body = error(message, code)
+    
+    console.error('Request error:', err)
+  }
+}
+```
+
+### 认证中间件（必需）
+```typescript
+// src/middleware/auth.ts
+import { Context, Next } from 'koa'
+import { error } from '../utils/response'
+
+export async function authMiddleware(ctx: Context, next: Next) {
+  const token = ctx.headers.authorization?.replace('Bearer ', '')
+
+  if (!token) {
+    ctx.status = 401
+    ctx.body = error('未授权', 'UNAUTHORIZED')
+    return
+  }
+
+  try {
+    // TODO: 验证 token 并获取用户信息
+    ctx.state.user = { id: 1, email: 'user@example.com' }
+    await next()
+  } catch (err) {
+    ctx.status = 401
+    ctx.body = error('Token 无效', 'INVALID_TOKEN')
+  }
+}
+```
+
+## 数据库管理
+
+### 初始化数据库
+```typescript
+// src/models/db.ts
+import Database from 'better-sqlite3'
+import path from 'path'
+
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, '../../database/asset-hub.db')
+
+export const db = new Database(DB_PATH)
+db.pragma('journal_mode = WAL')
+
+export function initDatabase() {
+  // 创建资产表
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS assets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'idle',
+      price REAL NOT NULL,
+      purchase_date TEXT NOT NULL,
+      owner_id INTEGER,
+      created_by INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT
+    )
+  `)
+
+  // 创建索引
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_assets_status ON assets(status);
+    CREATE INDEX IF NOT EXISTS idx_assets_type ON assets(type);
+  `)
+}
+
+export function closeDatabase() {
+  db.close()
+}
+```
+
+## 类型定义
+
+```typescript
+// src/types/index.ts
+export interface Asset {
+  id: number
+  name: string
+  type: string
+  status: 'idle' | 'in-use' | 'maintenance' | 'scrapped'
+  price: number
+  purchase_date: string
+  owner_id?: number
+  created_by: number
+  created_at: string
+  updated_at?: string
+}
+
+export type AssetInsert = Omit<Asset, 'id' | 'created_at' | 'updated_at'>
+export type AssetUpdate = Partial<Omit<Asset, 'id' | 'created_by' | 'created_at'>>
+```
+
+## 应用配置
+
+### Koa 应用设置
+```typescript
+// src/app.ts
+import Koa from 'koa'
+import cors from 'koa-cors'
+import { koaBody } from 'koa-body'
+import { errorHandler } from './middleware/errorHandler'
+import { router } from './routes'
+
+export const app = new Koa()
+
+app.use(errorHandler)
+app.use(cors({ origin: '*', credentials: true }))
+app.use(koaBody({
+  multipart: true,
+  formidable: { maxFileSize: 50 * 1024 * 1024 },
+}))
+app.use(router.routes())
+app.use(router.allowedMethods())
+```
+
+## 环境变量
+
+```bash
+# .env
+PORT=8080
+DB_PATH=./database/asset-hub.db
+NODE_ENV=production
+LOG_LEVEL=info
+```
+
+## 开发脚本
+
+```json
+// package.json
+{
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  }
+}
+```
+
+## 核心约束
+
+- ✅ 所有 API 必须有参数验证（使用 Zod）
+- ✅ 统一使用响应格式（success/error 函数）
+- ✅ 所有异步操作必须有错误处理
+- ✅ 重要操作必须记录日志
+- ✅ 必须验证 Token 和权限
+- ❌ 不要在控制器中写业务逻辑
+- ❌ 不要直接返回错误对象
+
+## 开发检查清单
+
+- [ ] 参数验证使用 Zod Schema
+- [ ] 使用统一响应格式
+- [ ] 添加了错误处理
+- [ ] 记录了操作日志
+- [ ] 验证了用户权限
+- [ ] 无 TypeScript 错误
+- [ ] 无 ESLint 警告
+
+---
+
+**详细代码模板**: 查看 `@11-backend-templates.mdc`  
+**工作流程**: 参考 `@30-workflow-templates.mdc`

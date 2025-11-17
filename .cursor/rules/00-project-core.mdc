@@ -1,0 +1,133 @@
+---
+description: 项目核心信息和关键约束（精简版）
+alwaysApply: true
+---
+
+# 资产管理插件 - 核心约束
+
+## 项目基本信息
+
+- **名称**: 资产管理 (Asset Hub)
+- **标识**: asset-hub
+- **类型**: DooTask 应用插件
+- **用途**: 企业资产全生命周期管理
+
+## 技术栈
+
+**前端**: React 18 + Vite + shadcn/ui + TailwindCSS + TypeScript + pnpm  
+**后端**: Node.js 20+ + Koa + SQLite3 + TypeScript  
+**集成**: @dootask/tools  
+**部署**: Docker + docker-compose + Nginx
+
+## 目录结构
+
+```
+asset-hub/
+├── .cursor/rules/          # 规则文件
+├── dootask-plugin/         # 插件配置（config.yml, docker-compose.yml, nginx.conf）
+├── ui/                     # 前端（pages/, components/, api/, stores/, locales/）
+├── server/                 # 后端（routes/, controllers/, services/, models/, middleware/）
+├── Dockerfile
+├── Makefile
+└── AGENTS.md
+```
+
+## 核心命名约定
+
+| 类型 | 规范 | 示例 |
+|------|------|------|
+| 组件 | PascalCase | `AssetCard`, `UserSelector` |
+| 函数/变量 | camelCase | `getUserInfo`, `assetList` |
+| 常量 | UPPER_SNAKE_CASE | `API_BASE_URL`, `MAX_SIZE` |
+| 类型/接口 | PascalCase | `UserInfo`, `AssetListResponse` |
+| 文件（组件） | PascalCase | `AssetList.tsx` |
+| 文件（工具） | kebab-case | `format-date.ts` |
+| API 路由 | kebab-case | `/api/asset-list` |
+
+## 多语言 & 主题
+
+**语言**: 中文/英文（通过 URL 参数 `lang` 判断，包含 `zh` → 中文）  
+**主题**: 浅色/深色（通过 URL 参数 `theme` 判断，包含 `dark` → 深色）
+
+**实现**:
+```typescript
+// 前端初始化（必须在 appReady() 后调用）
+await appReady()
+const theme = await getThemeName()
+document.documentElement.classList.toggle('dark', theme.includes('dark'))
+const lang = await getLanguageName()
+i18n.changeLanguage(lang.includes('zh') ? 'zh' : 'en')
+```
+
+## 核心禁忌（重要）
+
+### ❌ 前端
+- 不要使用 Class 组件（必须用函数组件 + Hooks）
+- 不要直接解析 URL 参数（必须用 @dootask/tools）
+- 不要硬编码文本（必须用 react-i18next）
+- 不要跳过错误处理（所有异步操作必须 try-catch）
+
+### ❌ 后端
+- 不要忽略参数验证（必须用 Zod 验证）
+- 不要直接返回错误（必须用统一响应格式）
+- 不要忘记权限检查（必须验证 Token）
+- 不要遗漏日志记录（重要操作必须记录）
+
+### ❌ 通用
+- 不要跳过审批流程（所有操作遵循：提交→审核→通过）
+- 不要忽略类型定义（必须使用 TypeScript）
+- 不要混用空格和 Tab（统一 2 空格缩进）
+- 不要提交未格式化代码（必须通过 ESLint + Prettier）
+
+## 统一响应格式
+
+**成功**:
+```json
+{ "success": true, "data": {}, "message": "操作成功" }
+```
+
+**失败**:
+```json
+{ "success": false, "error": "错误信息", "code": "ERROR_CODE" }
+```
+
+## DooTask 集成关键点
+
+1. **初始化**: 必须先调用 `await appReady()`
+2. **用户信息**: 使用 `getUserInfo()`, `getUserToken()`
+3. **选择用户**: 使用 `selectUsers()`
+4. **提示框**: 使用 `modalSuccess()`, `modalError()`
+5. **错误处理**: 捕获 `UnsupportedError`
+
+## 环境变量
+
+**前端** (ui/.env):
+```bash
+VITE_API_BASE_URL=/api
+```
+
+**后端** (server/.env):
+```bash
+PORT=8080
+DB_PATH=./database/asset-hub.db
+NODE_ENV=production
+```
+
+## 开发命令
+
+```bash
+make dev      # 启动开发环境
+make build    # 构建生产版本
+make test     # 运行测试
+```
+
+## 版本管理
+
+遵循 Semver（语义化版本）: `MAJOR.MINOR.PATCH`  
+同步更新: `dootask-plugin/config.yml`, `ui/package.json`, `server/package.json`
+
+---
+
+**详细规范**: 查看对应目录的 core 和 templates 规则文件  
+**业务知识**: 查询 Graphiti (group_id: `dootask-apps-asset-hub`)  
+**工作流程**: 参考 `@30-workflow-templates.mdc`

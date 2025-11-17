@@ -1,0 +1,280 @@
+---
+description: 前端核心约束和架构规范
+globs:
+  - ui/**
+---
+
+# 前端开发 - 核心规范
+
+## 技术栈详情
+
+### 核心框架
+- **React 18**: 函数组件 + Hooks（禁止 Class 组件）
+- **Vite**: 开发服务器和构建工具
+- **TypeScript**: 严格模式，所有文件必须是 .ts/.tsx
+- **pnpm**: 包管理器
+
+### 项目初始化
+
+**创建 Vite 项目**:
+```bash
+pnpm create vite@latest
+# 选择：React + TypeScript
+```
+
+**安装 TailwindCSS**:
+```bash
+pnpm add tailwindcss @tailwindcss/vite
+```
+
+**shadcn/ui 安装参考**:
+- 官方文档：https://ui.shadcn.com/docs/installation/vite.md
+- 按需引入组件，不是 npm 包，而是复制源码到项目中
+
+### UI 框架
+- **shadcn/ui**: 基于 Radix UI，按需引入
+- **TailwindCSS**: 原子化 CSS，utility-first
+- **Lucide React**: 图标库
+
+### 核心库
+- **React Router v6**: 客户端路由
+- **Zustand**: 轻量级状态管理
+- **Axios**: HTTP 客户端
+- **React Query**: 服务端状态管理
+- **React Hook Form + Zod**: 表单处理和验证
+- **react-i18next**: 国际化
+- **@dootask/tools**: DooTask 集成
+
+## 目录结构
+
+```
+ui/
+├── src/
+│   ├── main.tsx              # 入口文件
+│   ├── App.tsx               # 根组件
+│   ├── routes.tsx            # 路由配置
+│   ├── pages/                # 页面组件（home/, system/, asset/, consumable/）
+│   │   └── [module]/
+│   │       ├── index.tsx     # 页面主文件
+│   │       ├── components/   # 页面私有组件
+│   │       └── hooks/        # 页面私有 Hooks
+│   ├── components/           # 通用组件
+│   │   ├── ui/              # shadcn/ui 组件
+│   │   ├── layout/          # 布局组件
+│   │   └── common/          # 业务通用组件
+│   ├── hooks/               # 全局 Hooks
+│   ├── stores/              # Zustand stores
+│   ├── api/                 # API 调用（client.ts + 各模块）
+│   ├── lib/                 # 工具函数
+│   ├── locales/             # 多语言（zh/, en/）
+│   ├── types/               # TypeScript 类型
+│   └── styles/              # 全局样式
+├── public/
+├── vite.config.ts
+├── tailwind.config.js
+├── tsconfig.json
+└── package.json
+```
+
+## 组件规范
+
+### 命名和导出
+```typescript
+// ✅ 正确：使用 named export
+export const AssetCard: FC<AssetCardProps> = ({ ... }) => { ... }
+
+// ❌ 错误：不要用 default export
+export default function AssetCard() { ... }
+```
+
+### Props 定义
+```typescript
+// ✅ 正确：使用 interface，命名为 组件名+Props
+interface AssetCardProps {
+  id: number
+  name: string
+  onEdit?: (id: number) => void
+}
+```
+
+## API 调用规范
+
+### 统一客户端
+```typescript
+// src/api/client.ts
+import axios from 'axios'
+import { getUserToken, modalError } from '@dootask/tools'
+
+export const apiClient = axios.create({
+  baseURL: '/api',
+  timeout: 30000,
+})
+
+// 请求拦截器：添加 token
+apiClient.interceptors.request.use(async (config) => {
+  const token = await getUserToken()
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  return config
+})
+
+// 响应拦截器：统一错误处理
+apiClient.interceptors.response.use(
+  (response) => response.data,
+  async (error) => {
+    await modalError(error.response?.data?.error || '请求失败')
+    return Promise.reject(error)
+  }
+)
+```
+
+### API 模块结构
+```typescript
+// src/api/asset.ts
+export interface Asset { ... }
+export interface AssetListParams { ... }
+export interface AssetListResponse { ... }
+
+export const getAssetList = async (params?: AssetListParams) => {
+  return apiClient.get<AssetListResponse>('/assets', { params })
+}
+```
+
+## 状态管理
+
+### Zustand Store 模式
+```typescript
+// src/stores/assetStore.ts
+import { create } from 'zustand'
+
+interface AssetState {
+  selectedAsset: Asset | null
+  filterStatus: string
+  setSelectedAsset: (asset: Asset | null) => void
+  setFilterStatus: (status: string) => void
+  reset: () => void
+}
+
+export const useAssetStore = create<AssetState>((set) => ({
+  selectedAsset: null,
+  filterStatus: 'all',
+  setSelectedAsset: (asset) => set({ selectedAsset: asset }),
+  setFilterStatus: (status) => set({ filterStatus: status }),
+  reset: () => set({ selectedAsset: null, filterStatus: 'all' }),
+}))
+```
+
+## 多语言
+
+### 翻译文件结构
+```
+locales/
+├── zh/
+│   ├── common.json
+│   ├── asset.json
+│   └── system.json
+└── en/
+    ├── common.json
+    ├── asset.json
+    └── system.json
+```
+
+### 使用方式
+```typescript
+import { useTranslation } from 'react-i18next'
+
+const { t } = useTranslation()
+return <h1>{t('asset.title')}</h1>
+```
+
+## DooTask 集成
+
+### 应用初始化（必须）
+```typescript
+// src/App.tsx
+import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { appReady, getThemeName, getLanguageName, UnsupportedError } from '@dootask/tools'
+
+export default function App() {
+  const { i18n } = useTranslation()
+  const [isReady, setIsReady] = useState(false)
+
+  useEffect(() => {
+    const init = async () => {
+      try {
+        await appReady()
+        
+        const theme = await getThemeName()
+        document.documentElement.classList.toggle('dark', theme === 'dark')
+        
+        const lang = await getLanguageName()
+        await i18n.changeLanguage(lang.includes('zh') ? 'zh' : 'en')
+        
+        setIsReady(true)
+      } catch (error) {
+        if (error instanceof UnsupportedError) {
+          console.warn('Not in DooTask environment')
+          setIsReady(true)
+        }
+      }
+    }
+    init()
+  }, [i18n])
+
+  if (!isReady) return <div>Loading...</div>
+  return <Router />
+}
+```
+
+## TailwindCSS 主题
+
+### CSS 变量配置
+```css
+/* src/styles/globals.css */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    /* ... */
+  }
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    /* ... */
+  }
+}
+```
+
+## 性能优化
+
+- **代码分割**: 使用 `lazy()` 和 `Suspense`
+- **列表虚拟化**: 超过 100 条使用 `@tanstack/react-virtual`
+- **图片优化**: WebP 格式 + 懒加载 + 压缩
+
+## 错误处理
+
+所有异步操作必须 try-catch：
+```typescript
+try {
+  const data = await fetchData()
+} catch (error) {
+  await modalError(t('error.fetchFailed'))
+  console.error('Fetch failed:', error)
+}
+```
+
+## 开发检查清单
+
+- [ ] 组件使用 TypeScript 和 named export
+- [ ] Props 有明确的类型定义
+- [ ] 使用 @dootask/tools 获取用户/主题/语言
+- [ ] 异步操作有 try-catch 和 loading 状态
+- [ ] 支持深色主题（dark: 前缀）
+- [ ] 支持中英文（使用 t() 函数）
+- [ ] 无 ESLint 错误
+
+---
+
+**详细代码模板**: 查看 `@10-frontend-templates.mdc`  
+**工作流程**: 参考 `@30-workflow-templates.mdc`

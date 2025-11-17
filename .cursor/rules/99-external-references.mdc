@@ -1,0 +1,423 @@
+---
+description: 外部参考文档和示例代码索引
+---
+
+# 外部参考资源索引
+
+本文档提供外部文档和示例代码的索引，当遇到特定问题时可以查阅对应资源。
+
+## 前端框架资源
+
+### shadcn/ui 文档
+- **官方网站**：https://ui.shadcn.com
+- **Vite 安装指南**：https://ui.shadcn.com/docs/installation/vite.md
+- **用途**：UI 组件库，基于 Radix UI 和 TailwindCSS
+- **特点**：不是 npm 包，而是复制源码到项目中，完全可控
+- **初始化命令**：
+  ```bash
+  pnpm create vite@latest
+  pnpm add tailwindcss @tailwindcss/vite
+  ```
+
+### TailwindCSS 文档
+- **官方网站**：https://tailwindcss.com
+- **Vite 集成**：https://tailwindcss.com/docs/guides/vite
+- **用途**：原子化 CSS 框架
+
+### React 官方文档
+- **官方网站**：https://react.dev
+- **Hooks 参考**：https://react.dev/reference/react/hooks
+- **用途**：前端核心框架（必须使用函数组件 + Hooks）
+
+## DooTask 官方资源
+
+### 插件开发文档
+- **路径**：`/home/coder/workspaces/appstore/appstore/apps/_/README.md`
+- **用途**：DooTask 插件开发完整规范
+- **关键内容**：
+  - 目录结构和文件说明
+  - `config.yml` 完整配置项
+  - `docker-compose.yml` 环境变量
+  - `nginx.conf` 代理配置
+  - 菜单项配置和 URL 变量
+  - 发布流程
+
+### @dootask/tools 工具库文档
+- **路径**：`/home/coder/workspaces/tools/README.md`
+- **用途**：前端与 DooTask 主程序集成的 API 文档
+- **关键内容**：
+  - 应用状态相关 API
+  - 用户和系统信息获取
+  - 应用控制方法
+  - 窗口操作
+  - 用户交互（选择用户、请求 API）
+  - 提示框和消息框
+  - 完整的 TypeScript 类型定义
+
+### @dootask/tools 使用场景速查
+
+| 需求 | API | 示例 |
+|------|-----|------|
+| 应用初始化 | `appReady()` | `await appReady()` |
+| 获取当前主题 | `getThemeName()` | `const theme = await getThemeName()` |
+| 获取当前语言 | `getLanguageName()` | `const lang = await getLanguageName()` |
+| 获取用户信息 | `getUserInfo()` | `const user = await getUserInfo()` |
+| 选择用户 | `selectUsers()` | `const ids = await selectUsers({ title: '选择成员' })` |
+| 请求主程序API | `requestAPI()` | `await requestAPI({ url: 'users/info' })` |
+| 显示成功提示 | `modalSuccess()` | `await modalSuccess('操作成功')` |
+| 显示错误提示 | `modalError()` | `await modalError('操作失败')` |
+| 打开任务 | `openTask()` | `await openTask(taskId)` |
+| 打开对话框 | `openDialog()` | `await openDialog(dialogId)` |
+| 关闭应用 | `closeApp()` | `await closeApp()` |
+
+## 示例代码参考
+
+### MCP 插件示例
+- **路径**：`/home/coder/workspaces/mcp/`
+- **用途**：完整的 DooTask 插件示例
+- **包含**：
+  - 插件配置：`mcp/dootask-plugin/`
+  - 后端代码：`mcp/server/`
+  - Dockerfile：`mcp/Dockerfile`
+
+#### 插件配置示例
+
+**基础配置**：`/home/coder/workspaces/mcp/dootask-plugin/config.yml`
+- 多语言配置
+- 标签设置
+- 作者和GitHub信息
+
+**版本配置**：`/home/coder/workspaces/mcp/dootask-plugin/0.0.1/config.yml`
+- 菜单项配置示例
+- URL 类型：iframe
+- 主题变量传递
+
+**Docker Compose**：`/home/coder/workspaces/mcp/dootask-plugin/0.0.1/docker-compose.yml`
+- 简洁的服务定义
+- 使用 `${PLUGIN_VERSION}` 变量
+- 网络配置
+
+**Nginx 配置**：`/home/coder/workspaces/mcp/dootask-plugin/0.0.1/nginx.conf`
+- WebSocket 代理配置
+- SSE 代理配置
+- 静态文件代理
+- 正确的 proxy headers 设置
+
+#### 后端代码示例
+
+**项目结构**：`/home/coder/workspaces/mcp/server/`
+```
+server/
+├── src/
+│   ├── index.ts              # 应用入口，展示如何启动多个服务
+│   ├── config.ts             # 配置管理
+│   ├── logger.ts             # 日志工具
+│   ├── dootaskClient.ts      # DooTask API 客户端
+│   └── dootaskMcpServer.ts   # MCP 服务器实现
+├── package.json              # 依赖管理
+└── tsconfig.json             # TypeScript 配置
+```
+
+**关键学习点**：
+- **应用入口** (`src/index.ts`):
+  - 多端口服务（MCP 服务 + Guide 服务）
+  - 优雅关闭（graceful shutdown）
+  - 错误处理和日志记录
+  - 静态文件服务
+
+- **配置管理** (`src/config.ts`):
+  - 使用 dotenv 加载环境变量
+  - 提供默认值
+  - 类型安全的配置接口
+
+- **日志工具** (`src/logger.ts`):
+  - 使用 pino 日志库
+  - 日志级别配置
+  - 结构化日志
+
+#### Dockerfile 示例
+
+**路径**：`/home/coder/workspaces/mcp/Dockerfile`
+
+**学习点**：
+- 多阶段构建（base → deps → build → runner）
+- 分别处理 server 和 guide（前端）
+- 生产环境优化（`npm prune --omit=dev`）
+- 最小化最终镜像
+
+## 常见问题解决方案
+
+### 问题1：如何在插件中获取用户 Token？
+
+**方法一**：通过 @dootask/tools
+```typescript
+import { getUserToken } from '@dootask/tools'
+const token = await getUserToken()
+```
+
+**方法二**：通过 URL 参数
+```yaml
+# config.yml
+url: "apps/asset-hub/?token={user_token}"
+```
+
+### 问题2：如何处理主题切换？
+
+参考 `10-frontend-standards.mdc` 中的示例：
+```typescript
+const theme = await getThemeName()
+document.documentElement.classList.toggle('dark', theme === 'dark')
+```
+
+### 问题3：如何实现多语言？
+
+参考 `10-frontend-standards.mdc` 中的多语言配置：
+- 使用 react-i18next
+- 翻译文件放在 `ui/src/locales/`
+- 根据 `getLanguageName()` 切换语言
+
+### 问题4：如何配置 Nginx 代理 WebSocket？
+
+参考 `/home/coder/workspaces/mcp/dootask-plugin/0.0.1/nginx.conf`：
+```nginx
+location /apps/mcp_server/mcp {
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_buffering off;
+    proxy_cache off;
+    proxy_read_timeout 86400s;
+    # ...
+}
+```
+
+### 问题5：如何处理文件上传？
+
+**前端**：
+```typescript
+const formData = new FormData()
+formData.append('file', file)
+await apiClient.post('/upload', formData, {
+  headers: { 'Content-Type': 'multipart/form-data' }
+})
+```
+
+**后端**（Koa）：
+```typescript
+import { koaBody } from 'koa-body'
+
+app.use(koaBody({
+  multipart: true,
+  formidable: {
+    maxFileSize: 50 * 1024 * 1024,  // 50MB
+  },
+}))
+
+router.post('/upload', async (ctx) => {
+  const file = ctx.request.files?.file
+  // 处理文件
+})
+```
+
+### 问题6：如何实现数据库事务？
+
+使用 better-sqlite3 的事务：
+```typescript
+import { db } from './db'
+
+const transaction = db.transaction((assets) => {
+  for (const asset of assets) {
+    db.prepare('INSERT INTO assets (...) VALUES (...)').run(asset)
+  }
+})
+
+try {
+  transaction(assetList)
+} catch (error) {
+  // 事务会自动回滚
+  console.error('Transaction failed:', error)
+}
+```
+
+### 问题7：如何调试 Docker 容器？
+
+```bash
+# 查看容器日志
+docker logs asset-hub
+
+# 进入容器
+docker exec -it asset-hub sh
+
+# 查看容器资源使用
+docker stats asset-hub
+
+# 查看容器详细信息
+docker inspect asset-hub
+```
+
+### 问题8：如何处理时区问题？
+
+**后端统一使用 UTC**：
+```typescript
+const now = new Date().toISOString()  // UTC 时间
+```
+
+**前端显示本地时间**：
+```typescript
+import { format } from 'date-fns'
+import { zhCN, enUS } from 'date-fns/locale'
+
+const locale = lang === 'zh' ? zhCN : enUS
+const formatted = format(new Date(utcString), 'yyyy-MM-dd HH:mm:ss', { locale })
+```
+
+## 开发工具推荐
+
+### VS Code 扩展
+- **ESLint**：代码检查
+- **Prettier**：代码格式化
+- **TypeScript Vue Plugin (Volar)**：Vue 3 支持
+- **Tailwind CSS IntelliSense**：TailwindCSS 智能提示
+- **Docker**：Docker 支持
+- **SQLite Viewer**：查看 SQLite 数据库
+
+### 调试工具
+- **Postman / Insomnia**：API 测试
+- **DB Browser for SQLite**：SQLite 可视化工具
+- **React Developer Tools**：React 调试
+- **Redux DevTools**：状态管理调试（如果用 Redux）
+
+### 性能分析
+- **Lighthouse**：前端性能分析
+- **Webpack Bundle Analyzer**：打包分析
+- **Node.js Profiler**：后端性能分析
+
+## 学习资源
+
+### React 生态
+- [React 官方文档](https://react.dev/)
+- [Vite 文档](https://vitejs.dev/)
+- [TailwindCSS 文档](https://tailwindcss.com/)
+- [shadcn/ui 组件](https://ui.shadcn.com/)
+- [React Router 文档](https://reactrouter.com/)
+- [Zustand 文档](https://zustand-demo.pmnd.rs/)
+- [React Hook Form 文档](https://react-hook-form.com/)
+- [Zod 文档](https://zod.dev/)
+
+### Node.js 后端
+- [Koa 文档](https://koajs.com/)
+- [better-sqlite3 文档](https://github.com/WiseLibs/better-sqlite3)
+- [Pino 日志库](https://getpino.io/)
+
+### Docker
+- [Docker 官方文档](https://docs.docker.com/)
+- [Docker Compose 文档](https://docs.docker.com/compose/)
+
+### DooTask
+- [DooTask 官网](https://www.dootask.com)
+- [DooTask GitHub](https://github.com/kuaifan/dootask)
+- [DooTask App Store](https://appstore.dootask.com/)
+
+## 快速命令参考
+
+### 开发常用命令
+```bash
+# 启动开发环境
+make dev
+
+# 构建项目
+make build
+
+# 构建 Docker 镜像
+make docker-build VERSION=1.0.0
+
+# 推送 Docker 镜像
+make docker-push VERSION=1.0.0
+
+# 打包插件
+make release VERSION=1.0.0
+```
+
+### Git 命令
+```bash
+# 创建新功能分支
+git checkout -b feature/asset-inventory
+
+# 提交代码
+git add .
+git commit -m "feat: add asset inventory feature"
+
+# 创建版本标签
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+### Docker 命令
+```bash
+# 构建镜像
+docker build -t asset-hub:1.0.0 .
+
+# 运行容器
+docker run -p 8080:8080 -v $(pwd)/data:/app/data asset-hub:1.0.0
+
+# 查看日志
+docker logs -f asset-hub
+
+# 清理未使用的镜像
+docker system prune -a
+```
+
+### npm/pnpm 命令
+```bash
+# 安装依赖
+pnpm install
+
+# 添加依赖
+pnpm add package-name
+
+# 添加开发依赖
+pnpm add -D package-name
+
+# 更新依赖
+pnpm update
+
+# 运行脚本
+pnpm dev
+pnpm build
+```
+
+## 故障排查指南
+
+### 前端问题
+
+| 问题 | 可能原因 | 解决方案 |
+|------|---------|---------|
+| 白屏 | 路由配置错误 | 检查 `routes.tsx` 配置 |
+| API 请求失败 | CORS/Token问题 | 检查 axios 拦截器和 token |
+| 主题不生效 | 未正确获取主题 | 检查 `getThemeName()` 调用 |
+| 多语言不显示 | 翻译文件缺失 | 检查 `locales/` 文件 |
+
+### 后端问题
+
+| 问题 | 可能原因 | 解决方案 |
+|------|---------|---------|
+| 端口占用 | 端口已被使用 | 修改 `.env` 中的 PORT |
+| 数据库锁定 | 并发写入问题 | 使用 WAL 模式或事务 |
+| 内存溢出 | 大量数据查询 | 添加分页和索引 |
+| 文件上传失败 | 文件大小限制 | 检查 `koaBody` 配置 |
+
+### Docker 问题
+
+| 问题 | 可能原因 | 解决方案 |
+|------|---------|---------|
+| 容器无法启动 | 环境变量缺失 | 检查 `.env` 和 `docker-compose.yml` |
+| 数据丢失 | 未挂载卷 | 添加 volume 挂载 |
+| 网络不通 | 网络配置错误 | 检查 `dootask_default` 网络 |
+| 构建缓慢 | 缓存未利用 | 使用 Docker BuildKit |
+
+## 使用建议
+
+1. **先搜索文档**：遇到问题先查阅对应的规则文档
+2. **参考示例**：不确定如何实现时，参考 MCP 示例代码
+3. **保持一致**：遵循项目现有的代码风格和架构
+4. **及时测试**：每完成一个功能就测试，不要积累问题
+5. **记录决策**：重要的技术决策添加注释或文档

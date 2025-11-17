@@ -1,0 +1,437 @@
+---
+description: 后端详细代码模板和示例（按需加载）
+---
+
+# 后端开发 - 代码模板
+
+本文档提供详细的后端代码模板，按需参考。
+
+## 完整 CRUD 示例
+
+### Controller 完整示例
+```typescript
+// src/controllers/assetController.ts
+import { Context } from 'koa'
+import { z } from 'zod'
+import * as assetService from '../services/assetService'
+import { success, error } from '../utils/response'
+
+const createSchema = z.object({
+  name: z.string().min(2, '名称至少2个字符'),
+  type: z.string().min(1, '请选择资产类型'),
+  price: z.number().positive('价格必须大于0'),
+  purchaseDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, '日期格式错误'),
+})
+
+const updateSchema = createSchema.partial()
+
+const querySchema = z.object({
+  page: z.string().optional().transform(v => v ? parseInt(v, 10) : 1),
+  pageSize: z.string().optional().transform(v => v ? parseInt(v, 10) : 20),
+  status: z.enum(['all', 'in-use', 'idle', 'scrapped']).optional(),
+  search: z.string().optional(),
+})
+
+export async function getList(ctx: Context) {
+  try {
+    const params = querySchema.parse(ctx.query)
+    const result = await assetService.getAssetList(params)
+    ctx.body = success(result)
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      ctx.body = error('参数验证失败', 'VALIDATION_ERROR', err.errors)
+    } else {
+      throw err
+    }
+  }
+}
+
+export async function getDetail(ctx: Context) {
+  const id = parseInt(ctx.params.id, 10)
+  if (isNaN(id)) {
+    ctx.body = error('无效的资产ID', 'INVALID_ID')
+    return
+  }
+
+  const asset = await assetService.getAssetById(id)
+  if (!asset) {
+    ctx.body = error('资产不存在', 'NOT_FOUND')
+    return
+  }
+
+  ctx.body = success(asset)
+}
+
+export async function create(ctx: Context) {
+  try {
+    const data = createSchema.parse(ctx.request.body)
+    const userId = ctx.state.user.id
+    
+    const asset = await assetService.createAsset({
+      ...data,
+      createdBy: userId,
+    })
+    
+    ctx.body = success(asset, '创建成功')
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      ctx.body = error('参数验证失败', 'VALIDATION_ERROR', err.errors)
+    } else {
+      throw err
+    }
+  }
+}
+
+export async function update(ctx: Context) {
+  const id = parseInt(ctx.params.id, 10)
+  if (isNaN(id)) {
+    ctx.body = error('无效的资产ID', 'INVALID_ID')
+    return
+  }
+
+  try {
+    const data = updateSchema.parse(ctx.request.body)
+    const asset = await assetService.updateAsset(id, data)
+    
+    if (!asset) {
+      ctx.body = error('资产不存在', 'NOT_FOUND')
+      return
+    }
+    
+    ctx.body = success(asset, '更新成功')
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      ctx.body = error('参数验证失败', 'VALIDATION_ERROR', err.errors)
+    } else {
+      throw err
+    }
+  }
+}
+
+export async function remove(ctx: Context) {
+  const id = parseInt(ctx.params.id, 10)
+  if (isNaN(id)) {
+    ctx.body = error('无效的资产ID', 'INVALID_ID')
+    return
+  }
+
+  const deleted = await assetService.deleteAsset(id)
+  if (!deleted) {
+    ctx.body = error('资产不存在', 'NOT_FOUND')
+    return
+  }
+
+  ctx.body = success(null, '删除成功')
+}
+
+export async function batchDelete(ctx: Context) {
+  const { ids } = ctx.request.body as { ids: number[] }
+  
+  if (!Array.isArray(ids) || ids.length === 0) {
+    ctx.body = error('请提供要删除的资产ID列表', 'INVALID_PARAMS')
+    return
+  }
+
+  const count = await assetService.batchDeleteAssets(ids)
+  ctx.body = success({ count }, `成功删除 ${count} 个资产`)
+}
+```
+
+### Service 完整示例
+```typescript
+// src/services/assetService.ts
+import { db } from '../models/db'
+import { Asset, AssetInsert, AssetUpdate } from '../types'
+
+export interface AssetListParams {
+  page: number
+  pageSize: number
+  status?: string
+  search?: string
+}
+
+export function getAssetList(params: AssetListParams) {
+  const { page, pageSize, status, search } = params
+  const offset = (page - 1) * pageSize
+
+  let query = 'SELECT * FROM assets WHERE 1=1'
+  const queryParams: any[] = []
+
+  if (status && status !== 'all') {
+    query += ' AND status = ?'
+    queryParams.push(status)
+  }
+
+  if (search) {
+    query += ' AND (name LIKE ? OR code LIKE ?)'
+    const searchPattern = `%${search}%`
+    queryParams.push(searchPattern, searchPattern)
+  }
+
+  const countQuery = query.replace('SELECT *', 'SELECT COUNT(*) as count')
+  const countResult = db.prepare(countQuery).get(...queryParams) as { count: number }
+  const total = countResult.count
+
+  query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?'
+  queryParams.push(pageSize, offset)
+  
+  const list = db.prepare(query).all(...queryParams) as Asset[]
+
+  return { list, total, page, pageSize }
+}
+
+export function getAssetById(id: number): Asset | undefined {
+  const stmt = db.prepare('SELECT * FROM assets WHERE id = ?')
+  return stmt.get(id) as Asset | undefined
+}
+
+export function createAsset(data: AssetInsert): Asset {
+  const stmt = db.prepare(`
+    INSERT INTO assets (name, type, price, purchase_date, status, created_by, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `)
+  
+  const now = new Date().toISOString()
+  const result = stmt.run(
+    data.name,
+    data.type,
+    data.price,
+    data.purchaseDate,
+    'idle',
+    data.createdBy,
+    now
+  )
+
+  const asset = getAssetById(result.lastInsertRowid as number)
+  if (!asset) throw new Error('Failed to create asset')
+  return asset
+}
+
+export function updateAsset(id: number, data: AssetUpdate): Asset | null {
+  const existing = getAssetById(id)
+  if (!existing) return null
+
+  const fields: string[] = []
+  const values: any[] = []
+
+  if (data.name !== undefined) {
+    fields.push('name = ?')
+    values.push(data.name)
+  }
+  if (data.type !== undefined) {
+    fields.push('type = ?')
+    values.push(data.type)
+  }
+  if (data.price !== undefined) {
+    fields.push('price = ?')
+    values.push(data.price)
+  }
+  if (data.status !== undefined) {
+    fields.push('status = ?')
+    values.push(data.status)
+  }
+
+  if (fields.length === 0) return existing
+
+  fields.push('updated_at = ?')
+  values.push(new Date().toISOString())
+  values.push(id)
+
+  const stmt = db.prepare(`UPDATE assets SET ${fields.join(', ')} WHERE id = ?`)
+  stmt.run(...values)
+
+  return getAssetById(id)!
+}
+
+export function deleteAsset(id: number): boolean {
+  const stmt = db.prepare('DELETE FROM assets WHERE id = ?')
+  const result = stmt.run(id)
+  return result.changes > 0
+}
+
+export function batchDeleteAssets(ids: number[]): number {
+  const placeholders = ids.map(() => '?').join(',')
+  const stmt = db.prepare(`DELETE FROM assets WHERE id IN (${placeholders})`)
+  const result = stmt.run(...ids)
+  return result.changes
+}
+```
+
+## 数据库事务
+
+```typescript
+// 使用事务批量创建
+export function batchCreateAssets(assets: AssetInsert[]): Asset[] {
+  const transaction = db.transaction((assetList: AssetInsert[]) => {
+    const results: Asset[] = []
+    for (const asset of assetList) {
+      const result = createAsset(asset)
+      results.push(result)
+    }
+    return results
+  })
+
+  return transaction(assets)
+}
+```
+
+## 日志工具
+
+```typescript
+// src/utils/logger.ts
+import pino from 'pino'
+
+export function createLogger(name: string) {
+  return pino({
+    name,
+    level: process.env.LOG_LEVEL || 'info',
+    transport: {
+      target: 'pino-pretty',
+      options: {
+        colorize: true,
+        translateTime: 'SYS:standard',
+      },
+    },
+  })
+}
+
+// 使用
+const logger = createLogger('asset-service')
+logger.info({ assetId: 123 }, 'Asset created')
+logger.error({ err: error }, 'Failed to create asset')
+```
+
+## 文件上传处理
+
+```typescript
+// src/controllers/uploadController.ts
+import { Context } from 'koa'
+import { File } from 'formidable'
+import fs from 'fs'
+import path from 'path'
+import { success, error } from '../utils/response'
+
+export async function upload(ctx: Context) {
+  const file = ctx.request.files?.file as File
+  
+  if (!file) {
+    ctx.body = error('请选择文件', 'NO_FILE')
+    return
+  }
+
+  // 检查文件类型
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+  if (!allowedTypes.includes(file.mimetype || '')) {
+    ctx.body = error('只支持 JPG/PNG/WebP 格式', 'INVALID_FILE_TYPE')
+    return
+  }
+
+  // 检查文件大小（5MB）
+  if (file.size > 5 * 1024 * 1024) {
+    ctx.body = error('文件大小不能超过 5MB', 'FILE_TOO_LARGE')
+    return
+  }
+
+  // 生成文件名
+  const ext = path.extname(file.originalFilename || '')
+  const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`
+  const uploadDir = path.join(__dirname, '../../uploads')
+  const filepath = path.join(uploadDir, filename)
+
+  // 确保上传目录存在
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true })
+  }
+
+  // 移动文件
+  fs.renameSync(file.filepath, filepath)
+
+  ctx.body = success({
+    url: `/uploads/${filename}`,
+    filename: file.originalFilename,
+    size: file.size,
+  }, '上传成功')
+}
+```
+
+## 数据库迁移
+
+```typescript
+// src/models/migrations.ts
+import { db } from './db'
+
+interface Migration {
+  name: string
+  up: (db: any) => void
+  down: (db: any) => void
+}
+
+const migrations: Migration[] = [
+  {
+    name: '001_add_asset_location',
+    up: (db) => {
+      db.exec('ALTER TABLE assets ADD COLUMN location TEXT')
+      db.exec('CREATE INDEX IF NOT EXISTS idx_assets_location ON assets(location)')
+    },
+    down: (db) => {
+      // SQLite 不支持 DROP COLUMN，需要重建表
+    },
+  },
+]
+
+export function runMigrations() {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS migrations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      applied_at TEXT NOT NULL
+    )
+  `)
+
+  for (const migration of migrations) {
+    const exists = db.prepare('SELECT 1 FROM migrations WHERE name = ?').get(migration.name)
+
+    if (!exists) {
+      migration.up(db)
+      db.prepare('INSERT INTO migrations (name, applied_at) VALUES (?, ?)').run(
+        migration.name,
+        new Date().toISOString()
+      )
+      console.log(`Migration applied: ${migration.name}`)
+    }
+  }
+}
+```
+
+## 测试示例
+
+```typescript
+// src/services/assetService.test.ts
+import { describe, test, expect } from '@jest/globals'
+import { createAsset, getAssetById } from './assetService'
+
+describe('AssetService', () => {
+  test('should create asset', () => {
+    const asset = createAsset({
+      name: '测试资产',
+      type: '固定资产',
+      price: 1000,
+      purchaseDate: '2025-01-01',
+      createdBy: 1,
+    })
+
+    expect(asset.id).toBeGreaterThan(0)
+    expect(asset.name).toBe('测试资产')
+  })
+
+  test('should get asset by id', () => {
+    const asset = getAssetById(1)
+    expect(asset).toBeDefined()
+  })
+})
+```
+
+---
+
+**核心规范**: 查看 `@11-backend-core.mdc`  
+**工作流程**: 参考 `@30-workflow-templates.mdc`

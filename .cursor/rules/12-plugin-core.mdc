@@ -1,0 +1,213 @@
+---
+description: DooTask 插件开发核心规范
+globs:
+  - dootask-plugin/**
+  - Dockerfile
+---
+
+# DooTask 插件 - 核心规范
+
+## 插件目录结构
+
+```
+dootask-plugin/
+├── config.yml           # 应用基本配置（必需）
+├── logo.png             # 应用图标（必需）
+├── README.md            # 说明文档
+└── 1.0.0/               # 版本目录
+    ├── config.yml       # 版本配置（可选）
+    ├── docker-compose.yml  # Docker 编排（必需）
+    └── nginx.conf       # Nginx 配置（推荐）
+```
+
+## config.yml 核心配置
+
+```yaml
+name:
+  en: Asset Hub
+  zh: 资产管理
+
+description:
+  en: Enterprise asset lifecycle management
+  zh: 企业资产全生命周期管理系统
+
+tags:
+  - asset
+  - management
+
+author: Your Name
+github: https://github.com/your/asset-hub
+
+# 菜单配置
+menu_items:
+  - location: application
+    label:
+      en: Asset Hub
+      zh: 资产管理
+    url: "apps/asset-hub/?user_id={user_id}&theme={system_theme}&lang={system_lang}"
+    url_type: iframe              # 推荐：iframe
+    visible_to: all               # all / admin / "1,2,3"
+    keep_alive: true
+```
+
+## URL 变量
+
+| 变量 | 说明 |
+|------|------|
+| `{user_id}` | 用户 ID |
+| `{user_token}` | 用户 Token |
+| `{system_theme}` | 系统主题（light/dark） |
+| `{system_lang}` | 系统语言（zh-CN/en） |
+| `{system_base_url}` | 系统基础 URL |
+
+## URL 类型
+
+| 类型 | 说明 | 推荐度 |
+|------|------|--------|
+| `iframe` | 嵌入模式，独立性好 | ⭐️⭐️⭐️⭐️⭐️ 推荐 |
+| `inline` | 无缝集成，共享样式 | ⭐️⭐️⭐️ |
+| `iframe_blank` | 新窗口嵌入 | ⭐️⭐️⭐️⭐️ |
+| `external` | 外部链接 | ⭐️ |
+
+## docker-compose.yml
+
+```yaml
+services:
+  asset-hub-service:
+    image: your-registry/asset-hub:${PLUGIN_VERSION}
+    container_name: asset-hub
+    restart: always
+    environment:
+      - PORT=${PORT:-8080}
+      - NODE_ENV=production
+      - DB_PATH=/app/data/asset-hub.db
+    volumes:
+      - ${APP_CONFIG_PATH}/data:/app/data
+    ports:
+      - "${PORT:-8080}:8080"
+    networks:
+      - dootask_default
+
+networks:
+  dootask_default:
+    external: true
+```
+
+## 环境变量
+
+| 变量 | 说明 |
+|------|------|
+| `${APP_ID}` | 应用 ID |
+| `${APP_VERSION}` | 应用版本 |
+| `${APP_CONFIG_PATH}` | 配置目录路径 |
+| `${PLUGIN_VERSION}` | 插件版本号 |
+| `${字段名}` | 自定义字段值 |
+
+## nginx.conf
+
+```nginx
+# 主应用代理
+location /apps/asset-hub/ {
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_pass http://asset-hub-service:8080/;
+}
+
+# API 代理
+location /apps/asset-hub/api/ {
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_pass http://asset-hub-service:8080/api/;
+}
+```
+
+## Dockerfile
+
+```dockerfile
+FROM node:20-alpine AS base
+WORKDIR /app
+
+FROM base AS deps
+COPY server/package*.json ./server/
+COPY ui/package.json ./ui/
+RUN cd server && npm install
+RUN cd ui && npm install
+
+FROM deps AS build
+COPY server ./server
+COPY ui ./ui
+WORKDIR /app/ui
+RUN npm run build
+WORKDIR /app/server
+RUN npm run build && npm prune --omit=dev
+
+FROM base AS runner
+ENV NODE_ENV=production
+WORKDIR /app
+COPY --from=build /app/server/dist ./dist
+COPY --from=build /app/server/node_modules ./node_modules
+COPY --from=build /app/ui/dist ./public
+RUN mkdir -p /app/data
+EXPOSE 8080
+CMD ["node", "dist/index.js"]
+```
+
+## 版本管理
+
+**遵循 Semver**: `MAJOR.MINOR.PATCH`
+
+**同步更新**:
+- `dootask-plugin/config.yml`
+- `ui/package.json`
+- `server/package.json`
+- 创建新版本目录: `dootask-plugin/{version}/`
+
+## 构建和发布
+
+### 构建 Docker 镜像
+```bash
+docker build -t your-registry/asset-hub:1.0.0 .
+docker push your-registry/asset-hub:1.0.0
+```
+
+### 打包插件
+```bash
+cd dootask-plugin
+tar -czf asset-hub-1.0.0.tar.gz \
+  config.yml logo.png README.md 1.0.0/
+```
+
+### 发布到 App Store
+1. 登录 https://appstore.dootask.com/
+2. 上传 tar.gz 文件
+3. 填写更新说明
+4. 提交审核
+
+## 核心约束
+
+- ✅ 必须使用 `dootask_default` 网络
+- ✅ 数据必须持久化到 `${APP_CONFIG_PATH}`
+- ✅ Location 必须以 `/apps/{app-id}/` 开头
+- ✅ 推荐使用 `iframe` 模式
+- ❌ 不要硬编码端口（使用 ${PORT}）
+- ❌ 不要忽略健康检查
+
+## 测试检查清单
+
+- [ ] 菜单正确显示
+- [ ] URL 参数正确传递
+- [ ] 主题切换正常
+- [ ] 多语言正常
+- [ ] 数据持久化正常
+- [ ] Docker 容器正常运行
+- [ ] Nginx 代理正常
+
+---
+
+**详细配置**: 查看 `@12-plugin-templates.mdc`  
+**工作流程**: 参考 `@30-workflow-templates.mdc`

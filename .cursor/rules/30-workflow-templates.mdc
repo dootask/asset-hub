@@ -1,0 +1,1117 @@
+---
+description: 开发工作流程模板 - 如何创建新功能、新模块、新API
+---
+
+# 开发工作流程模板
+
+本文档提供常见开发任务的标准化工作流程模板。使用时通过 `@30-workflow-templates.mdc` 手动调用。
+
+## 工作流0：项目初始化
+
+**场景**：从零开始搭建项目结构
+
+### 步骤清单
+
+#### 1. 插件配置初始化
+
+**1.1 创建插件目录结构**
+```bash
+mkdir -p dootask-plugin/0.0.1
+```
+
+**1.2 创建 config.yml**
+```yaml
+# dootask-plugin/config.yml
+name: 资产管理
+identifier: asset-hub
+description: 企业资产全生命周期管理系统
+author: Your Name
+version: 0.0.1
+```
+
+**1.3 创建版本配置**
+- 参考 `@12-plugin-core.mdc` 完成 `dootask-plugin/0.0.1/config.yml`
+- 参考 `@12-plugin-templates.mdc` 完成 `docker-compose.yml` 和 `nginx.conf`
+
+#### 2. 后端项目初始化
+
+**2.1 创建项目结构**
+```bash
+mkdir -p server/src/{routes,controllers,services,models,middleware,utils}
+```
+
+**2.2 初始化 package.json**
+```bash
+cd server
+pnpm init
+```
+
+**2.3 安装依赖**
+```bash
+pnpm add koa koa-router koa-bodyparser koa-cors koa-static @koa/multer sqlite3 zod @dootask/tools
+pnpm add -D typescript @types/node @types/koa @types/koa-router @types/koa-bodyparser tsx
+```
+
+**2.4 创建 tsconfig.json**
+```json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}
+```
+
+**2.5 创建入口文件和数据库**
+- 参考 `@11-backend-core.mdc` 创建 `src/index.ts`
+- 参考 `@11-backend-templates.mdc` 创建 `src/models/db.ts`
+
+#### 3. 前端项目初始化
+
+**3.1 创建 Vite 项目**
+```bash
+pnpm create vite@latest ui -- --template react-ts
+cd ui
+```
+
+**3.2 安装 TailwindCSS**
+```bash
+pnpm add tailwindcss @tailwindcss/vite
+```
+
+**3.3 配置 TailwindCSS**
+
+创建 `tailwind.config.js`:
+```javascript
+export default {
+  darkMode: ['class'],
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+}
+```
+
+修改 `vite.config.ts`:
+```typescript
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+})
+```
+
+创建 `src/index.css`:
+```css
+@import 'tailwindcss';
+```
+
+**3.4 安装 shadcn/ui**
+
+参考官方文档：https://ui.shadcn.com/docs/installation/vite.md
+
+```bash
+# 初始化 shadcn/ui
+npx shadcn@latest init
+
+# 添加需要的组件（按需）
+npx shadcn@latest add button
+npx shadcn@latest add card
+npx shadcn@latest add form
+npx shadcn@latest add table
+```
+
+**3.5 安装其他依赖**
+```bash
+# 路由和状态管理
+pnpm add react-router-dom zustand
+
+# HTTP 和数据获取
+pnpm add axios @tanstack/react-query
+
+# 表单处理
+pnpm add react-hook-form zod @hookform/resolvers
+
+# 国际化
+pnpm add react-i18next i18next
+
+# DooTask 集成
+pnpm add @dootask/tools
+
+# 图标
+pnpm add lucide-react
+```
+
+**3.6 创建项目结构**
+```bash
+mkdir -p src/{pages,components,hooks,stores,api,utils,locales}
+mkdir -p src/components/{ui,layout,common}
+```
+
+**3.7 配置路径别名**
+
+修改 `vite.config.ts`:
+```typescript
+import path from 'path'
+
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+})
+```
+
+修改 `tsconfig.json`:
+```json
+{
+  "compilerOptions": {
+    // ... 其他配置
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}
+```
+
+**3.8 初始化多语言和主题**
+- 参考 `@10-frontend-core.mdc` 的"多语言实现"和"深色主题实现"章节
+- 参考 `@10-frontend-templates.mdc` 的代码模板
+
+#### 4. 创建 Dockerfile 和 Makefile
+
+**4.1 创建 Dockerfile**
+```dockerfile
+FROM node:20-alpine
+
+WORKDIR /app
+
+# 安装 pnpm
+RUN npm install -g pnpm
+
+# 复制依赖文件
+COPY server/package.json server/pnpm-lock.yaml ./server/
+COPY ui/package.json ui/pnpm-lock.yaml ./ui/
+
+# 安装依赖
+RUN cd server && pnpm install --frozen-lockfile
+RUN cd ui && pnpm install --frozen-lockfile
+
+# 复制源代码
+COPY server ./server
+COPY ui ./ui
+
+# 构建前端
+RUN cd ui && pnpm build
+
+# 构建后端
+RUN cd server && pnpm build
+
+# 暴露端口
+EXPOSE 8080
+
+# 启动命令
+CMD ["node", "server/dist/index.js"]
+```
+
+**4.2 创建 Makefile**
+```makefile
+.PHONY: dev build test clean
+
+dev:
+	@echo "Starting development environment..."
+	@make -j2 dev-server dev-ui
+
+dev-server:
+	cd server && pnpm install && pnpm dev
+
+dev-ui:
+	cd ui && pnpm install && pnpm dev
+
+build:
+	@echo "Building project..."
+	cd ui && pnpm install && pnpm build
+	cd server && pnpm install && pnpm build
+
+test:
+	@echo "Running tests..."
+	cd server && pnpm test
+	cd ui && pnpm test
+
+clean:
+	@echo "Cleaning build artifacts..."
+	rm -rf server/dist ui/dist server/node_modules ui/node_modules
+```
+
+#### 5. 初始化 Git 和提交
+
+```bash
+git add .
+git commit -m "feat: 初始化项目结构"
+```
+
+---
+
+## 工作流1：创建新的业务模块
+
+**场景**：需要添加一个全新的业务功能（如"资产盘点"模块）
+
+### 步骤清单
+
+#### 1. 规划阶段
+- [ ] 明确模块的核心功能和业务流程
+- [ ] 设计数据模型（表结构、字段、关系）
+- [ ] 设计 API 接口（RESTful 风格）
+- [ ] 设计页面结构和路由
+- [ ] 确定权限要求
+
+#### 2. 后端开发
+
+**2.1 创建数据库表**
+```typescript
+// server/src/models/db.ts
+// 在 initDatabase() 函数中添加
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS inventories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    start_date TEXT NOT NULL,
+    end_date TEXT,
+    assignee_id INTEGER NOT NULL,
+    created_by INTEGER NOT NULL,
+    created_at TEXT NOT NULL,
+    completed_at TEXT
+  )
+`)
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS inventory_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    inventory_id INTEGER NOT NULL,
+    asset_id INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    notes TEXT,
+    checked_at TEXT,
+    FOREIGN KEY (inventory_id) REFERENCES inventories(id),
+    FOREIGN KEY (asset_id) REFERENCES assets(id)
+  )
+`)
+
+db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_inventory_items_inventory ON inventory_items(inventory_id);
+  CREATE INDEX IF NOT EXISTS idx_inventory_items_asset ON inventory_items(asset_id);
+`)
+```
+
+**2.2 创建类型定义**
+```typescript
+// server/src/types/index.ts
+
+export interface Inventory {
+  id: number
+  name: string
+  type: string
+  status: 'pending' | 'in-progress' | 'completed'
+  start_date: string
+  end_date?: string
+  assignee_id: number
+  created_by: number
+  created_at: string
+  completed_at?: string
+}
+
+export type InventoryInsert = Omit<Inventory, 'id' | 'created_at' | 'completed_at'>
+export type InventoryUpdate = Partial<Omit<Inventory, 'id' | 'created_by' | 'created_at'>>
+```
+
+**2.3 创建服务层**
+```typescript
+// server/src/services/inventoryService.ts
+
+import { db } from '../models/db'
+import { Inventory, InventoryInsert, InventoryUpdate } from '../types'
+
+export function getInventoryList(params: any) {
+  // 实现列表查询逻辑
+}
+
+export function getInventoryById(id: number): Inventory | undefined {
+  const stmt = db.prepare('SELECT * FROM inventories WHERE id = ?')
+  return stmt.get(id) as Inventory | undefined
+}
+
+export function createInventory(data: InventoryInsert): Inventory {
+  // 实现创建逻辑
+}
+
+export function updateInventory(id: number, data: InventoryUpdate): Inventory | null {
+  // 实现更新逻辑
+}
+
+export function deleteInventory(id: number): boolean {
+  // 实现删除逻辑
+}
+```
+
+**2.4 创建控制器**
+```typescript
+// server/src/controllers/inventoryController.ts
+
+import { Context } from 'koa'
+import { z } from 'zod'
+import * as inventoryService from '../services/inventoryService'
+import { success, error } from '../utils/response'
+
+const createSchema = z.object({
+  name: z.string().min(2),
+  type: z.string(),
+  startDate: z.string(),
+  assigneeId: z.number(),
+})
+
+export async function getList(ctx: Context) {
+  const result = await inventoryService.getInventoryList(ctx.query)
+  ctx.body = success(result)
+}
+
+export async function getDetail(ctx: Context) {
+  const id = parseInt(ctx.params.id, 10)
+  const inventory = await inventoryService.getInventoryById(id)
+  if (!inventory) {
+    ctx.body = error('盘点任务不存在', 'NOT_FOUND')
+    return
+  }
+  ctx.body = success(inventory)
+}
+
+export async function create(ctx: Context) {
+  try {
+    const data = createSchema.parse(ctx.request.body)
+    const inventory = await inventoryService.createInventory({
+      ...data,
+      createdBy: ctx.state.user.id,
+    })
+    ctx.body = success(inventory, '创建成功')
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      ctx.body = error('参数验证失败', 'VALIDATION_ERROR', err.errors)
+    } else {
+      throw err
+    }
+  }
+}
+
+// ... 其他方法
+```
+
+**2.5 创建路由**
+```typescript
+// server/src/routes/inventory.ts
+
+import Router from 'koa-router'
+import * as inventoryController from '../controllers/inventoryController'
+import { authMiddleware } from '../middleware/auth'
+
+const router = new Router({ prefix: '/api/inventories' })
+
+router.use(authMiddleware)
+
+router.get('/', inventoryController.getList)
+router.get('/:id', inventoryController.getDetail)
+router.post('/', inventoryController.create)
+router.put('/:id', inventoryController.update)
+router.delete('/:id', inventoryController.remove)
+
+export default router
+```
+
+**2.6 注册路由**
+```typescript
+// server/src/routes/index.ts
+
+import inventoryRouter from './inventory'
+
+// ... 其他路由
+
+router.use(inventoryRouter.routes())
+```
+
+#### 3. 前端开发
+
+**3.1 创建 API 客户端**
+```typescript
+// ui/src/api/inventory.ts
+
+import { apiClient } from './client'
+
+export interface Inventory {
+  id: number
+  name: string
+  type: string
+  status: 'pending' | 'in-progress' | 'completed'
+  startDate: string
+  endDate?: string
+  assigneeId: number
+  createdBy: number
+  createdAt: string
+  completedAt?: string
+}
+
+export const getInventoryList = async (params?: any) => {
+  return apiClient.get('/inventories', { params })
+}
+
+export const getInventoryDetail = async (id: number) => {
+  return apiClient.get(`/inventories/${id}`)
+}
+
+export const createInventory = async (data: any) => {
+  return apiClient.post('/inventories', data)
+}
+
+export const updateInventory = async (id: number, data: any) => {
+  return apiClient.put(`/inventories/${id}`, data)
+}
+
+export const deleteInventory = async (id: number) => {
+  return apiClient.delete(`/inventories/${id}`)
+}
+```
+
+**3.2 创建状态管理（如需要）**
+```typescript
+// ui/src/stores/inventoryStore.ts
+
+import { create } from 'zustand'
+import { Inventory } from '@/api/inventory'
+
+interface InventoryState {
+  currentInventory: Inventory | null
+  setCurrentInventory: (inventory: Inventory | null) => void
+}
+
+export const useInventoryStore = create<InventoryState>((set) => ({
+  currentInventory: null,
+  setCurrentInventory: (inventory) => set({ currentInventory: inventory }),
+}))
+```
+
+**3.3 创建页面组件**
+```typescript
+// ui/src/pages/inventory/index.tsx
+
+import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
+import { getInventoryList } from '@/api/inventory'
+
+export default function InventoryPage() {
+  const { t } = useTranslation()
+  const [inventories, setInventories] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const result = await getInventoryList()
+        setInventories(result.list)
+      } catch (error) {
+        console.error('Failed to fetch inventories:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [])
+
+  if (loading) {
+    return <div>Loading...</div>
+  }
+
+  return (
+    <div>
+      <h1>{t('inventory.title')}</h1>
+      {/* 渲染列表 */}
+    </div>
+  )
+}
+```
+
+**3.4 添加路由**
+```typescript
+// ui/src/routes.tsx
+
+import { lazy } from 'react'
+
+const InventoryPage = lazy(() => import('@/pages/inventory'))
+
+export const routes = [
+  // ... 其他路由
+  {
+    path: '/inventory',
+    element: <InventoryPage />,
+  },
+]
+```
+
+**3.5 添加多语言**
+```json
+// ui/src/locales/zh/common.json
+{
+  "inventory": {
+    "title": "资产盘点",
+    "create": "创建盘点任务",
+    "name": "盘点名称",
+    "type": "盘点类型"
+  }
+}
+
+// ui/src/locales/en/common.json
+{
+  "inventory": {
+    "title": "Asset Inventory",
+    "create": "Create Inventory",
+    "name": "Inventory Name",
+    "type": "Inventory Type"
+  }
+}
+```
+
+#### 4. 测试
+- [ ] 后端单元测试
+- [ ] API 接口测试（Postman/Insomnia）
+- [ ] 前端功能测试
+- [ ] 多语言测试
+- [ ] 主题切换测试
+- [ ] 权限测试
+
+#### 5. 文档更新
+- [ ] 更新 API 文档
+- [ ] 更新用户手册
+- [ ] 更新 CHANGELOG
+
+---
+
+## 工作流2：添加新的 API 接口
+
+**场景**：在现有模块中添加一个新的 API 端点
+
+### 快速步骤
+
+1. **后端**：在对应的 service → controller → router 中添加
+2. **前端**：在对应的 API 文件中添加方法
+3. **类型**：更新 TypeScript 类型定义
+4. **测试**：编写测试用例
+
+### 示例：添加"批量删除资产"接口
+
+**后端**：
+```typescript
+// server/src/services/assetService.ts
+export function batchDeleteAssets(ids: number[]): number {
+  const stmt = db.prepare('DELETE FROM assets WHERE id IN (' + ids.map(() => '?').join(',') + ')')
+  const result = stmt.run(...ids)
+  return result.changes
+}
+
+// server/src/controllers/assetController.ts
+export async function batchDelete(ctx: Context) {
+  const { ids } = ctx.request.body as { ids: number[] }
+  if (!Array.isArray(ids) || ids.length === 0) {
+    ctx.body = error('请提供要删除的资产ID列表', 'INVALID_PARAMS')
+    return
+  }
+  const count = await assetService.batchDeleteAssets(ids)
+  ctx.body = success({ count }, `成功删除 ${count} 个资产`)
+}
+
+// server/src/routes/asset.ts
+router.post('/batch-delete', assetController.batchDelete)
+```
+
+**前端**：
+```typescript
+// ui/src/api/asset.ts
+export const batchDeleteAssets = async (ids: number[]) => {
+  return apiClient.post('/assets/batch-delete', { ids })
+}
+```
+
+---
+
+## 工作流3：实现审批流程
+
+**场景**：为某个操作添加审批流程（如"资产采购审批"）
+
+### 核心步骤
+
+#### 1. 设计审批流程数据结构
+
+```typescript
+// server/src/types/index.ts
+export interface ApprovalFlow {
+  id: number
+  name: string
+  type: string  // 操作类型: purchase, borrow, transfer, etc.
+  steps: ApprovalStep[]
+}
+
+export interface ApprovalStep {
+  step: number
+  approverType: 'user' | 'role' | 'manager'
+  approverId?: number  // 如果是具体用户
+  roleId?: number      // 如果是角色
+  required: boolean    // 是否必须
+}
+
+export interface ApprovalRecord {
+  id: number
+  operationId: number  // 关联的操作ID
+  operationType: string
+  currentStep: number
+  status: 'pending' | 'approved' | 'rejected'
+  approvals: ApprovalDetail[]
+}
+
+export interface ApprovalDetail {
+  step: number
+  approverId: number
+  status: 'pending' | 'approved' | 'rejected'
+  comment: string
+  approvedAt?: string
+}
+```
+
+#### 2. 创建审批表
+
+```typescript
+// server/src/models/db.ts
+db.exec(`
+  CREATE TABLE IF NOT EXISTS approval_flows (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL,
+    steps TEXT NOT NULL,  -- JSON 格式存储步骤
+    created_at TEXT NOT NULL
+  )
+`)
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS approval_records (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    operation_id INTEGER NOT NULL,
+    operation_type TEXT NOT NULL,
+    flow_id INTEGER NOT NULL,
+    current_step INTEGER NOT NULL DEFAULT 1,
+    status TEXT NOT NULL DEFAULT 'pending',
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (flow_id) REFERENCES approval_flows(id)
+  )
+`)
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS approval_details (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    record_id INTEGER NOT NULL,
+    step INTEGER NOT NULL,
+    approver_id INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    comment TEXT,
+    approved_at TEXT,
+    FOREIGN KEY (record_id) REFERENCES approval_records(id)
+  )
+`)
+```
+
+#### 3. 实现审批服务
+
+```typescript
+// server/src/services/approvalService.ts
+
+export function createApprovalRecord(
+  operationId: number,
+  operationType: string,
+  flowId: number
+): ApprovalRecord {
+  // 1. 获取审批流程
+  const flow = getApprovalFlow(flowId)
+  
+  // 2. 创建审批记录
+  const stmt = db.prepare(`
+    INSERT INTO approval_records (operation_id, operation_type, flow_id, current_step, status, created_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `)
+  const now = new Date().toISOString()
+  const result = stmt.run(operationId, operationType, flowId, 1, 'pending', now)
+  const recordId = result.lastInsertRowid as number
+  
+  // 3. 为每个步骤创建审批详情
+  const detailStmt = db.prepare(`
+    INSERT INTO approval_details (record_id, step, approver_id, status)
+    VALUES (?, ?, ?, ?)
+  `)
+  for (const step of flow.steps) {
+    const approverId = resolveApproverId(step)  // 根据规则解析审批人ID
+    detailStmt.run(recordId, step.step, approverId, 'pending')
+  }
+  
+  // 4. 发送通知给第一步审批人
+  notifyApprover(recordId, 1)
+  
+  return getApprovalRecord(recordId)!
+}
+
+export function submitApproval(
+  recordId: number,
+  step: number,
+  approverId: number,
+  status: 'approved' | 'rejected',
+  comment: string
+): ApprovalRecord {
+  // 1. 更新审批详情
+  const stmt = db.prepare(`
+    UPDATE approval_details 
+    SET status = ?, comment = ?, approved_at = ?
+    WHERE record_id = ? AND step = ? AND approver_id = ?
+  `)
+  const now = new Date().toISOString()
+  stmt.run(status, comment, now, recordId, step, approverId)
+  
+  // 2. 如果拒绝，整个流程结束
+  if (status === 'rejected') {
+    updateApprovalRecordStatus(recordId, 'rejected')
+    notifyApplicant(recordId, 'rejected')
+    return getApprovalRecord(recordId)!
+  }
+  
+  // 3. 如果通过，检查是否还有下一步
+  const record = getApprovalRecord(recordId)!
+  const nextStep = step + 1
+  const hasNextStep = record.approvals.some(a => a.step === nextStep)
+  
+  if (hasNextStep) {
+    // 进入下一步
+    updateApprovalRecordStep(recordId, nextStep)
+    notifyApprover(recordId, nextStep)
+  } else {
+    // 所有步骤完成，审批通过
+    updateApprovalRecordStatus(recordId, 'approved')
+    notifyApplicant(recordId, 'approved')
+    executePostApprovalAction(record)  // 执行审批后操作（如更新资产状态）
+  }
+  
+  return getApprovalRecord(recordId)!
+}
+```
+
+#### 4. 前端审批界面
+
+```typescript
+// ui/src/pages/approval/detail.tsx
+
+import { useState, useEffect } from 'react'
+import { useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { getApprovalDetail, submitApproval } from '@/api/approval'
+import { modalSuccess, modalError } from '@dootask/tools'
+
+export default function ApprovalDetailPage() {
+  const { id } = useParams()
+  const { t } = useTranslation()
+  const [approval, setApproval] = useState(null)
+  const [comment, setComment] = useState('')
+
+  useEffect(() => {
+    fetchApprovalDetail()
+  }, [id])
+
+  const fetchApprovalDetail = async () => {
+    try {
+      const result = await getApprovalDetail(Number(id))
+      setApproval(result)
+    } catch (error) {
+      await modalError(t('approval.fetchFailed'))
+    }
+  }
+
+  const handleApprove = async () => {
+    try {
+      await submitApproval(Number(id), {
+        status: 'approved',
+        comment,
+      })
+      await modalSuccess(t('approval.approveSuccess'))
+      fetchApprovalDetail()
+    } catch (error) {
+      console.error('Approve failed:', error)
+    }
+  }
+
+  const handleReject = async () => {
+    if (!comment) {
+      await modalError(t('approval.commentRequired'))
+      return
+    }
+    try {
+      await submitApproval(Number(id), {
+        status: 'rejected',
+        comment,
+      })
+      await modalSuccess(t('approval.rejectSuccess'))
+      fetchApprovalDetail()
+    } catch (error) {
+      console.error('Reject failed:', error)
+    }
+  }
+
+  if (!approval) {
+    return <div>Loading...</div>
+  }
+
+  return (
+    <div>
+      <h1>{t('approval.title')}</h1>
+      {/* 显示审批详情 */}
+      <textarea
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        placeholder={t('approval.commentPlaceholder')}
+      />
+      <button onClick={handleApprove}>{t('approval.approve')}</button>
+      <button onClick={handleReject}>{t('approval.reject')}</button>
+    </div>
+  )
+}
+```
+
+#### 5. 集成 DooTask 待办
+
+```typescript
+// 发送审批通知时，创建 DooTask 待办
+import { openTask } from '@dootask/tools'
+
+async function notifyApprover(recordId: number, step: number) {
+  const record = getApprovalRecord(recordId)
+  const approver = getApprover(recordId, step)
+  
+  // TODO: 调用 DooTask API 创建待办任务
+  // 需要使用 DooTask 的任务创建 API
+  // 任务标题：'【资产管理】审批通知：{操作类型}'
+  // 任务内容：包含审批详情和快捷链接
+  // 分配给：approver.id
+}
+```
+
+---
+
+## 工作流4：发布新版本
+
+**场景**：开发完成，准备发布新版本
+
+### 发布清单
+
+#### 1. 版本准备
+- [ ] 确定版本号（MAJOR.MINOR.PATCH）
+- [ ] 更新 `ui/package.json` 的 version
+- [ ] 更新 `server/package.json` 的 version
+- [ ] 更新 CHANGELOG.md
+
+#### 2. 构建测试
+```bash
+# 前端构建
+cd ui
+pnpm build
+pnpm preview  # 测试构建产物
+
+# 后端构建
+cd server
+npm run build
+npm start  # 测试构建产物
+
+# Docker 构建测试
+docker build -t asset-hub:test .
+docker run -p 8080:8080 asset-hub:test
+```
+
+#### 3. 创建插件版本目录
+```bash
+cd dootask-plugin
+mkdir 1.0.1
+cp 1.0.0/* 1.0.1/
+# 修改 1.0.1/docker-compose.yml 中的镜像版本
+```
+
+#### 4. 构建并推送 Docker 镜像
+```bash
+docker build -t your-registry/asset-hub:1.0.1 .
+docker tag your-registry/asset-hub:1.0.1 your-registry/asset-hub:latest
+docker push your-registry/asset-hub:1.0.1
+docker push your-registry/asset-hub:latest
+```
+
+#### 5. 打包插件
+```bash
+cd dootask-plugin
+tar -czf asset-hub-1.0.1.tar.gz \
+  config.yml logo.png README.md README_zh.md 1.0.1/
+```
+
+#### 6. 创建 Git Tag
+```bash
+git add .
+git commit -m "Release v1.0.1"
+git tag v1.0.1
+git push origin main
+git push origin v1.0.1
+```
+
+#### 7. 发布到 App Store
+- 登录 DooTask App Store
+- 上传 `asset-hub-1.0.1.tar.gz`
+- 填写更新说明
+- 提交审核
+
+---
+
+## 工作流5：数据库迁移
+
+**场景**：需要修改数据库表结构
+
+### 迁移步骤
+
+#### 1. 编写迁移脚本
+```typescript
+// server/src/migrations/001_add_asset_location.ts
+
+export function up(db: Database) {
+  db.exec(`
+    ALTER TABLE assets ADD COLUMN location TEXT;
+  `)
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_assets_location ON assets(location);
+  `)
+}
+
+export function down(db: Database) {
+  // SQLite 不支持 DROP COLUMN，需要重建表
+  db.exec(`
+    CREATE TABLE assets_new AS SELECT 
+      id, name, type, status, price, purchase_date, 
+      description, owner_id, created_by, created_at, 
+      updated_at, deleted_at
+    FROM assets;
+  `)
+  db.exec(`DROP TABLE assets;`)
+  db.exec(`ALTER TABLE assets_new RENAME TO assets;`)
+}
+```
+
+#### 2. 执行迁移
+```typescript
+// server/src/models/migrations.ts
+
+import { db } from './db'
+
+const migrations = [
+  require('./migrations/001_add_asset_location'),
+  // ... 更多迁移
+]
+
+export function runMigrations() {
+  // 创建迁移记录表
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS migrations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      applied_at TEXT NOT NULL
+    )
+  `)
+
+  // 执行未应用的迁移
+  for (const migration of migrations) {
+    const name = migration.name || 'unnamed'
+    const exists = db.prepare(
+      'SELECT 1 FROM migrations WHERE name = ?'
+    ).get(name)
+
+    if (!exists) {
+      migration.up(db)
+      db.prepare(
+        'INSERT INTO migrations (name, applied_at) VALUES (?, ?)'
+      ).run(name, new Date().toISOString())
+      console.log(`Migration applied: ${name}`)
+    }
+  }
+}
+```
+
+#### 3. 在应用启动时运行迁移
+```typescript
+// server/src/index.ts
+
+import { runMigrations } from './models/migrations'
+
+async function bootstrap() {
+  await initDatabase()
+  await runMigrations()  // 执行迁移
+  // ... 启动服务器
+}
+```
+
+---
+
+## 快捷命令总结
+
+```bash
+# 开发
+make dev
+
+# 构建
+make build
+
+# Docker 构建
+make docker-build VERSION=1.0.1
+
+# Docker 推送
+make docker-push VERSION=1.0.1
+
+# 打包插件
+make release VERSION=1.0.1
+
+# 运行测试
+make test
+
+# 代码格式化
+make format
+
+# 代码检查
+make lint
+```
+
+---
+
+## 开发提示
+
+1. **遵循现有模式**：参考已有模块的实现方式
+2. **类型安全**：充分利用 TypeScript 的类型系统
+3. **错误处理**：所有异步操作都要有 try-catch
+4. **用户反馈**：使用 @dootask/tools 的提示框提供及时反馈
+5. **日志记录**：重要操作记录日志
+6. **性能考虑**：列表分页、图片压缩、懒加载
+7. **安全性**：参数验证、权限检查、SQL 防注入
+8. **可维护性**：代码注释、文档更新、规范命名
