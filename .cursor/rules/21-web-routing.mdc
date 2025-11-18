@@ -9,14 +9,18 @@ alwaysApply: true
 - 所有页面与 HTTP API 对外暴露时，统一挂载在 **`/apps/asset-hub`** 前缀下。
 - 下文列出的路径均为“对外 URL”，Next.js 内部可通过 `app/` 目录和 `app/api` 目录实现对应路由。
 
+- **语言段说明**
+  - Web 页面统一采用 `/{locale}` 作为首段（例如 `/apps/asset-hub/zh/...`），其中 `locale` 经过归一化后当前仅支持 `zh`、`en`。
+  - DooTask 注入的 `system_lang` 会在中间件中自动映射到支持的语言；路径段缺失时默认跳转到 `en`。
+
 ## 页面路由规划（首期）
 
 - **首页 / 仪表盘**
-  - URL：`/apps/asset-hub`
+  - URL：`/apps/asset-hub/{locale}`
   - 用途：资产总览仪表盘、资产分布统计、审批中心与代办入口、帮助中心入口。
 
 - **系统管理**
-  - URL 前缀：`/apps/asset-hub/system`
+  - URL 前缀：`/apps/asset-hub/{locale}/system`
   - 子路由建议：
     - `/company`：公司管理。
     - `/user`：人员管理。
@@ -28,7 +32,7 @@ alwaysApply: true
     - `/upgrade`：升级管理（版本与用户数方案）。
 
 - **资产管理**
-  - URL 前缀：`/apps/asset-hub/assets`
+  - URL 前缀：`/apps/asset-hub/{locale}/assets`
   - 子路由建议：
     - `/settings`：资产设置（字段、状态等）。
     - `/list`：资产列表（筛选/排序/分页）。
@@ -43,14 +47,14 @@ alwaysApply: true
     - `/inventory`：资产盘点任务列表与详情。
 
 - **耗材管理（预留扩展）**
-  - URL 前缀：`/apps/asset-hub/consumables`
+  - URL 前缀：`/apps/asset-hub/{locale}/consumables`
   - 子路由建议：
     - `/settings`：耗材设置。
     - `/operations`：耗材操作流程（采购、入库、出库、处理等）。
     - `/inventory`：耗材盘点（后期扩展）。
 
 - **版本信息 / 关于**
-  - URL：`/apps/asset-hub/about`（或嵌入到系统管理 / 个人中心中）
+  - URL：`/apps/asset-hub/{locale}/about`（或嵌入到系统管理 / 个人中心中）
   - 用途：突出显示当前插件版本号及基础信息。
 
 ## API 路由规划（首期）

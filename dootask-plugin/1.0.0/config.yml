@@ -1,0 +1,30 @@
+menu_items:
+  - location: application
+    label:
+      en: Dashboard
+      zh: 首页概览
+    url: "apps/asset-hub/{system_lang}?theme={system_theme}&user_id={user_id}&user_token={user_token}"
+    url_type: iframe
+    keep_alive: true
+    icon: ../logo.svg
+    background: "#ffffff|#111827"
+
+  - location: application
+    label:
+      en: Assets
+      zh: 资产管理
+    url: "apps/asset-hub/{system_lang}/assets/list?theme={system_theme}&user_id={user_id}&user_token={user_token}"
+    url_type: iframe
+    keep_alive: true
+    background: "#ffffff|#111827"
+
+  - location: application/admin
+    label:
+      en: System Settings
+      zh: 系统管理
+    url: "apps/asset-hub/{system_lang}/system/company?theme={system_theme}&user_id={user_id}&user_token={user_token}"
+    url_type: iframe
+    visible_to: admin
+    keep_alive: true
+    background: "#ffffff|#111827"
+

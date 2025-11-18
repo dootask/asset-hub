@@ -1,36 +1,7 @@
 import { randomUUID } from "crypto";
 import { getDb } from "@/lib/db/client";
+import { seedAssets } from "@/lib/db/schema";
 import type { Asset, CreateAssetPayload } from "@/lib/types/asset";
-
-const seedAssets: Array<Omit<Asset, "id"> & { id?: string }> = [
-  {
-    id: "AST-001",
-    name: "MacBook Pro 16”",
-    category: "Laptop",
-    status: "in-use",
-    owner: "王小明",
-    location: "上海总部",
-    purchaseDate: "2024-01-15",
-  },
-  {
-    id: "AST-002",
-    name: "Dell PowerEdge R760",
-    category: "Server",
-    status: "idle",
-    owner: "基础架构组",
-    location: "上海机房",
-    purchaseDate: "2023-11-03",
-  },
-  {
-    id: "AST-003",
-    name: "海康威视摄像头",
-    category: "Security",
-    status: "maintenance",
-    owner: "行政部",
-    location: "北京办公区",
-    purchaseDate: "2022-09-20",
-  },
-];
 
 type AssetRow = {
   id: string;
@@ -41,6 +12,21 @@ type AssetRow = {
   location: string;
   purchase_date: string;
 };
+
+export interface AssetQuery {
+  search?: string;
+  status?: Asset["status"][];
+  category?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface AssetListResult {
+  items: Asset[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
 
 function mapRow(row: AssetRow): Asset {
   return {
@@ -80,13 +66,64 @@ function seedIfEmpty() {
   }
 }
 
-export function listAssets(): Asset[] {
+export function listAssets(query: AssetQuery = {}): AssetListResult {
   seedIfEmpty();
   const db = getDb();
+
+  const page = Math.max(1, query.page ?? 1);
+  const pageSize = Math.min(100, Math.max(1, query.pageSize ?? 10));
+  const offset = (page - 1) * pageSize;
+
+  const where: string[] = [];
+  const params: Record<string, unknown> = {};
+
+  if (query.search) {
+    where.push(
+      "(name LIKE @search OR owner LIKE @search OR id LIKE @search OR location LIKE @search)",
+    );
+    params.search = `%${query.search.trim()}%`;
+  }
+
+  if (query.category) {
+    where.push("category = @category");
+    params.category = query.category;
+  }
+
+  if (query.status && query.status.length > 0) {
+    const safeStatuses = query.status.slice(0, 5);
+    const statusPlaceholders = safeStatuses.map((_, idx) => `@status${idx}`);
+    where.push(`status IN (${statusPlaceholders.join(",")})`);
+    safeStatuses.forEach((status, idx) => {
+      params[`status${idx}`] = status;
+    });
+  }
+
+  const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  const total = db
+    .prepare(`SELECT COUNT(1) as count FROM assets ${whereClause}`)
+    .get(params) as { count: number };
+
   const rows = db
-    .prepare("SELECT * FROM assets ORDER BY created_at DESC")
-    .all() as AssetRow[];
-  return rows.map(mapRow);
+    .prepare(
+      `
+      SELECT * FROM assets
+      ${whereClause}
+      ORDER BY updated_at DESC
+      LIMIT @limit OFFSET @offset
+    `,
+    )
+    .all({
+      ...params,
+      limit: pageSize,
+      offset,
+    }) as AssetRow[];
+
+  return {
+    items: rows.map(mapRow),
+    total: total.count,
+    page,
+    pageSize,
+  };
 }
 
 export function getAssetById(id: string): Asset | null {

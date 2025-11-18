@@ -18,12 +18,12 @@ alwaysApply: true
 
 ## 关键约束
 
-- 所有页面路由和 HTTP API 在对外部署时，都必须挂载在 **`/apps/asset-hub`** 前缀下；开发调试阶段也应保持这一前缀一致。
+- 所有页面路由和 HTTP API 在对外部署时，都必须挂载在 **`/apps/asset-hub`** 前缀下；页面还需包含 `/apps/asset-hub/{locale}/...` 的语言段（当前支持 `zh`、`en`，其余 DooTask 语言会自动归一化到最近的受支持语言）。
 - 前后端一体化：资产管理的业务接口优先通过 Next.js 的 Route Handlers（`app/api/**/route.ts`）实现，不再单独维护传统 Koa/Express 服务作为主入口。
 - 统一使用 TypeScript，保持前后端共享类型（资产实体、请求/响应 DTO、枚举等）。
 - 主题与语言：
-  - 通过 URL 参数 `theme` 获取主题：包含 `dark` 表示深色，否则视为浅色。
-  - 通过 URL 参数 `lang` 获取语言：包含 `zh`（如 `zh-CN`、`ZH-TW`）视为中文，否则视为英文。
+  - 通过 URL 参数 `theme` 获取主题：包含 `dark` 表示深色，否则视为浅色（由 `next-themes` 驱动，同时可被 DooTask 入口覆盖）。
+  - 通过路径语言段（`/apps/asset-hub/{locale}`）承载语言；DooTask 的 `system_lang` 在中间件中自动映射到目前支持的 `zh`、`en`。
 
 ## 参考
 

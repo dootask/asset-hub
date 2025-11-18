@@ -1,0 +1,82 @@
+import { NextResponse } from "next/server";
+import {
+  createAssetOperation,
+  listOperationsForAsset,
+} from "@/lib/repositories/asset-operations";
+import { getAssetById } from "@/lib/repositories/assets";
+import {
+  OPERATION_TYPES,
+  type AssetOperationType,
+  type CreateAssetOperationPayload,
+} from "@/lib/types/operation";
+
+const VALID_OPERATION_TYPES = OPERATION_TYPES.map((item) => item.value);
+
+interface RouteParams {
+  params: {
+    id: string;
+  };
+}
+
+export async function GET(_: Request, { params }: RouteParams) {
+  const asset = getAssetById(params.id);
+  if (!asset) {
+    return NextResponse.json(
+      { error: "NOT_FOUND", message: "资产不存在" },
+      { status: 404 },
+    );
+  }
+
+  const operations = listOperationsForAsset(asset.id);
+  return NextResponse.json({ data: operations });
+}
+
+function sanitizeOperationPayload(
+  payload: Partial<CreateAssetOperationPayload>,
+): CreateAssetOperationPayload {
+  if (
+    !payload.type ||
+    !VALID_OPERATION_TYPES.includes(payload.type as AssetOperationType)
+  ) {
+    throw new Error("Invalid operation type");
+  }
+
+  if (!payload.actor || typeof payload.actor !== "string") {
+    throw new Error("Missing actor");
+  }
+
+  return {
+    type: payload.type,
+    actor: payload.actor.trim(),
+    description: payload.description?.trim() ?? "",
+  };
+}
+
+export async function POST(request: Request, { params }: RouteParams) {
+  const asset = getAssetById(params.id);
+  if (!asset) {
+    return NextResponse.json(
+      { error: "NOT_FOUND", message: "资产不存在" },
+      { status: 404 },
+    );
+  }
+
+  try {
+    const payload = sanitizeOperationPayload(
+      (await request.json()) as Partial<CreateAssetOperationPayload>,
+    );
+
+    const operation = createAssetOperation(asset.id, payload);
+    return NextResponse.json({ data: operation }, { status: 201 });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error: "INVALID_PAYLOAD",
+        message:
+          error instanceof Error ? error.message : "请求参数不合法。",
+      },
+      { status: 400 },
+    );
+  }
+}
+

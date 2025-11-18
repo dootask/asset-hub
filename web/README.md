@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## Asset Hub Web 应用
 
-## Getting Started
+基于 Next.js App Router + TypeScript + Tailwind + shadcn/ui，用于提供 Asset Hub 插件的页面与 API。
 
-First, run the development server:
+## 环境变量
+
+1. 复制 `env.example` 为 `.env.local`（或其他 `.env*` 文件），按需要修改：
+   - `ASSET_HUB_DB_PATH`：SQLite 文件位置，默认 `./data/asset-hub.db`。
+   - `ASSET_HUB_BASE_URL`：可选，用于在服务端生成绝对地址。
+   - `DOOTASK_API_BASE_URL` / `DOOTASK_API_TOKEN`：后续与 DooTask 宿主交互时使用。
+2. `.env*` 文件已被 `.gitignore` 忽略，避免泄露敏感信息。
+
+## 数据库迁移
+
+SQLite 结构和示例数据通过脚本管理：
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+pnpm migrate
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+脚本会自动创建 `assets / companies / roles` 等表，并写入示例数据。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 本地开发
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+pnpm dev
+# 访问 http://localhost:3000/apps/asset-hub/zh
+```
 
-## Learn More
+## 测试与校验
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+pnpm lint   # 代码规范检查
+pnpm test   # Vitest 单元测试
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Docker 部署
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+根目录的 `Dockerfile` 将自动构建 Next.js 生产镜像：
 
-## Deploy on Vercel
+```bash
+docker build -t asset-hub .
+docker run -p 3000:3000 asset-hub
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+容器启动后对外暴露 `http://localhost:3000/apps/asset-hub/{locale}`，其中 `locale` 当前支持 `zh`、`en`。
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 重要目录
+
+- `app/`：页面与 API Route Handler。
+- `components/`：共享 UI 与布局组件。
+- `lib/`：配置、数据库封装、仓储层、类型定义。
+- `scripts/`：运维脚本（例如迁移）。

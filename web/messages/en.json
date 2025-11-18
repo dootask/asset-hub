@@ -1,0 +1,14 @@
+{
+  "Nav": {
+    "dashboard": "Dashboard",
+    "assets": "Assets",
+    "system": "System",
+    "about": "About"
+  },
+  "QuickActions": {
+    "assets": "Asset List",
+    "newAsset": "New Asset",
+    "system": "System Settings"
+  }
+}
+

@@ -1,0 +1,14 @@
+{
+  "Nav": {
+    "dashboard": "首页概览",
+    "assets": "资产管理",
+    "system": "系统管理",
+    "about": "版本信息"
+  },
+  "QuickActions": {
+    "assets": "资产列表",
+    "newAsset": "新增资产",
+    "system": "系统设置"
+  }
+}
+

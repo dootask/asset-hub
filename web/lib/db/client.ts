@@ -1,9 +1,10 @@
 import Database from "better-sqlite3";
 import fs from "fs";
-import path from "path";
+import { appConfig, getDataDirectory } from "@/lib/config";
+import { CREATE_TABLES } from "@/lib/db/schema";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const DB_FILE = path.join(DATA_DIR, "asset-hub.db");
+const DATA_DIR = getDataDirectory();
+const DB_FILE = appConfig.db.filePath;
 
 let db: Database.Database | null = null;
 
@@ -15,19 +16,9 @@ function ensureDatabase() {
   db = new Database(DB_FILE);
   db.pragma("journal_mode = WAL");
 
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS assets (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      category TEXT NOT NULL,
-      status TEXT NOT NULL,
-      owner TEXT NOT NULL,
-      location TEXT NOT NULL,
-      purchase_date TEXT NOT NULL,
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
-  `);
+  Object.values(CREATE_TABLES).forEach((sql) => {
+    db!.exec(sql);
+  });
 }
 
 export function getDb() {
@@ -36,5 +27,13 @@ export function getDb() {
   }
 
   return db!;
+}
+
+export function resetDbForTesting() {
+  if (process.env.NODE_ENV !== "test") return;
+  if (db) {
+    db.close();
+    db = null;
+  }
 }
 

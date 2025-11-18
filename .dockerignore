@@ -1,0 +1,10 @@
+.git
+node_modules
+web/node_modules
+web/data/*.db
+web/.next
+web/tests
+web/vitest.config.ts
+web/pnpm-debug.log*
+*.log
+
