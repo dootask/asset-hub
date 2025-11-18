@@ -1,0 +1,84 @@
+---
+description: web 目录的页面与 API 路由规划（基于 /apps/asset-hub 前缀）
+globs: ["web/**"]
+alwaysApply: true
+---
+
+## 外部访问前缀
+
+- 所有页面与 HTTP API 对外暴露时，统一挂载在 **`/apps/asset-hub`** 前缀下。
+- 下文列出的路径均为“对外 URL”，Next.js 内部可通过 `app/` 目录和 `app/api` 目录实现对应路由。
+
+## 页面路由规划（首期）
+
+- **首页 / 仪表盘**
+  - URL：`/apps/asset-hub`
+  - 用途：资产总览仪表盘、资产分布统计、审批中心与代办入口、帮助中心入口。
+
+- **系统管理**
+  - URL 前缀：`/apps/asset-hub/system`
+  - 子路由建议：
+    - `/company`：公司管理。
+    - `/user`：人员管理。
+    - `/role`：角色管理（含资产类型管理员）。
+    - `/approval`：审批中心配置。
+    - `/data/reports`：报表统计。
+    - `/data/custom-reports`：自定义报表（预留扩展）。
+    - `/operation`：操作管理。
+    - `/upgrade`：升级管理（版本与用户数方案）。
+
+- **资产管理**
+  - URL 前缀：`/apps/asset-hub/assets`
+  - 子路由建议：
+    - `/settings`：资产设置（字段、状态等）。
+    - `/list`：资产列表（筛选/排序/分页）。
+    - `/import-export`：资产导入与导出。
+    - `/categories`：资产分类管理。
+    - `/operations/purchase`：采购流程。
+    - `/operations/inbound`：入库流程（含多张照片上传）。
+    - `/operations/receive`：领用流程。
+    - `/operations/borrow-return`：借用/归还流程（含逾期提醒能力）。
+    - `/operations/distribute`：派发流程。
+    - `/operations/other`：其它操作（维修、报废、回收、遗失等）。
+    - `/inventory`：资产盘点任务列表与详情。
+
+- **耗材管理（预留扩展）**
+  - URL 前缀：`/apps/asset-hub/consumables`
+  - 子路由建议：
+    - `/settings`：耗材设置。
+    - `/operations`：耗材操作流程（采购、入库、出库、处理等）。
+    - `/inventory`：耗材盘点（后期扩展）。
+
+- **版本信息 / 关于**
+  - URL：`/apps/asset-hub/about`（或嵌入到系统管理 / 个人中心中）
+  - 用途：突出显示当前插件版本号及基础信息。
+
+## API 路由规划（首期）
+
+> 说明：下列路径均为对外 HTTP API 路径，实际在 Next.js 中通过 `app/api/**/route.ts` 实现，对外访问时会带上 `/apps/asset-hub` 前缀。
+
+- **基础健康检查**
+  - `GET /apps/asset-hub/api/health`：应用健康检查，用于调试与监控。
+
+- **资产相关 API（首批）**
+  - `GET /apps/asset-hub/api/assets`：查询资产列表（支持筛选与分页）。
+  - `POST /apps/asset-hub/api/assets`：新增单条资产。
+  - `GET /apps/asset-hub/api/assets/:id`：获取资产详情。
+  - `PUT /apps/asset-hub/api/assets/:id`：更新资产信息。
+  - `DELETE /apps/asset-hub/api/assets/:id`：删除资产（或标记为删除/报废）。
+
+- **系统配置相关 API（首批）**
+  - `GET /apps/asset-hub/api/system/config`：获取基础系统配置（公司、角色、基础参数等摘要）。
+  - `GET /apps/asset-hub/api/system/companies`：公司列表。
+  - `GET /apps/asset-hub/api/system/roles`：角色列表（含资产类型管理员）。
+
+- **用户与 DooTask 集成（预留）**
+  - `GET /apps/asset-hub/api/me`：获取当前登录用户信息（通过 `@dootask/tools` 与宿主交互）。
+
+## 迭代策略
+
+- 首期实现时，可先落地：
+  - 页面：`/apps/asset-hub`（首页）、`/apps/asset-hub/assets/list`（资产列表骨架）。
+  - API：`/apps/asset-hub/api/health`、`/apps/asset-hub/api/assets`（GET/POST）作为基础示例。
+- 后续再按模块逐步补齐系统管理、耗材管理等路由与 API。
+
