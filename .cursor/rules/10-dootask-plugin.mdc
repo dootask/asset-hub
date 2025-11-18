@@ -1,0 +1,26 @@
+---
+description: dootask-plugin 目录（DooTask 插件适配层）说明与约束
+globs: ["dootask-plugin/**"]
+alwaysApply: true
+---
+
+## 角色定位
+
+- `dootask-plugin/` 目录用于存放 **DooTask 插件规范相关的配置与适配代码**：
+  - 插件元数据与清单（名称、标识、入口 URL 等）。
+  - 与 DooTask 主程序交互所需的约定文件/脚本。
+- 该目录的主要职责是 **把本项目暴露为一个符合 DooTask 规范的插件**，而不是承载核心业务逻辑。
+
+## 关键约束
+
+- 插件入口 URL 与路由前缀应指向 Web 应用的统一前缀：**`/apps/asset-hub`**。
+- 领域业务逻辑（资产管理、系统配置、报表等）应尽量放在 `web/` 对应的 Next.js 应用中；`dootask-plugin/` 更偏向配置与集成层。
+- 插件实现应遵循 DooTask 官方插件开发规范：
+  - 参考文档：`/home/coder/workspaces/appstore/appstore/apps/_/README.md`。
+  - 如需新增能力，应优先在 Web 应用内实现，再通过插件配置对外暴露。
+
+## 参考
+
+- 项目整体说明：`.cursor/rules/00-project-overview.mdc`。
+- 与 Web 应用的职责划分：`.cursor/rules/20-web.mdc`。
+

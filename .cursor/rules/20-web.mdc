@@ -1,0 +1,33 @@
+---
+description: web 目录（Next.js 一体化 Web 应用）说明与约束
+globs: ["web/**"]
+alwaysApply: true
+---
+
+## 角色定位
+
+- `web/` 目录存放资产管理插件的 Web 应用代码，采用 **Next.js 一体化方案**：
+  - 页面渲染（App Router + React）。
+  - 后端 HTTP API（Next.js Route Handlers）。
+- 对外作为 DooTask 插件的 UI 和主要业务接口提供方。
+
+## 关键约束
+
+- **访问前缀统一为 `/apps/asset-hub`**：
+  - 所有对外页面路由和 API 路由设计时，应以 `/apps/asset-hub` 为根路径进行规划。
+  - 开发和生产环境都应保持此前缀一致，避免路径相关的环境差异。
+- **一体化后端**：
+  - 与资产管理相关的业务 HTTP 接口优先通过 Next.js 的 Route Handlers（`app/api/**/route.ts`）实现。
+  - 不在 `web/` 内再额外维护独立的 Koa/Express 作为主业务服务（如确有必要，可在未来单独讨论扩展点）。
+- **类型与数据访问**：
+  - 全部代码统一使用 TypeScript，领域模型/DTO 尽量集中复用。
+  - 与 `sqlite3` 相关的数据访问逻辑应放在服务器端（Route Handlers 或 server-only 模块），避免在客户端组件中直接访问数据库。
+- **与 DooTask 的集成**：
+  - 与主程序交互统一通过 `@dootask/tools` 工具包（详见 `/home/coder/workspaces/tools/README.md`），避免直接依赖具体宿主实现细节。
+
+## 参考
+
+- 项目整体说明：`.cursor/rules/00-project-overview.mdc`。
+- 功能需求规划：`.cursor/rules/30-feature-plan.mdc`。
+- shadcn/ui 安装与使用示例：`https://ui.shadcn.com/docs/installation/next.md`（以 pnpm + Next.js App Router 为基准）。
+

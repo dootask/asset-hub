@@ -1,0 +1,32 @@
+---
+description: 资产管理插件整体说明（Asset Hub）
+globs: ["**/*"]
+alwaysApply: true
+---
+
+## 项目概述
+
+- 本仓库用于开发 DooTask 的资产管理插件 **Asset Hub**，提供资产全生命周期管理能力（系统管理、资产管理、后期扩展的耗材管理等）。
+- 插件以 Web 形式嵌入到 DooTask 中，对外访问前缀统一为 **`/apps/asset-hub`**。
+
+## 技术栈与架构
+
+- Web 应用：`Next.js`（App Router） + `React` + `TypeScript` + `Tailwind CSS` + `shadcn/ui`，统一放在 `web/` 目录。
+- 插件集成：`dootask-plugin/` 目录内按照 DooTask 插件规范进行配置与适配（参考 `/home/coder/workspaces/appstore/appstore/apps/_/README.md`）。
+- 数据存储：使用 `sqlite3` 作为本地嵌入式数据库，由 Next.js 的服务端代码访问。
+- 图谱功能：通过 `graphiti-mcp` 工具包接入，`group_id` 为 **`dootask-plugin-asset-hub`**。
+
+## 关键约束
+
+- 所有页面路由和 HTTP API 在对外部署时，都必须挂载在 **`/apps/asset-hub`** 前缀下；开发调试阶段也应保持这一前缀一致。
+- 前后端一体化：资产管理的业务接口优先通过 Next.js 的 Route Handlers（`app/api/**/route.ts`）实现，不再单独维护传统 Koa/Express 服务作为主入口。
+- 统一使用 TypeScript，保持前后端共享类型（资产实体、请求/响应 DTO、枚举等）。
+- 主题与语言：
+  - 通过 URL 参数 `theme` 获取主题：包含 `dark` 表示深色，否则视为浅色。
+  - 通过 URL 参数 `lang` 获取语言：包含 `zh`（如 `zh-CN`、`ZH-TW`）视为中文，否则视为英文。
+
+## 参考
+
+- 插件规范文档：`/home/coder/workspaces/appstore/appstore/apps/_/README.md`。
+- 功能需求规划：见 `.cursor/rules/30-feature-plan.mdc`。
+
