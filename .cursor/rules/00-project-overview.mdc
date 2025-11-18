@@ -14,7 +14,7 @@ alwaysApply: true
 - Web 应用：`Next.js`（App Router） + `React` + `TypeScript` + `Tailwind CSS` + `shadcn/ui`，统一放在 `web/` 目录。
 - 插件集成：`dootask-plugin/` 目录内按照 DooTask 插件规范进行配置与适配（参考 `/home/coder/workspaces/appstore/appstore/apps/_/README.md`）。
 - 数据存储：使用 `sqlite3` 作为本地嵌入式数据库，由 Next.js 的服务端代码访问。
-- 图谱功能：通过 `graphiti-mcp` 工具包接入，`group_id` 为 **`dootask-plugin-asset-hub`**。
+- 图谱功能：通过 `graphiti-mcp` 工具包接入，`group_id` 为 **`dootask-plugin-asset-hub`**（使用与管理规范见 `.cursor/rules/05-graphiti-memory.mdc`）。
 
 ## 关键约束
 
