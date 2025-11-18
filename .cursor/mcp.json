@@ -1,7 +1,10 @@
 {
   "mcpServers": {
     "graphiti-mcp": {
-      "url": "https://graph.hitosea.com/mcp?group_id=dootask-apps-asset-hub"
+      "url": "https://graph.hitosea.com/mcp",
+      "headers": {
+        "X-Group-ID": "dootask-plugin-asset-hub"
+      }
     }
   }
 }

@@ -2,7 +2,7 @@
 
 ## 项目说明
 
-- 项目说明：此项目作为DooTask应用插件，用于资产管理。
+- 项目说明：此项目作为 DooTask 应用插件，用于资产管理。
 - 项目名称：资产管理
 - 项目标识：asset-hub
 
@@ -11,37 +11,55 @@
 ```
 ├── .github/workflows/release.yml # 发布流程文件
 ├── dootask-plugin/ # 插件代码目录
-├── ui/ # 前端代码目录
-├── server/ # 服务端代码目录
+├── web/ # Web 应用目录（Next.js，一体化前后端）
 ├── Dockerfile # 容器化部署文件
 ├── Makefile # 项目构建文件（一键运行开发环境等）
 └── README.md # 项目说明文件
 ```
 
-dootask-plugin 目录说明：
+### .github/workflows/release.yml 文件说明
 
-- 此目录用于存放插件代码，插件代码需要遵循DooTask插件开发规范，具体规范请参考DooTask插件开发文档：`/home/coder/workspaces/appstore/appstore/apps/_/README.md`。
+release.yml 文件示例：`/home/coder/workspaces/mcp/.github/workflows/release.yml`。
+
+### dootask-plugin 目录说明
+
+- 此目录用于存放插件代码，插件代码需要遵循 DooTask 插件开发规范，具体规范请参考 DooTask 插件开发文档：`/home/coder/workspaces/appstore/appstore/apps/_/README.md`。
 - 示例：`/home/coder/workspaces/mcp/dootask-plugin/`。
 
-ui 目录说明：
+### web 目录说明
 
-- 此目录用于存放前端代码，使用 `shadcn/ui` + `tailwindcss` + `react` + `vite` 框架开发，使用 `pnpm` 作为包管理器。
-- 框架初始化应该参考：`https://ui.shadcn.com/docs/installation/vite.md`，使用 `pnpm create vite@latest`、`pnpm add tailwindcss @tailwindcss/vite` 命令初始化项目。
-- 前端开发除了跟DooTask主程序的集成，其他都跟正常的web项目一样。
+- 此目录用于存放 Web 应用代码，采用 **Next.js 一体化方案**，在同一个项目中同时实现前端页面和后端 HTTP API。
+- 技术栈：`Next.js`（App Router） + `React` + `Tailwind CSS` + `shadcn/ui`，使用 `pnpm` 作为包管理器。
+- 初始化可以参考 Next.js 官方文档和 shadcn/ui 文档，使用类似命令：
+  - `pnpm dlx shadcn@latest init`（初始化 Next.js + Tailwind + shadcn/ui，参考文档：`https://ui.shadcn.com/docs/installation/next.md`）
+  - `pnpm dlx shadcn@latest add button`（按需添加组件）
+- 后端接口通过 Next.js 的 Route Handlers（如 `app/api/**/route.ts`）实现，对外暴露 DooTask 插件所需的 HTTP API。
 - 跟主程序的集成使用 `@dootask/tools` 工具包，开发文档：`/home/coder/workspaces/tools/README.md`。
-- 示例：没有什么好说的，就是正常的web项目。
+- 访问路径：作为 DooTask 插件部署时，Web 应用对外需挂载在 `/apps/asset-hub` 路径下（页面路由与 API 前缀均以此为根）；开发调试阶段也应保持使用 `/apps/asset-hub` 作为访问前缀，以保证与正式环境一致。
+- 示例：没有什么好说的，就是正常的 web 项目（但前后端统一在 Next.js 内实现）。
 
-server 目录说明：
+#### 技术架构方案
 
-- 此目录用于存放服务端代码，使用 `nodejs` + `koa` + `sqlite3` 框架开发。
-- 示例：`/home/coder/workspaces/mcp/server/`。
+- **整体架构**：采用单一 Next.js 应用（位于 `web/` 目录）承担前端页面渲染和后端 HTTP API 服务，统一使用 TypeScript。
+- **插件接口**：所有对 DooTask 暴露的插件接口（如配置、菜单、单点登录等）通过 Next.js 的 Route Handlers（`app/api/**/route.ts`）实现，运行时使用 Node.js。
+- **数据存储**：使用 `sqlite3` 作为本地嵌入式数据库，在 Next.js 的服务器端代码中直接访问。
+- **业务分层**：资产管理、系统管理、图谱能力等业务逻辑封装为可复用的 service / module，由 Route Handlers 与 React Server Components 共同调用。
+- **部署方式**：通过 Docker 运行 Next.js 应用（如使用 `next start` 或自定义启动脚本），监听 DooTask 约定的端口，并通过插件配置或反向代理挂载在 `/apps/asset-hub` 路径下，对外提供统一的 HTTP 服务。
+
+### Dockerfile 文件示例
 
 Dockerfile 文件示例：`/home/coder/workspaces/mcp/Dockerfile`。
+
+## 支持图谱功能
+
+本项目支持图谱功能，通过 `graphiti-mcp` 工具包实现，group_id 为 `dootask-plugin-asset-hub`。
 
 ## 主题皮肤/多语言说明
 
 - 本项目支持深色和浅色两种主题皮肤，通过 url 参数 `theme` 获取当前主题皮肤，如果包含 `dark` 则表示深色，否则表示浅色，项目不支持单独设置主题。
 - 本项目支持多中/英文两种语言，通过 url 参数 `lang` 获取当前语言，如果包含 `zh` 则表示中文（比如：`zh-CN`、`ZH-TW`），否则表示英文，项目不支持单独设置语言。
+
+----
 
 ## 功能需求规划
 
