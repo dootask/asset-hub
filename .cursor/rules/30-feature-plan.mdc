@@ -1,7 +1,6 @@
----
-description: 资产管理插件功能需求规划（首页、系统管理、资产管理等）
+description: 资产管理插件功能需求规划说明与约束（首页、系统管理、资产管理等）
 globs: ["**/*"]
-alwaysApply: true
+alwaysApply: false
 ---
 
 ## 功能需求规划总览

@@ -1,7 +1,6 @@
----
-description: 资产操作审批流程设计（以“采购 → 入库”流程为试点），并预留与 DooTask 待办的集成点
-globs: ["**/*"]
-alwaysApply: true
+description: 资产操作审批流程设计与约束（采购 → 入库试点，含与 DooTask 待办的集成约定）
+globs: ["web/**"]
+alwaysApply: false
 ---
 
 ## 1. 背景与范围

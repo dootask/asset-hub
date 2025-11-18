@@ -1,5 +1,5 @@
 ---
-description: Graphiti 知识图谱 / MCP 作为 AI 记忆层的使用规范（本仓库专用）
+description: Graphiti 知识图谱 / MCP 作为 AI 记忆层的使用说明与约束（本仓库专用）
 globs: ["**/*"]
 alwaysApply: true
 ---

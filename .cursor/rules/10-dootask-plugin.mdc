@@ -1,5 +1,4 @@
----
-description: dootask-plugin 目录（DooTask 插件适配层）说明与约束
+description: DooTask 插件适配层目录说明与约束（dootask-plugin/）
 globs: ["dootask-plugin/**"]
 alwaysApply: true
 ---

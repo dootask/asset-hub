@@ -1,5 +1,4 @@
----
-description: web 目录（Next.js 一体化 Web 应用）说明与约束
+description: Web 应用目录说明与约束（web/，Next.js 一体化 Web 应用）
 globs: ["web/**"]
 alwaysApply: true
 ---

@@ -1,5 +1,4 @@
----
-description: web 目录的页面与 API 路由规划（基于 /apps/asset-hub 前缀）
+description: Web 页面与 API 路由规划说明与约束（基于 /apps/asset-hub 前缀）
 globs: ["web/**"]
 alwaysApply: true
 ---

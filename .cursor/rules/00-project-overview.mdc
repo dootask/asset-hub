@@ -1,5 +1,4 @@
----
-description: 资产管理插件整体说明（Asset Hub）
+description: 资产管理插件整体说明与关键约束（Asset Hub 项目总览）
 globs: ["**/*"]
 alwaysApply: true
 ---
