@@ -5,6 +5,9 @@ import { getAssetById } from "@/lib/repositories/assets";
 import { listOperationsForAsset } from "@/lib/repositories/asset-operations";
 import OperationTimeline from "@/components/assets/OperationTimeline";
 import OperationForm from "@/components/assets/OperationForm";
+import ApprovalRequestForm from "@/components/approvals/ApprovalRequestForm";
+import ApprovalStatusBadge from "@/components/approvals/ApprovalStatusBadge";
+import { listApprovalRequests } from "@/lib/repositories/approvals";
 
 type PageParams = { id: string; locale: string };
 type PageProps = {
@@ -29,6 +32,11 @@ export default async function AssetDetailPage({ params }: PageProps) {
   }
 
   const operations = listOperationsForAsset(asset.id);
+  const approvalsResult = listApprovalRequests({
+    assetId: asset.id,
+    pageSize: 5,
+  });
+  const approvals = approvalsResult.data;
   const isChinese = locale === "zh";
 
   return (
@@ -105,6 +113,68 @@ export default async function AssetDetailPage({ params }: PageProps) {
           <div className="w-full lg:w-80">
             <OperationForm assetId={asset.id} locale={locale} />
           </div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border bg-card/60 p-6">
+        <div className="flex flex-col gap-2">
+          <div>
+            <h2 className="text-lg font-semibold">
+              {isChinese ? "审批请求" : "Approvals"}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {isChinese
+                ? "查看与该资产相关的审批进度，或直接在此发起新的审批。"
+                : "Check approval progress for this asset or create a new one."}
+            </p>
+          </div>
+          {approvals.length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-muted-foreground/40 p-4 text-sm text-muted-foreground">
+              {isChinese ? "暂无审批记录。" : "No approvals yet."}
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {approvals.map((approval) => (
+                <li
+                  key={approval.id}
+                  className="rounded-2xl border bg-muted/30 p-3 text-sm"
+                >
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="font-medium text-foreground">
+                        {approval.title}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        #{approval.id} ·{" "}
+                        {isChinese ? "申请人" : "Applicant"} {approval.applicantName ?? approval.applicantId}
+                      </p>
+                    </div>
+                    <ApprovalStatusBadge status={approval.status} locale={locale} />
+                  </div>
+                  <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+                    <span>
+                      {isChinese ? "更新于" : "Updated"}{" "}
+                      {new Date(approval.updatedAt).toLocaleString()}
+                    </span>
+                    <Link
+                      href={`/${locale}/approvals/${approval.id}`}
+                      className="text-primary hover:underline"
+                    >
+                      {isChinese ? "查看详情" : "View details"}
+                    </Link>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="mt-6">
+          <ApprovalRequestForm
+            assetId={asset.id}
+            assetName={asset.name}
+            locale={locale}
+          />
         </div>
       </section>
     </div>

@@ -117,7 +117,7 @@ export default function AssetFilters({
             {isChinese ? "资产类别" : "Category"}
           </Label>
           <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger id="asset-filter-category">
+            <SelectTrigger id="asset-filter-category" className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

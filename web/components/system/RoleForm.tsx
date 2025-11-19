@@ -108,7 +108,7 @@ export default function RoleForm({ role, locale = "en" }: RoleFormProps) {
             setFormState((prev) => ({ ...prev, scope: value }))
           }
         >
-          <SelectTrigger id="role-scope">
+          <SelectTrigger id="role-scope" className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { OPERATION_TYPES } from "@/lib/types/operation";
+import { AssetOperationType, OPERATION_TYPES } from "@/lib/types/operation";
 
 type Props = {
   assetId: string;
@@ -81,10 +81,10 @@ export default function OperationForm({ assetId, locale = "en" }: Props) {
           <Select
             value={formState.type}
             onValueChange={(value) =>
-              setFormState((prev) => ({ ...prev, type: value }))
+              setFormState((prev) => ({ ...prev, type: value as AssetOperationType }))
             }
           >
-            <SelectTrigger id="operation-type">
+            <SelectTrigger id="operation-type" className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

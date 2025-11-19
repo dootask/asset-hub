@@ -10,11 +10,15 @@ function resolvePath(value: string | undefined, fallback: string) {
 
 const defaultDbPath = path.join(process.cwd(), "data", "asset-hub.db");
 
+export function getDbFilePath() {
+  return resolvePath(process.env.ASSET_HUB_DB_PATH, defaultDbPath);
+}
+
 export const appConfig = {
   env: process.env.NODE_ENV ?? "development",
   baseUrl: process.env.ASSET_HUB_BASE_URL,
   db: {
-    filePath: resolvePath(process.env.ASSET_HUB_DB_PATH, defaultDbPath),
+    filePath: getDbFilePath(),
   },
   dootask: {
     apiBaseUrl: process.env.DOOTASK_API_BASE_URL ?? "",
@@ -23,6 +27,6 @@ export const appConfig = {
 };
 
 export function getDataDirectory() {
-  return path.dirname(appConfig.db.filePath);
+  return path.dirname(getDbFilePath());
 }
 

@@ -5,6 +5,8 @@ export type AssetOperationType =
   | "maintenance"
   | "other";
 
+export type AssetOperationStatus = "pending" | "done" | "cancelled";
+
 export const OPERATION_TYPES: { value: AssetOperationType; label: string }[] = [
   { value: "purchase", label: "采购" },
   { value: "inbound", label: "入库" },
@@ -19,6 +21,8 @@ export interface AssetOperation {
   type: AssetOperationType;
   description: string;
   actor: string;
+  status: AssetOperationStatus;
+  metadata?: Record<string, unknown> | null;
   createdAt: string;
 }
 
@@ -26,5 +30,7 @@ export interface CreateAssetOperationPayload {
   type: AssetOperationType;
   description: string;
   actor: string;
+  status?: AssetOperationStatus;
+  metadata?: Record<string, unknown>;
 }
 

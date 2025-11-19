@@ -2,9 +2,16 @@
 
 import { useRouter } from "next/navigation";
 import { useState, FormEvent } from "react";
+import { Calendar as CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -12,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import { ASSET_STATUSES, DEFAULT_ASSET_CATEGORIES } from "@/lib/types/asset";
 
 type Props = {
@@ -21,6 +29,7 @@ type Props = {
 export default function NewAssetForm({ locale = "en" }: Props) {
   const router = useRouter();
   const isChinese = locale === "zh";
+  const [purchaseDateOpen, setPurchaseDateOpen] = useState(false);
 
   const [formState, setFormState] = useState({
     name: "",
@@ -74,6 +83,12 @@ export default function NewAssetForm({ locale = "en" }: Props) {
     }
   };
 
+  const purchaseDateValue = (() => {
+    if (!formState.purchaseDate) return undefined;
+    const parsed = new Date(formState.purchaseDate);
+    return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+  })();
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
@@ -96,7 +111,7 @@ export default function NewAssetForm({ locale = "en" }: Props) {
             value={formState.category}
             onValueChange={(value) => handleChange("category", value)}
           >
-            <SelectTrigger id="asset-category">
+            <SelectTrigger id="asset-category" className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -116,7 +131,7 @@ export default function NewAssetForm({ locale = "en" }: Props) {
             value={formState.status}
             onValueChange={(value) => handleChange("status", value)}
           >
-            <SelectTrigger id="asset-status">
+            <SelectTrigger id="asset-status" className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -154,15 +169,46 @@ export default function NewAssetForm({ locale = "en" }: Props) {
           <Label htmlFor="asset-purchase-date" className="text-sm font-medium text-muted-foreground">
             {isChinese ? "购入日期" : "Purchase Date"}
           </Label>
-          <Input
-            id="asset-purchase-date"
-            type="date"
-            required
-            value={formState.purchaseDate}
-            onChange={(event) =>
-              handleChange("purchaseDate", event.target.value)
-            }
-          />
+          <Popover open={purchaseDateOpen} onOpenChange={setPurchaseDateOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                id="asset-purchase-date"
+                variant="outline"
+                type="button"
+                data-empty={!purchaseDateValue}
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !purchaseDateValue && "text-muted-foreground",
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {purchaseDateValue
+                  ? purchaseDateValue.toLocaleDateString(
+                      isChinese ? "zh-CN" : "en-US",
+                      {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      },
+                    )
+                  : isChinese
+                    ? "选择日期"
+                    : "Pick a date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={purchaseDateValue}
+                initialFocus
+                onSelect={(date: Date | undefined) => {
+                  if (!date) return;
+                  handleChange("purchaseDate", date.toISOString().slice(0, 10));
+                  setPurchaseDateOpen(false);
+                }}
+              />
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
