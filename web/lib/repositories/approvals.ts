@@ -9,7 +9,13 @@ import {
   type ApprovalType,
   type CreateApprovalRequestPayload,
 } from "@/lib/types/approval";
-import { updateAssetOperationStatus } from "@/lib/repositories/asset-operations";
+import {
+  getAssetOperationById,
+  updateAssetOperationStatus,
+} from "@/lib/repositories/asset-operations";
+import { getAssetById, updateAsset } from "@/lib/repositories/assets";
+import type { AssetStatus } from "@/lib/types/asset";
+import type { AssetOperationType } from "@/lib/types/operation";
 
 type ApprovalRow = {
   id: string;
@@ -225,6 +231,65 @@ const ACTION_STATUS_MAP: Record<ApprovalAction, ApprovalStatus> = {
   cancel: "cancelled",
 };
 
+function inferAssetStatusFromType(
+  type?: AssetOperationType | ApprovalType | string | null,
+): AssetStatus | null {
+  switch (type) {
+    case "receive":
+    case "borrow":
+      return "in-use";
+    case "return":
+      return "idle";
+    case "maintenance":
+      return "maintenance";
+    case "dispose":
+      return "retired";
+    default:
+      return null;
+  }
+}
+
+function extractOwnerFromMetadata(metadata?: Record<string, unknown> | null) {
+  if (!metadata) return null;
+  const candidateKeys = ["receiver", "borrower"];
+  for (const key of candidateKeys) {
+    const value = metadata[key];
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+  return null;
+}
+
+function applyApprovalSuccessEffects(approval: ApprovalRequest) {
+  if (!approval.assetId) {
+    return;
+  }
+
+  const operation = approval.operationId
+    ? getAssetOperationById(approval.operationId)
+    : null;
+  const targetStatus = inferAssetStatusFromType(operation?.type ?? approval.type);
+  if (!targetStatus) {
+    return;
+  }
+
+  const asset = getAssetById(approval.assetId);
+  if (!asset) {
+    return;
+  }
+
+  const ownerFromMetadata = extractOwnerFromMetadata(operation?.metadata);
+  const { id: assetId, ...assetPayload } = asset;
+  const nextPayload = {
+    ...assetPayload,
+    status: targetStatus,
+    owner: ownerFromMetadata ?? asset.owner,
+  };
+
+  updateAsset(assetId, nextPayload);
+}
+
 export function applyApprovalAction(
   id: string,
   payload: ApprovalActionPayload,
@@ -281,7 +346,12 @@ export function applyApprovalAction(
     );
   }
 
-  return getApprovalRequestById(id)!;
+  const updated = getApprovalRequestById(id)!;
+  if (updated.status === "approved") {
+    applyApprovalSuccessEffects(updated);
+  }
+
+  return updated;
 }
 
 

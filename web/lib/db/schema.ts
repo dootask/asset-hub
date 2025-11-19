@@ -69,6 +69,20 @@ export const CREATE_TABLES = {
       FOREIGN KEY(operation_id) REFERENCES asset_operations(id) ON DELETE SET NULL
     );
   `,
+  actionConfigs: `
+    CREATE TABLE IF NOT EXISTS asset_action_configs (
+      id TEXT PRIMARY KEY,
+      label_zh TEXT NOT NULL,
+      label_en TEXT NOT NULL,
+      requires_approval INTEGER NOT NULL DEFAULT 0,
+      default_approver_type TEXT NOT NULL DEFAULT ('none'),
+      default_approver_refs TEXT,
+      allow_override INTEGER NOT NULL DEFAULT 1,
+      metadata TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `,
 };
 
 export const seedAssets = [
@@ -192,6 +206,89 @@ export const seedApprovalRequests = [
     external_todo_id: null,
     metadata: JSON.stringify({ photosRequired: true }),
     completed_at: null,
+  },
+];
+
+export const seedActionConfigs = [
+  {
+    id: "purchase",
+    label_zh: "采购",
+    label_en: "Purchase",
+    requires_approval: 1,
+    default_approver_type: "role",
+    default_approver_refs: JSON.stringify(["ROLE-ADMIN"]),
+    allow_override: 1,
+    metadata: null,
+  },
+  {
+    id: "inbound",
+    label_zh: "入库",
+    label_en: "Inbound",
+    requires_approval: 0,
+    default_approver_type: "none",
+    default_approver_refs: JSON.stringify([]),
+    allow_override: 1,
+    metadata: null,
+  },
+  {
+    id: "receive",
+    label_zh: "领用",
+    label_en: "Receive",
+    requires_approval: 0,
+    default_approver_type: "role",
+    default_approver_refs: JSON.stringify(["ROLE-ASSET-MANAGER"]),
+    allow_override: 1,
+    metadata: null,
+  },
+  {
+    id: "borrow",
+    label_zh: "借用",
+    label_en: "Borrow",
+    requires_approval: 1,
+    default_approver_type: "role",
+    default_approver_refs: JSON.stringify(["ROLE-ASSET-MANAGER"]),
+    allow_override: 1,
+    metadata: null,
+  },
+  {
+    id: "return",
+    label_zh: "归还",
+    label_en: "Return",
+    requires_approval: 0,
+    default_approver_type: "none",
+    default_approver_refs: JSON.stringify([]),
+    allow_override: 0,
+    metadata: null,
+  },
+  {
+    id: "maintenance",
+    label_zh: "维护",
+    label_en: "Maintenance",
+    requires_approval: 0,
+    default_approver_type: "role",
+    default_approver_refs: JSON.stringify(["ROLE-ASSET-MANAGER"]),
+    allow_override: 1,
+    metadata: null,
+  },
+  {
+    id: "dispose",
+    label_zh: "报废",
+    label_en: "Dispose",
+    requires_approval: 1,
+    default_approver_type: "role",
+    default_approver_refs: JSON.stringify(["ROLE-ADMIN"]),
+    allow_override: 0,
+    metadata: null,
+  },
+  {
+    id: "other",
+    label_zh: "其他",
+    label_en: "Other",
+    requires_approval: 0,
+    default_approver_type: "none",
+    default_approver_refs: JSON.stringify([]),
+    allow_override: 1,
+    metadata: null,
   },
 ];
 

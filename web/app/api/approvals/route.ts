@@ -15,6 +15,9 @@ import {
   notifyApprovalCreated,
 } from "@/lib/integrations/dootask-notifications";
 import { extractUserFromRequest } from "@/lib/utils/request-user";
+import { getActionConfig } from "@/lib/repositories/action-configs";
+import type { ActionConfig } from "@/lib/types/action-config";
+import { approvalTypeToActionConfigId } from "@/lib/utils/action-config";
 
 const STATUS_ALLOW_LIST = APPROVAL_STATUSES.map((item) => item.value);
 const TYPE_ALLOW_LIST = APPROVAL_TYPES.map((item) => item.value);
@@ -136,6 +139,48 @@ function sanitizeCreatePayload(
   return cleaned;
 }
 
+function resolveApproverFromConfig(
+  config: ActionConfig,
+  requested?: { id?: string; name?: string },
+) {
+  const cleanedRequested =
+    requested?.id && typeof requested.id === "string"
+      ? {
+          id: requested.id.trim(),
+          name:
+            typeof requested.name === "string" && requested.name.trim().length > 0
+              ? requested.name.trim()
+              : undefined,
+        }
+      : undefined;
+
+  const defaultUserId =
+    config.defaultApproverType === "user" && config.defaultApproverRefs.length > 0
+      ? config.defaultApproverRefs[0]
+      : null;
+
+  if (!config.allowOverride) {
+    if (defaultUserId) {
+      return { id: defaultUserId, name: cleanedRequested?.name };
+    }
+    throw new Error(
+      config.defaultApproverType === "role"
+        ? "审批配置使用角色指派但未启用修改，目前暂不支持自动分配角色成员。请联系管理员调整配置。"
+        : "审批配置未设置默认审批人且禁止修改，请联系管理员设置默认审批人。",
+    );
+  }
+
+  if (cleanedRequested?.id) {
+    return cleanedRequested;
+  }
+
+  if (defaultUserId) {
+    return { id: defaultUserId };
+  }
+
+  return null;
+}
+
 export async function POST(request: Request) {
   try {
     const rawBody = await request.json();
@@ -154,12 +199,61 @@ export async function POST(request: Request) {
       );
     }
 
+    const config = getActionConfig(approvalTypeToActionConfigId(payload.type));
+    if (!config.requiresApproval) {
+      return NextResponse.json(
+        {
+          error: "APPROVAL_DISABLED",
+          message: "该类型当前无需审批，如需启用请联系管理员调整配置。",
+        },
+        { status: 400 },
+      );
+    }
+
+    let resolvedApprover: { id: string; name?: string } | null = null;
+    try {
+      resolvedApprover = resolveApproverFromConfig(config, payload.approver);
+    } catch (configError) {
+      return NextResponse.json(
+        {
+          error: "CONFIG_ERROR",
+          message:
+            configError instanceof Error
+              ? configError.message
+              : "审批配置存在问题，请联系管理员。",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (!resolvedApprover?.id) {
+      return NextResponse.json(
+        {
+          error: "APPROVER_REQUIRED",
+          message: "请先选择审批人再提交请求。",
+        },
+        { status: 400 },
+      );
+    }
+
+    const metadataWithConfig = {
+      ...(payload.metadata ?? {}),
+      configSnapshot: {
+        id: config.id,
+        requiresApproval: config.requiresApproval,
+        defaultApproverType: config.defaultApproverType,
+        allowOverride: config.allowOverride,
+      },
+    };
+
     const safePayload: CreateApprovalRequestPayload = {
       ...payload,
       applicant: {
         id: requestUser.id,
         name: requestUser.nickname ?? payload.applicant?.name,
       },
+      approver: resolvedApprover,
+      metadata: metadataWithConfig,
     };
     const approval = createApprovalRequest(safePayload);
 

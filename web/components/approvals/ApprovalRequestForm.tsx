@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { APPROVAL_TYPES, ApprovalType } from "@/lib/types/approval";
+import type { ActionConfig } from "@/lib/types/action-config";
+import { approvalTypeToActionConfigId } from "@/lib/utils/action-config";
 import {
   selectUsers,
   isMicroApp,
@@ -71,6 +73,9 @@ export default function ApprovalRequestForm({
     approverId: "",
     approverName: "",
   });
+  const [configs, setConfigs] = useState<ActionConfig[]>([]);
+  const [loadingConfigs, setLoadingConfigs] = useState(true);
+  const [configError, setConfigError] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -110,6 +115,44 @@ export default function ApprovalRequestForm({
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    async function fetchConfigs() {
+      setLoadingConfigs(true);
+      try {
+        const response = await fetch("/apps/asset-hub/api/config/approvals", {
+          cache: "no-store",
+        });
+        if (!response.ok) {
+          throw new Error("Failed to load action configs");
+        }
+        const payload = (await response.json()) as { data: ActionConfig[] };
+        if (!cancelled) {
+          setConfigs(payload.data);
+          setConfigError(null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setConfigError(
+            err instanceof Error
+              ? err.message
+              : isChinese
+                ? "无法加载审批配置，请稍后重试。"
+                : "Failed to load approval configurations.",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingConfigs(false);
+        }
+      }
+    }
+    fetchConfigs();
+    return () => {
+      cancelled = true;
+    };
+  }, [isChinese]);
+
+  useEffect(() => {
     if (!formState.title) {
       const typeInfo = APPROVAL_TYPES.find(
         (item) => item.value === formState.type,
@@ -124,13 +167,48 @@ export default function ApprovalRequestForm({
     }
   }, [formState.type, assetName, formState.title, isChinese]);
 
+  const currentConfig = useMemo(() => {
+    if (!configs.length) {
+      return null;
+    }
+    const configId = approvalTypeToActionConfigId(formState.type as ApprovalType);
+    return configs.find((item) => item.id === configId) ?? null;
+  }, [configs, formState.type]);
+
+  const approvalsDisabled = currentConfig ? !currentConfig.requiresApproval : false;
+  const allowOverride = currentConfig ? currentConfig.allowOverride : true;
+  const defaultApproverId =
+    currentConfig?.defaultApproverType === "user" &&
+    currentConfig.defaultApproverRefs.length > 0
+      ? currentConfig.defaultApproverRefs[0]
+      : null;
+
+  useEffect(() => {
+    if (!currentConfig || !defaultApproverId) {
+      return;
+    }
+    setFormState((prev) => {
+      if (prev.approverId) {
+        return prev;
+      }
+      return {
+        ...prev,
+        approverId: defaultApproverId,
+      };
+    });
+  }, [currentConfig, defaultApproverId]);
+
   const canSubmit = useMemo(() => {
+    if (approvalsDisabled) {
+      return false;
+    }
     return (
       `${applicant.id}`.trim().length > 0 &&
       `${formState.title}`.trim().length > 0 &&
-      `${formState.reason}`.trim().length > 0
+      `${formState.reason}`.trim().length > 0 &&
+      `${formState.approverId}`.trim().length > 0
     );
-  }, [applicant.id, formState.title, formState.reason]);
+  }, [applicant.id, formState.title, formState.reason, formState.approverId, approvalsDisabled]);
 
   const normalizeSelectedUser = (result: SelectUsersReturn | undefined) => {
     if (!result) return null;
@@ -141,6 +219,17 @@ export default function ApprovalRequestForm({
       return result.users[0] ?? null;
     }
     return null;
+  };
+
+  const handleTypeChange = (value: ApprovalType) => {
+    setSelectError(null);
+    setFormState((prev) => ({
+      ...prev,
+      type: value,
+      title: "",
+      approverId: "",
+      approverName: "",
+    }));
   };
 
   const resolveSelectedApprover = async (entry: DootaskUser | null) => {
@@ -183,6 +272,14 @@ export default function ApprovalRequestForm({
 
   const handleSelectApprover = async () => {
     if (!canUseSelector) return;
+    if (!allowOverride) {
+      setSelectError(
+        isChinese
+          ? "当前操作的审批人由系统自动指派，无法修改。"
+          : "Approver is locked by system configuration.",
+      );
+      return;
+    }
     setSelectingApprover(true);
     setSelectError(null);
     try {
@@ -218,6 +315,7 @@ export default function ApprovalRequestForm({
   };
 
   const handleClearApprover = () => {
+    if (!allowOverride) return;
     setFormState((prev) => ({
       ...prev,
       approverId: "",
@@ -232,6 +330,14 @@ export default function ApprovalRequestForm({
     setError(null);
 
     try {
+      const configSnapshot = currentConfig
+        ? {
+            id: currentConfig.id,
+            requiresApproval: currentConfig.requiresApproval,
+            allowOverride: currentConfig.allowOverride,
+            defaultApproverType: currentConfig.defaultApproverType,
+          }
+        : undefined;
       const searchSuffix = (() => {
         if (typeof window === "undefined") return "";
         if (window.location.search) {
@@ -261,6 +367,7 @@ export default function ApprovalRequestForm({
               : undefined,
           metadata: {
             initiatedFrom: "asset-detail",
+            ...(configSnapshot ? { configSnapshot } : {}),
           },
         }),
       });
@@ -307,15 +414,60 @@ export default function ApprovalRequestForm({
         </p>
       </div>
 
+      {configError && (
+        <p className="rounded-2xl border border-destructive/40 bg-destructive/5 p-3 text-xs text-destructive">
+          {configError}
+        </p>
+      )}
+
+      {currentConfig && (
+        <div className="rounded-2xl border border-muted-foreground/20 bg-muted/20 p-3 text-xs text-muted-foreground">
+          <p>
+            {isChinese ? "当前配置：" : "Current config:"}{" "}
+            {isChinese ? currentConfig.labelZh : currentConfig.labelEn}
+          </p>
+          <p className="mt-1">
+            {isChinese ? "需要审批：" : "Requires approval:"}{" "}
+            {currentConfig.requiresApproval
+              ? isChinese
+                ? "是"
+                : "Yes"
+              : isChinese
+                ? "否"
+                : "No"}
+            {" · "}
+            {isChinese ? "允许修改审批人：" : "Override allowed:"}{" "}
+            {currentConfig.allowOverride
+              ? isChinese
+                ? "是"
+                : "Yes"
+              : isChinese
+                ? "否"
+                : "No"}
+          </p>
+        </div>
+      )}
+      {loadingConfigs && !configError && (
+        <p className="rounded-2xl border border-dashed border-muted-foreground/20 bg-muted/20 p-3 text-xs text-muted-foreground">
+          {isChinese ? "正在加载审批配置..." : "Loading approval configuration..."}
+        </p>
+      )}
+
+      {approvalsDisabled && (
+        <p className="rounded-2xl border border-dashed border-muted-foreground/40 bg-muted/20 p-3 text-xs text-muted-foreground">
+          {isChinese
+            ? "该操作类型当前配置为无需审批，如需提交请联系管理员开启审批。"
+            : "This action type does not require approval right now. Contact an admin if you still need to submit."}
+        </p>
+      )}
+
       <div className="space-y-1.5">
         <Label className="text-xs font-medium text-muted-foreground">
           {isChinese ? "审批类型" : "Approval Type"}
         </Label>
         <Select
           value={formState.type}
-          onValueChange={(value) =>
-            setFormState((prev) => ({ ...prev, type: value as ApprovalType }))
-          }
+          onValueChange={(value) => handleTypeChange(value as ApprovalType)}
         >
           <SelectTrigger className="w-full">
             <SelectValue />
@@ -381,77 +533,106 @@ export default function ApprovalRequestForm({
         </div>
       </div>
 
-      {canUseSelector ? (
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-muted-foreground">
-            {isChinese ? "审批人" : "Approver"}
-          </Label>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={handleSelectApprover}
-              disabled={selectingApprover}
-            >
-              {selectingApprover
-                ? isChinese
-                  ? "选择中..."
-                  : "Selecting..."
-                : isChinese
-                  ? "选择审批人"
-                  : "Select Approver"}
-            </Button>
-            {(formState.approverId || formState.approverName) && (
-              <div className="flex items-center gap-2 ml-2 rounded-full text-sm">
-                <span className="font-medium">
-                  {formState.approverName || formState.approverId}
-                </span>
-                <button
-                  type="button"
-                  className="text-muted-foreground hover:text-foreground"
-                  onClick={handleClearApprover}
-                >
-                  <XICon className="size-4" />
-                </button>
+      <div className="space-y-1.5">
+        <Label className="text-xs font-medium text-muted-foreground">
+          {isChinese ? "审批人" : "Approver"}
+        </Label>
+        {allowOverride ? (
+          canUseSelector ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleSelectApprover}
+                disabled={selectingApprover}
+              >
+                {selectingApprover
+                  ? isChinese
+                    ? "选择中..."
+                    : "Selecting..."
+                  : isChinese
+                    ? "选择审批人"
+                    : "Select Approver"}
+              </Button>
+              {(formState.approverId || formState.approverName) && (
+                <div className="ml-2 flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-sm">
+                  <span className="font-medium">
+                    {formState.approverName || formState.approverId}
+                  </span>
+                  <button
+                    type="button"
+                    className="text-muted-foreground hover:text-foreground"
+                    onClick={handleClearApprover}
+                  >
+                    <XICon className="size-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">
+                  {isChinese ? "审批人 ID" : "Approver ID"}
+                </Label>
+                <Input
+                  value={formState.approverId}
+                  onChange={(event) =>
+                    setFormState((prev) => ({
+                      ...prev,
+                      approverId: event.target.value,
+                    }))
+                  }
+                  required
+                />
               </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">
+                  {isChinese ? "审批人姓名（可选）" : "Approver name (optional)"}
+                </Label>
+                <Input
+                  value={formState.approverName}
+                  onChange={(event) =>
+                    setFormState((prev) => ({
+                      ...prev,
+                      approverName: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+            </div>
+          )
+        ) : (
+          <div className="rounded-2xl border border-dashed border-muted-foreground/40 bg-muted/20 px-3 py-2 text-sm font-medium text-foreground">
+            {formState.approverId || defaultApproverId ? (
+              <span>{formState.approverName || formState.approverId || defaultApproverId}</span>
+            ) : (
+              <span className="text-destructive">
+                {isChinese
+                  ? "尚未配置默认审批人，请联系管理员。"
+                  : "No default approver configured. Please contact an admin."}
+              </span>
             )}
           </div>
-          {selectError && (
-            <p className="text-sm text-destructive">{selectError}</p>
-          )}
-        </div>
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">
-              {isChinese ? "审批人 ID" : "Approver ID"}
-            </Label>
-            <Input
-              value={formState.approverId}
-              onChange={(event) =>
-                setFormState((prev) => ({
-                  ...prev,
-                  approverId: event.target.value,
-                }))
-              }
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">
-              {isChinese ? "审批人姓名" : "Approver Name"}
-            </Label>
-            <Input
-              value={formState.approverName}
-              onChange={(event) =>
-                setFormState((prev) => ({
-                  ...prev,
-                  approverName: event.target.value,
-                }))
-              }
-            />
-          </div>
-        </div>
-      )}
+        )}
+        {selectError && (
+          <p className="text-xs text-destructive">
+            {selectError}
+          </p>
+        )}
+        {!allowOverride && (
+          <p className="text-xs text-muted-foreground">
+            {isChinese
+              ? "此操作由系统自动指派审批人，无法手动修改。"
+              : "Approver is assigned automatically and cannot be changed."}
+          </p>
+        )}
+        {allowOverride && !formState.approverId && !approvalsDisabled && (
+          <p className="text-xs text-muted-foreground">
+            {isChinese ? "请选择审批人后再提交。" : "Please pick an approver before submitting."}
+          </p>
+        )}
+      </div>
 
       {error && <p className="text-xs text-destructive">{error}</p>}
 

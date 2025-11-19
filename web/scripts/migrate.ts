@@ -3,6 +3,7 @@ import Database from "better-sqlite3";
 import { getDataDirectory, getDbFilePath } from "@/lib/config";
 import {
   CREATE_TABLES,
+  seedActionConfigs,
   seedApprovalRequests,
   seedAssets,
   seedCompanies,
@@ -129,6 +130,21 @@ function run() {
       "external_todo_id",
       "metadata",
       "completed_at",
+    ],
+  });
+
+  seedTable({
+    table: "asset_action_configs",
+    rows: seedActionConfigs,
+    columns: [
+      "id",
+      "label_zh",
+      "label_en",
+      "requires_approval",
+      "default_approver_type",
+      "default_approver_refs",
+      "allow_override",
+      "metadata",
     ],
   });
 

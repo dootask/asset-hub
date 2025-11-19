@@ -32,6 +32,10 @@ export async function GET(_: Request, { params }: RouteContext) {
   return NextResponse.json({ data: operations });
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 function sanitizeOperationPayload(
   payload: Partial<CreateAssetOperationPayload>,
 ): CreateAssetOperationPayload {
@@ -46,10 +50,24 @@ function sanitizeOperationPayload(
     throw new Error("Missing actor");
   }
 
+  const metadata =
+    payload.metadata && isRecord(payload.metadata)
+      ? Object.fromEntries(
+          Object.entries(payload.metadata).filter(
+            ([, value]) =>
+              typeof value === "string"
+                ? value.trim().length > 0
+                : value !== undefined && value !== null,
+          ),
+        )
+      : undefined;
+
   return {
     type: payload.type,
     actor: payload.actor.trim(),
     description: payload.description?.trim() ?? "",
+    metadata,
+    status: payload.status,
   };
 }
 
