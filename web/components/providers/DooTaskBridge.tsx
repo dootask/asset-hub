@@ -23,14 +23,13 @@ export default function DooTaskBridge() {
 
         const user = await getUserInfo();
         if (user?.userid) {
-          sessionStorage.setItem(
-            "asset-hub:dootask-user",
-            JSON.stringify({
-              id: user.userid,
-              nickname: user.nickname,
-              email: user.email,
-            }),
-          );
+          const payload = {
+            id: user.userid,
+            nickname: user.nickname,
+            email: user.email,
+          };
+          sessionStorage.setItem("asset-hub:dootask-user", JSON.stringify(payload));
+          window.dispatchEvent(new CustomEvent("asset-hub:user-updated", { detail: payload }));
         }
       } catch {
         // Ignore errors when运行在独立模式

@@ -8,6 +8,7 @@ import OperationForm from "@/components/assets/OperationForm";
 import ApprovalRequestForm from "@/components/approvals/ApprovalRequestForm";
 import ApprovalStatusBadge from "@/components/approvals/ApprovalStatusBadge";
 import { listApprovalRequests } from "@/lib/repositories/approvals";
+import DisposeAssetButton from "@/components/assets/DisposeAssetButton";
 
 type PageParams = { id: string; locale: string };
 type PageProps = {
@@ -41,7 +42,7 @@ export default async function AssetDetailPage({ params }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm text-muted-foreground">
             {isChinese ? "资产管理 / 详情" : "Assets / Detail"}
@@ -49,12 +50,15 @@ export default async function AssetDetailPage({ params }: PageProps) {
           <h1 className="text-2xl font-semibold">{asset.name}</h1>
           <p className="text-sm text-muted-foreground">{asset.id}</p>
         </div>
-        <Link
-          href={`/${locale}/assets/list`}
-          className="rounded-full border px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
-        >
-          {isChinese ? "返回列表" : "Back to list"}
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/${locale}/assets/list`}
+            className="rounded-full border px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
+          >
+            {isChinese ? "返回列表" : "Back to list"}
+          </Link>
+          <DisposeAssetButton assetId={asset.id} locale={locale} />
+        </div>
       </div>
 
       <section className="rounded-2xl border bg-muted/30 p-6">

@@ -10,7 +10,10 @@ const TYPE_LABELS: Record<
   purchase: { zh: "采购", en: "Purchase" },
   inbound: { zh: "入库", en: "Inbound" },
   receive: { zh: "领用", en: "Receive" },
+  borrow: { zh: "借用", en: "Borrow" },
+  return: { zh: "归还", en: "Return" },
   maintenance: { zh: "维护", en: "Maintenance" },
+  dispose: { zh: "报废", en: "Dispose" },
   other: { zh: "其它", en: "Other" },
 };
 

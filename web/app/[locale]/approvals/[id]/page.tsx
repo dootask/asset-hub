@@ -20,11 +20,44 @@ export async function generateMetadata({
   };
 }
 
-function formatMetadata(metadata?: Record<string, unknown> | null) {
-  if (!metadata || Object.keys(metadata).length === 0) {
-    return "-";
+function splitMetadata(metadata?: Record<string, unknown> | null) {
+  if (!metadata) {
+    const labels = Object.fromEntries(
+      knownLabels.map((item) => [item.key, item]),
+    );
+    return {
+      known: [] as Array<{ key: string; value: string }>,
+      rest: null as Record<string, unknown> | null,
+      labels,
+    };
   }
-  return JSON.stringify(metadata, null, 2);
+  const knownLabels: Array<{ key: string; labelZh: string; labelEn: string }> = [
+    { key: "amount", labelZh: "金额", labelEn: "Amount" },
+    { key: "currency", labelZh: "币种", labelEn: "Currency" },
+    { key: "initiatedFrom", labelZh: "来源", labelEn: "Source" },
+    { key: "reason", labelZh: "原因", labelEn: "Reason" },
+  ];
+  const known: Array<{ key: string; value: string }> = [];
+  const rest: Record<string, unknown> = {};
+
+  Object.entries(metadata).forEach(([key, value]) => {
+    const match = knownLabels.find((item) => item.key === key);
+    if (match) {
+      known.push({
+        key: match.key,
+        value: String(value ?? ""),
+      });
+    } else {
+      rest[key] = value;
+    }
+  });
+
+  const labels = Object.fromEntries(knownLabels.map((item) => [item.key, item]));
+  return {
+    known,
+    rest: Object.keys(rest).length ? rest : null,
+    labels,
+  };
 }
 
 export default async function ApprovalDetailPage({ params }: PageProps) {
@@ -37,6 +70,7 @@ export default async function ApprovalDetailPage({ params }: PageProps) {
 
   const asset = approval.assetId ? getAssetById(approval.assetId) : null;
   const isChinese = locale === "zh";
+  const metadataSplit = splitMetadata(approval.metadata);
 
   return (
     <div className="space-y-6">
@@ -132,9 +166,32 @@ export default async function ApprovalDetailPage({ params }: PageProps) {
             <p className="text-xs text-muted-foreground">
               {isChinese ? "附加信息" : "Metadata"}
             </p>
-            <pre className="mt-1 rounded-xl bg-muted p-3 text-xs text-muted-foreground">
-              {formatMetadata(approval.metadata)}
-            </pre>
+            {metadataSplit.known.length > 0 && (
+              <dl className="mt-2 grid gap-3 sm:grid-cols-2">
+                {metadataSplit.known.map((item) => (
+                  <div key={item.key}>
+                    <dt className="text-xs text-muted-foreground">
+                      {isChinese
+                        ? metadataSplit.labels[item.key]?.labelZh ?? item.key
+                        : metadataSplit.labels[item.key]?.labelEn ?? item.key}
+                    </dt>
+                    <dd className="text-sm font-medium text-foreground">
+                      {item.value || "-"}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+            {metadataSplit.rest && (
+              <pre className="mt-2 rounded-xl bg-muted p-3 text-xs text-muted-foreground">
+                {JSON.stringify(metadataSplit.rest, null, 2)}
+              </pre>
+            )}
+            {metadataSplit.known.length === 0 && !metadataSplit.rest && (
+              <p className="text-sm text-muted-foreground">
+                {isChinese ? "暂无附加信息" : "No metadata"}
+              </p>
+            )}
           </div>
         </div>
       </section>

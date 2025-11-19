@@ -2,12 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
 import { useTranslations } from "next-intl";
 import DooTaskBridge from "@/components/providers/DooTaskBridge";
 
 const BASE_PATH = "/apps/asset-hub";
+const USER_STORAGE_KEY = "asset-hub:dootask-user";
+const USER_EVENT = "asset-hub:user-updated";
+
+type SessionUser = {
+  id: string;
+  nickname?: string;
+  email?: string;
+};
 
 const NAV_ITEMS = [
   { href: "/", match: "/", key: "dashboard" },
@@ -25,6 +33,7 @@ type Props = {
 export default function AppShell({ children, locale }: Props) {
   const pathname = usePathname() || "/";
   const tNav = useTranslations("Nav");
+  const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
   const pathWithoutBase = pathname.startsWith(BASE_PATH)
     ? pathname.slice(BASE_PATH.length) || "/"
     : pathname;
@@ -48,6 +57,41 @@ export default function AppShell({ children, locale }: Props) {
   useEffect(() => {
     document.documentElement.lang = locale === "zh" ? "zh-CN" : "en-US";
   }, [locale]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const readStoredUser = () => {
+      try {
+        const stored = sessionStorage.getItem(USER_STORAGE_KEY);
+        if (!stored) {
+          setSessionUser(null);
+          return;
+        }
+        setSessionUser(JSON.parse(stored));
+      } catch {
+        setSessionUser(null);
+      }
+    };
+
+    readStoredUser();
+
+    const handleUserUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<SessionUser | null>).detail;
+      if (detail?.id) {
+        setSessionUser(detail);
+      } else {
+        readStoredUser();
+      }
+    };
+
+    window.addEventListener(USER_EVENT, handleUserUpdated);
+    return () => {
+      window.removeEventListener(USER_EVENT, handleUserUpdated);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-background transition-colors">
@@ -84,18 +128,16 @@ export default function AppShell({ children, locale }: Props) {
               );
             })}
           </nav>
-          <div className="mt-6 rounded-2xl border border-dashed px-4 py-3 text-xs text-muted-foreground">
-            <p>
-              {locale === "zh"
-                ? "主题可通过 theme 参数覆盖"
-                : "Theme can be overridden via the theme param"}
-            </p>
-            <p>
-              {locale === "zh"
-                ? "lang 参数用于选择界面语言"
-                : "lang param selects the locale"}
-            </p>
-          </div>
+          {sessionUser && (
+            <div className="mt-6 rounded-2xl border border-dashed px-4 py-2.5 text-xs text-muted-foreground">
+              <p className="mt-1 text-sm font-medium text-foreground">
+                {sessionUser.nickname ?? sessionUser.id}
+              </p>
+              {sessionUser.email && (
+                <p className="text-xs text-muted-foreground">{sessionUser.email}</p>
+              )}
+            </div>
+          )}
         </aside>
 
         <div className="flex flex-1 flex-col gap-5">

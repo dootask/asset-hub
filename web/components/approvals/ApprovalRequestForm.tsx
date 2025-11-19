@@ -3,6 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { APPROVAL_TYPES, ApprovalType } from "@/lib/types/approval";
+import {
+  selectUsers,
+  isMicroApp,
+  appReady,
+  fetchUserBasic,
+} from "@dootask/tools";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,11 +20,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { X as XICon } from "lucide-react";
 
 type Applicant = {
   id: string;
   name?: string;
 };
+
+type DootaskUser =
+  | string
+  | number
+  | {
+      userid?: string;
+      id?: string;
+      nickname?: string;
+      name?: string;
+    };
+
+type SelectUsersReturn = DootaskUser[] | { users?: DootaskUser[] };
 
 interface Props {
   assetId: string;
@@ -36,6 +55,9 @@ export default function ApprovalRequestForm({
   const [loadingUser, setLoadingUser] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectingApprover, setSelectingApprover] = useState(false);
+  const [selectError, setSelectError] = useState<string | null>(null);
+  const [canUseSelector, setCanUseSelector] = useState(false);
 
   const [applicant, setApplicant] = useState<Applicant>({
     id: "",
@@ -71,6 +93,23 @@ export default function ApprovalRequestForm({
   }, []);
 
   useEffect(() => {
+    async function detect() {
+      try {
+        const micro = await isMicroApp();
+        if (!micro) {
+          setCanUseSelector(false);
+          return;
+        }
+        await appReady();
+        setCanUseSelector(true);
+      } catch {
+        setCanUseSelector(false);
+      }
+    }
+    detect();
+  }, []);
+
+  useEffect(() => {
     if (!formState.title) {
       const typeInfo = APPROVAL_TYPES.find(
         (item) => item.value === formState.type,
@@ -92,6 +131,99 @@ export default function ApprovalRequestForm({
       `${formState.reason}`.trim().length > 0
     );
   }, [applicant.id, formState.title, formState.reason]);
+
+  const normalizeSelectedUser = (result: SelectUsersReturn | undefined) => {
+    if (!result) return null;
+    if (Array.isArray(result)) {
+      return result[0] ?? null;
+    }
+    if (Array.isArray(result.users)) {
+      return result.users[0] ?? null;
+    }
+    return null;
+  };
+
+  const resolveSelectedApprover = async (entry: DootaskUser | null) => {
+    if (entry === null || entry === undefined) return null;
+
+    if (typeof entry === "string" || typeof entry === "number") {
+      const id = Number(entry);
+      try {
+        const list = await fetchUserBasic([id]);
+        const info = Array.isArray(list) ? list[0] : undefined;
+        return {
+          id,
+          name: info?.nickname ?? info?.name ?? "",
+        };
+      } catch {
+        return { id, name: "" };
+      }
+    }
+
+    const id = entry.userid ?? entry.id ?? "";
+    if (!id) return null;
+    if (entry.nickname || entry.name) {
+      return {
+        id,
+        name: entry.nickname ?? entry.name ?? "",
+      };
+    }
+
+    try {
+      const list = await fetchUserBasic([Number(id)]);
+      const info = Array.isArray(list) ? list[0] : undefined;
+      return {
+        id,
+        name: info?.nickname ?? info?.name ?? "",
+      };
+    } catch {
+      return { id, name: "" };
+    }
+  };
+
+  const handleSelectApprover = async () => {
+    if (!canUseSelector) return;
+    setSelectingApprover(true);
+    setSelectError(null);
+    try {
+      const result = (await selectUsers({
+        multipleMax: 1,
+        showSelectAll: false,
+        showDialog: false,
+      })) as SelectUsersReturn;
+      const entry = normalizeSelectedUser(result);
+      const pick = await resolveSelectedApprover(entry);
+      if (!pick) {
+        setSelectError(
+          isChinese ? "未选择任何审批人。" : "No approver selected.",
+        );
+      } else {
+        setFormState((prev) => ({
+          ...prev,
+          approverId: `${pick.id}`.trim(),
+          approverName: pick.name ?? "",
+        }));
+      }
+    } catch (err) {
+      setSelectError(
+        err instanceof Error
+          ? err.message
+          : isChinese
+            ? "选择审批人失败。"
+            : "Failed to select approver.",
+      );
+    } finally {
+      setSelectingApprover(false);
+    }
+  };
+
+  const handleClearApprover = () => {
+    setFormState((prev) => ({
+      ...prev,
+      approverId: "",
+      approverName: "",
+    }));
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -247,35 +379,79 @@ export default function ApprovalRequestForm({
             disabled={loadingUser}
           />
         </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-muted-foreground">
-            {isChinese ? "审批人 ID" : "Approver ID"}
-          </Label>
-          <Input
-            value={formState.approverId}
-            onChange={(event) =>
-              setFormState((prev) => ({
-                ...prev,
-                approverId: event.target.value,
-              }))
-            }
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-muted-foreground">
-            {isChinese ? "审批人姓名" : "Approver Name"}
-          </Label>
-          <Input
-            value={formState.approverName}
-            onChange={(event) =>
-              setFormState((prev) => ({
-                ...prev,
-                approverName: event.target.value,
-              }))
-            }
-          />
-        </div>
       </div>
+
+      {canUseSelector ? (
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-muted-foreground">
+            {isChinese ? "审批人" : "Approver"}
+          </Label>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleSelectApprover}
+              disabled={selectingApprover}
+            >
+              {selectingApprover
+                ? isChinese
+                  ? "选择中..."
+                  : "Selecting..."
+                : isChinese
+                  ? "选择审批人"
+                  : "Select Approver"}
+            </Button>
+            {(formState.approverId || formState.approverName) && (
+              <div className="flex items-center gap-2 ml-2 rounded-full text-sm">
+                <span className="font-medium">
+                  {formState.approverName || formState.approverId}
+                </span>
+                <button
+                  type="button"
+                  className="text-muted-foreground hover:text-foreground"
+                  onClick={handleClearApprover}
+                >
+                  <XICon className="size-4" />
+                </button>
+              </div>
+            )}
+          </div>
+          {selectError && (
+            <p className="text-sm text-destructive">{selectError}</p>
+          )}
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">
+              {isChinese ? "审批人 ID" : "Approver ID"}
+            </Label>
+            <Input
+              value={formState.approverId}
+              onChange={(event) =>
+                setFormState((prev) => ({
+                  ...prev,
+                  approverId: event.target.value,
+                }))
+              }
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">
+              {isChinese ? "审批人姓名" : "Approver Name"}
+            </Label>
+            <Input
+              value={formState.approverName}
+              onChange={(event) =>
+                setFormState((prev) => ({
+                  ...prev,
+                  approverName: event.target.value,
+                }))
+              }
+            />
+          </div>
+        </div>
+      )}
 
       {error && <p className="text-xs text-destructive">{error}</p>}
 
