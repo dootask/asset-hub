@@ -87,9 +87,9 @@ export default function ApprovalRequestForm({
 
   const canSubmit = useMemo(() => {
     return (
-      applicant.id.trim().length > 0 &&
-      formState.title.trim().length > 0 &&
-      formState.reason.trim().length > 0
+      `${applicant.id}`.trim().length > 0 &&
+      `${formState.title}`.trim().length > 0 &&
+      `${formState.reason}`.trim().length > 0
     );
   }, [applicant.id, formState.title, formState.reason]);
 
