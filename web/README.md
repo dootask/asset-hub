@@ -35,6 +35,12 @@ pnpm lint   # 代码规范检查
 pnpm test   # Vitest 单元测试
 ```
 
+## DooTask 宿主集成
+
+- 通过 `lib/integrations/dootask-approvals.ts` 与 DooTask API 对接，在审批创建/完成时自动创建、更新宿主待办。
+- 配置 `DOOTASK_API_BASE_URL`、`DOOTASK_API_TOKEN` 后即可启用；未配置时自动降级为本地日志。
+- 待办链接会带上 `theme/lang/user_*` 等查询参数，便于在 DooTask 内部打开插件详情页。
+
 ## Docker 部署
 
 根目录的 `Dockerfile` 将自动构建 Next.js 生产镜像：
