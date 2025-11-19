@@ -255,58 +255,61 @@ export default function OperationForm({ assetId, locale = "en" }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3 rounded-2xl border bg-muted/40 p-4">
-      <div className="space-y-1.5">
-        <Label className="text-xs font-medium text-muted-foreground">
-          {isChinese ? "操作模式" : "Operation Mode"}
-        </Label>
-        <Select value={mode} onValueChange={(value) => setMode(value as OperationMode)}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="simple">
-              {isChinese ? "自定义" : "Custom"}
-            </SelectItem>
-            <SelectItem value="receive">
-              {isChinese ? "领用" : "Receive"}
-            </SelectItem>
-            <SelectItem value="borrow">
-              {isChinese ? "借用" : "Borrow"}
-            </SelectItem>
-            <SelectItem value="return">
-              {isChinese ? "归还" : "Return"}
-            </SelectItem>
-            <SelectItem value="maintenance">
-              {isChinese ? "维护" : "Maintenance"}
-            </SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
 
-      {mode === "simple" && (
-        <div className="space-y-1.5">
+      <div className="flex items-center gap-3">
+        <div className="flex-1 space-y-1.5">
           <Label className="text-xs font-medium text-muted-foreground">
-            {isChinese ? "操作类型" : "Operation Type"}
+            {isChinese ? "操作模式" : "Operation Mode"}
           </Label>
-          <Select
-            value={formState.type}
-            onValueChange={(value) =>
-              setFormState((prev) => ({ ...prev, type: value as AssetOperationType }))
-            }
-          >
-            <SelectTrigger>
+          <Select value={mode} onValueChange={(value) => setMode(value as OperationMode)}>
+            <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {currentTypeOptions.map((type) => (
-                <SelectItem key={type.value} value={type.value}>
-                  {type.label}
-                </SelectItem>
-              ))}
+              <SelectItem value="simple">
+                {isChinese ? "自定义" : "Custom"}
+              </SelectItem>
+              <SelectItem value="receive">
+                {isChinese ? "领用" : "Receive"}
+              </SelectItem>
+              <SelectItem value="borrow">
+                {isChinese ? "借用" : "Borrow"}
+              </SelectItem>
+              <SelectItem value="return">
+                {isChinese ? "归还" : "Return"}
+              </SelectItem>
+              <SelectItem value="maintenance">
+                {isChinese ? "维护" : "Maintenance"}
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
-      )}
+
+        {mode === "simple" && (
+          <div className="flex-1 space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">
+              {isChinese ? "操作类型" : "Operation Type"}
+            </Label>
+            <Select
+              value={formState.type}
+              onValueChange={(value) =>
+                setFormState((prev) => ({ ...prev, type: value as AssetOperationType }))
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {currentTypeOptions.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {type.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      </div>
 
       <div className="space-y-1.5">
         <Label className="text-xs font-medium text-muted-foreground">
