@@ -160,16 +160,6 @@ export function getApprovalRequestById(id: string): ApprovalRequest | null {
   return row ? mapRow(row) : null;
 }
 
-export function setApprovalExternalTodoId(id: string, externalTodoId: string) {
-  const db = getDb();
-  db.prepare(
-    `UPDATE asset_approval_requests
-     SET external_todo_id = @externalTodoId,
-         updated_at = datetime('now')
-     WHERE id = @id`,
-  ).run({ id, externalTodoId });
-}
-
 export function createApprovalRequest(
   payload: CreateApprovalRequestPayload,
 ): ApprovalRequest {

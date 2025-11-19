@@ -37,9 +37,10 @@ pnpm test   # Vitest 单元测试
 
 ## DooTask 宿主集成
 
-- 通过 `lib/integrations/dootask-approvals.ts` 与 DooTask API 对接，在审批创建/完成时自动创建、更新宿主待办。
-- 配置 `DOOTASK_API_BASE_URL`、`DOOTASK_API_TOKEN` 后即可启用；未配置时自动降级为本地日志。
-- 待办链接会带上 `theme/lang/user_*` 等查询参数，便于在 DooTask 内部打开插件详情页。
+- `lib/integrations/dootask-notifications.ts` 负责把审批事件同步到宿主（消息/提醒），审批流程本身仍在插件内完成。
+- 配置 `DOOTASK_API_BASE_URL`、`DOOTASK_API_TOKEN` 即可启用通知；未配置时自动降级为本地日志。
+- 通知里的链接会附带 `theme/lang/user_*` 等查询参数，便于在 DooTask 内部打开插件详情页。
+- `ASSET_HUB_ADMIN_USER_IDS`（逗号分隔）可指定拥有“审批一切”权限的宿主用户 ID，其它用户只能处理与自己相关的审批。
 
 ## Docker 部署
 

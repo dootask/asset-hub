@@ -1,6 +1,7 @@
 {
   "Nav": {
     "dashboard": "Dashboard",
+    "approvals": "Approvals",
     "assets": "Assets",
     "system": "System",
     "about": "About"

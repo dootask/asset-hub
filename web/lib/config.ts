@@ -14,6 +14,13 @@ export function getDbFilePath() {
   return resolvePath(process.env.ASSET_HUB_DB_PATH, defaultDbPath);
 }
 
+function parseCsv(value: string | undefined) {
+  return value
+    ?.split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean) ?? [];
+}
+
 export const appConfig = {
   env: process.env.NODE_ENV ?? "development",
   baseUrl: process.env.ASSET_HUB_BASE_URL,
@@ -23,6 +30,9 @@ export const appConfig = {
   dootask: {
     apiBaseUrl: process.env.DOOTASK_API_BASE_URL ?? "",
     apiToken: process.env.DOOTASK_API_TOKEN ?? "",
+  },
+  permissions: {
+    adminUserIds: parseCsv(process.env.ASSET_HUB_ADMIN_USER_IDS),
   },
 };
 

@@ -57,11 +57,11 @@ export default function ApprovalTabs({ locale, userId, currentRole }: Props) {
         );
       })}
       {!userId && currentRole && (
-        <span className="text-xs text-destructive">
+        <div className="text-xs text-destructive flex items-center">
           {isChinese
             ? "缺少 userId 参数，无法筛选个人数据。"
             : "Missing userId parameter to filter personal view."}
-        </span>
+        </div>
       )}
     </div>
   );

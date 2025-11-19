@@ -19,12 +19,13 @@ function sanitizePayload(
   };
 }
 
-interface RouteParams {
-  params: { id: string };
-}
+type RouteContext = {
+  params: Promise<{ id: string }>;
+};
 
-export async function GET(_: Request, { params }: RouteParams) {
-  const company = getCompanyById(params.id);
+export async function GET(_: Request, { params }: RouteContext) {
+  const { id } = await params;
+  const company = getCompanyById(id);
   if (!company) {
     return NextResponse.json(
       { error: "NOT_FOUND", message: "公司不存在" },
@@ -34,12 +35,13 @@ export async function GET(_: Request, { params }: RouteParams) {
   return NextResponse.json({ data: company });
 }
 
-export async function PUT(request: Request, { params }: RouteParams) {
+export async function PUT(request: Request, { params }: RouteContext) {
   try {
     const payload = sanitizePayload(
       (await request.json()) as Partial<CreateCompanyPayload>,
     );
-    const updated = updateCompany(params.id, payload);
+    const { id } = await params;
+    const updated = updateCompany(id, payload);
     if (!updated) {
       return NextResponse.json(
         { error: "NOT_FOUND", message: "公司不存在" },
@@ -59,8 +61,9 @@ export async function PUT(request: Request, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(_: Request, { params }: RouteParams) {
-  const removed = deleteCompany(params.id);
+export async function DELETE(_: Request, { params }: RouteContext) {
+  const { id } = await params;
+  const removed = deleteCompany(id);
   if (!removed) {
     return NextResponse.json(
       { error: "NOT_FOUND", message: "公司不存在" },

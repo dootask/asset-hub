@@ -12,14 +12,15 @@ import {
 
 const VALID_OPERATION_TYPES = OPERATION_TYPES.map((item) => item.value);
 
-interface RouteParams {
-  params: {
+type RouteContext = {
+  params: Promise<{
     id: string;
-  };
-}
+  }>;
+};
 
-export async function GET(_: Request, { params }: RouteParams) {
-  const asset = getAssetById(params.id);
+export async function GET(_: Request, { params }: RouteContext) {
+  const { id } = await params;
+  const asset = getAssetById(id);
   if (!asset) {
     return NextResponse.json(
       { error: "NOT_FOUND", message: "资产不存在" },
@@ -52,8 +53,9 @@ function sanitizeOperationPayload(
   };
 }
 
-export async function POST(request: Request, { params }: RouteParams) {
-  const asset = getAssetById(params.id);
+export async function POST(request: Request, { params }: RouteContext) {
+  const { id } = await params;
+  const asset = getAssetById(id);
   if (!asset) {
     return NextResponse.json(
       { error: "NOT_FOUND", message: "资产不存在" },
@@ -66,7 +68,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       (await request.json()) as Partial<CreateAssetOperationPayload>,
     );
 
-    const operation = createAssetOperation(asset.id, payload);
+    const operation = createAssetOperation(id, payload);
     return NextResponse.json({ data: operation }, { status: 201 });
   } catch (error) {
     return NextResponse.json(

@@ -69,7 +69,7 @@ export default async function ApprovalsPage({ params, searchParams }: PageProps)
   const prevPage = meta.page - 1;
   const totalPages = Math.max(1, Math.ceil(meta.total / meta.pageSize));
 
-  const buildPageLink = (target: number) => {
+  const buildQueryParams = () => {
     const params = new URLSearchParams();
     Object.entries(search).forEach(([key, value]) => {
       if (Array.isArray(value)) {
@@ -78,13 +78,24 @@ export default async function ApprovalsPage({ params, searchParams }: PageProps)
         params.set(key, value);
       }
     });
+    return params;
+  };
+
+  const buildPageLink = (target: number) => {
+    const params = buildQueryParams();
     params.set("page", String(target));
     return `?${params.toString()}`;
   };
 
+  const exportHref = (() => {
+    const params = buildQueryParams();
+    const query = params.toString();
+    return `/apps/asset-hub/api/approvals/export${query ? `?${query}` : ""}`;
+  })();
+
   return (
     <div className="space-y-6">
-      <header>
+      <header className="space-y-4">
         <p className="text-sm text-muted-foreground">
           {isChinese ? "审批中心" : "Approval Center"}
         </p>
@@ -96,6 +107,12 @@ export default async function ApprovalsPage({ params, searchParams }: PageProps)
             ? "跟踪所有资产审批的发起与进度。"
             : "Track all approval requests and their progress."}
         </p>
+        <a
+          href={exportHref}
+          className="inline-flex items-center rounded-full border px-4 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+        >
+          {isChinese ? "导出 CSV" : "Export CSV"}
+        </a>
       </header>
 
       <ApprovalTabs

@@ -13,10 +13,10 @@ export default async function AssetCreatePage({
         <p className="text-sm text-muted-foreground">
           {isChinese ? "资产管理 / 新增资产" : "Assets / Create"}
         </p>
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight">
           {isChinese ? "新增资产" : "Create Asset"}
         </h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="mt-1 text-sm text-muted-foreground">
           {isChinese
             ? "填写资产基础信息，提交后将自动跳转到详情页。"
             : "Fill in the asset details. After submission you'll be redirected to the asset detail page."}

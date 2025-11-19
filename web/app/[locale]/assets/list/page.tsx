@@ -83,9 +83,7 @@ export default async function AssetListPage({
       : "Failed to load asset list.";
   }
 
-  const totalPages = Math.max(1, Math.ceil(meta.total / meta.pageSize));
-
-  const buildPageLink = (page: number) => {
+  const buildQueryParams = () => {
     const params = new URLSearchParams();
     Object.entries(resolvedSearchParams).forEach(([key, value]) => {
       if (Array.isArray(value)) {
@@ -94,9 +92,22 @@ export default async function AssetListPage({
         params.set(key, value);
       }
     });
+    return params;
+  };
+
+  const totalPages = Math.max(1, Math.ceil(meta.total / meta.pageSize));
+
+  const buildPageLink = (page: number) => {
+    const params = buildQueryParams();
     params.set("page", page.toString());
     return `?${params.toString()}`;
   };
+
+  const exportHref = (() => {
+    const params = buildQueryParams();
+    const query = params.toString();
+    return `/apps/asset-hub/api/assets/export${query ? `?${query}` : ""}`;
+  })();
 
   const withLocale = (path: string) => `/${locale}${path}`;
 
@@ -117,12 +128,20 @@ export default async function AssetListPage({
                 : "Filter by keyword, status, or category and create new assets anytime."}
             </p>
           </div>
-          <Link
-            href={withLocale("/assets/new")}
-            className="inline-flex items-center justify-center rounded-2xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow"
-          >
-            {isChinese ? "新增资产" : "New Asset"}
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href={withLocale("/assets/new")}
+              className="inline-flex items-center justify-center rounded-2xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow"
+            >
+              {isChinese ? "新增资产" : "New Asset"}
+            </Link>
+            <a
+              href={exportHref}
+              className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+            >
+              {isChinese ? "导出 CSV" : "Export CSV"}
+            </a>
+          </div>
         </div>
       </header>
 

@@ -8,14 +8,13 @@ import {
 } from "@/lib/types/approval";
 import {
   createApprovalRequest,
-  getApprovalRequestById,
   listApprovalRequests,
-  setApprovalExternalTodoId,
 } from "@/lib/repositories/approvals";
 import { getRequestBaseUrl } from "@/lib/utils/server-url";
 import {
-  createApprovalTodo,
-} from "@/lib/integrations/dootask-approvals";
+  notifyApprovalCreated,
+} from "@/lib/integrations/dootask-notifications";
+import { extractUserFromRequest } from "@/lib/utils/request-user";
 
 const STATUS_ALLOW_LIST = APPROVAL_STATUSES.map((item) => item.value);
 const TYPE_ALLOW_LIST = APPROVAL_TYPES.map((item) => item.value);
@@ -141,7 +140,28 @@ export async function POST(request: Request) {
   try {
     const rawBody = await request.json();
     const payload = sanitizeCreatePayload(rawBody);
-    const approval = createApprovalRequest(payload);
+    const requestUser =
+      extractUserFromRequest(request) ?? payload.applicant ?? null;
+
+    if (!requestUser?.id) {
+      return NextResponse.json(
+        {
+          error: "USER_CONTEXT_REQUIRED",
+          message:
+            "缺少用户身份信息，请通过 DooTask 菜单或附带 user_id 参数访问。",
+        },
+        { status: 401 },
+      );
+    }
+
+    const safePayload: CreateApprovalRequestPayload = {
+      ...payload,
+      applicant: {
+        id: requestUser.id,
+        name: requestUser.nickname ?? payload.applicant?.name,
+      },
+    };
+    const approval = createApprovalRequest(safePayload);
 
     const url = new URL(request.url);
     const localeParam = url.searchParams.get("lang");
@@ -169,29 +189,12 @@ export async function POST(request: Request) {
       query ? `?${query}` : ""
     }`;
 
-    const todo = await createApprovalTodo({
-      requestId: approval.id,
-      title: approval.title,
-      link: detailLink,
-      applicant: {
-        id: approval.applicantId,
-        name: approval.applicantName ?? undefined,
-      },
-      approver: approval.approverId
-        ? {
-            id: approval.approverId,
-            name: approval.approverName ?? undefined,
-          }
-        : undefined,
+    await notifyApprovalCreated({
+      approval,
+      detailLink,
     });
 
-    let responseApproval = approval;
-    if (todo?.externalId) {
-      setApprovalExternalTodoId(approval.id, todo.externalId);
-      responseApproval = getApprovalRequestById(approval.id) ?? approval;
-    }
-
-    return NextResponse.json({ data: responseApproval }, { status: 201 });
+    return NextResponse.json({ data: approval }, { status: 201 });
   } catch (error) {
     return NextResponse.json(
       {

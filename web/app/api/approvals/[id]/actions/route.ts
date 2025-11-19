@@ -1,19 +1,24 @@
 import { NextResponse } from "next/server";
-import type { ApprovalActionPayload } from "@/lib/types/approval";
-import { applyApprovalAction } from "@/lib/repositories/approvals";
-import { completeApprovalTodo } from "@/lib/integrations/dootask-approvals";
+import type { ApprovalActionPayload, ApprovalRequest } from "@/lib/types/approval";
+import { applyApprovalAction, getApprovalRequestById } from "@/lib/repositories/approvals";
+import { notifyApprovalUpdated } from "@/lib/integrations/dootask-notifications";
+import { extractUserFromRequest } from "@/lib/utils/request-user";
+import { appConfig } from "@/lib/config";
 
-interface RouteParams {
-  params: {
+type RouteContext = {
+  params: Promise<{
     id: string;
-  };
-}
+  }>;
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function sanitizeActionPayload(payload: unknown): ApprovalActionPayload {
+function sanitizeActionPayload(payload: unknown): {
+  action: ApprovalActionPayload["action"];
+  comment?: string;
+} {
   if (!isRecord(payload)) {
     throw new Error("请求体必须是 JSON 对象");
   }
@@ -27,39 +32,95 @@ function sanitizeActionPayload(payload: unknown): ApprovalActionPayload {
     throw new Error("不支持的审批操作");
   }
 
-  if (!isRecord(payload.actor) || typeof payload.actor.id !== "string") {
-    throw new Error("缺少操作人信息");
-  }
-
   return {
     action,
     comment:
       typeof payload.comment === "string" ? payload.comment.trim() : undefined,
-    actor: {
-      id: payload.actor.id,
-      name: typeof payload.actor.name === "string" ? payload.actor.name : undefined,
-    },
   };
 }
 
-export async function POST(request: Request, { params }: RouteParams) {
-  try {
-    const payload = sanitizeActionPayload(await request.json());
-    const approval = applyApprovalAction(params.id, payload);
+function isAdmin(userId: string) {
+  return appConfig.permissions.adminUserIds.includes(userId);
+}
 
-     if (
-      approval.externalTodoId &&
-      (approval.status === "approved" ||
-        approval.status === "rejected" ||
-        approval.status === "cancelled")
-    ) {
-      await completeApprovalTodo({
-        externalId: approval.externalTodoId,
-        requestId: approval.id,
-        status: approval.status,
-        result: approval.result,
-      });
+function canApprove(approval: ApprovalRequest, userId: string) {
+  if (approval.approverId && approval.approverId === userId) {
+    return true;
+  }
+  return isAdmin(userId);
+}
+
+function canCancel(approval: ApprovalRequest, userId: string) {
+  return approval.applicantId === userId || isAdmin(userId);
+}
+
+export async function POST(request: Request, { params }: RouteContext) {
+  try {
+    const rawBody = await request.json();
+    const payload = sanitizeActionPayload(rawBody);
+
+    const currentUser =
+      extractUserFromRequest(request) ??
+      (isRecord(rawBody.actor) && typeof rawBody.actor.id === "string"
+        ? {
+            id: rawBody.actor.id,
+            nickname:
+              typeof rawBody.actor.name === "string" ? rawBody.actor.name : undefined,
+          }
+        : null);
+
+    if (!currentUser?.id) {
+      return NextResponse.json(
+        {
+          error: "USER_CONTEXT_REQUIRED",
+          message: "缺少用户身份信息，无法执行审批操作。",
+        },
+        { status: 401 },
+      );
     }
+
+    const { id } = await params;
+
+    const existing = getApprovalRequestById(id);
+    if (!existing) {
+      return NextResponse.json(
+        { error: "NOT_FOUND", message: "审批请求不存在" },
+        { status: 404 },
+      );
+    }
+
+    if (
+      (payload.action === "approve" || payload.action === "reject") &&
+      !canApprove(existing, currentUser.id)
+    ) {
+      return NextResponse.json(
+        {
+          error: "FORBIDDEN",
+          message: "当前用户没有审批该请求的权限。",
+        },
+        { status: 403 },
+      );
+    }
+
+    if (payload.action === "cancel" && !canCancel(existing, currentUser.id)) {
+      return NextResponse.json(
+        {
+          error: "FORBIDDEN",
+          message: "只有申请人或管理员可以撤销该审批。",
+        },
+        { status: 403 },
+      );
+    }
+
+    const approval = applyApprovalAction(id, {
+      ...payload,
+      actor: {
+        id: currentUser.id,
+        name: currentUser.nickname,
+      },
+    });
+
+    await notifyApprovalUpdated({ approval });
 
     return NextResponse.json({ data: approval });
   } catch (error) {

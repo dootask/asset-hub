@@ -117,8 +117,8 @@ export default function ApprovalRequestForm({
           reason: formState.reason.trim(),
           assetId,
           applicant: {
-            id: applicant.id.trim(),
-            name: applicant.name?.trim(),
+            id: `${applicant.id}`.trim(),
+            name: `${applicant.name}`.trim(),
           },
           approver:
             formState.approverId || formState.approverName
@@ -225,31 +225,26 @@ export default function ApprovalRequestForm({
         />
       </div>
 
-      <div className="space-y-1.5">
-        <Label className="text-xs font-medium text-muted-foreground">
-          {isChinese ? "申请人 ID" : "Applicant ID"}
-        </Label>
-        <Input
-          required
-          value={applicant.id}
-          disabled={loadingUser}
-          onChange={(event) =>
-            setApplicant((prev) => ({ ...prev, id: event.target.value }))
-          }
-        />
-      </div>
-
       <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-muted-foreground">
+            {isChinese ? "申请人 ID" : "Applicant ID"}
+          </Label>
+          <Input
+            required
+            readOnly
+            value={applicant.id}
+            disabled={loadingUser}
+          />
+        </div>
         <div className="space-y-1.5">
           <Label className="text-xs font-medium text-muted-foreground">
             {isChinese ? "申请人姓名" : "Applicant Name"}
           </Label>
           <Input
+            readOnly
             value={applicant.name ?? ""}
             disabled={loadingUser}
-            onChange={(event) =>
-              setApplicant((prev) => ({ ...prev, name: event.target.value }))
-            }
           />
         </div>
         <div className="space-y-1.5">
@@ -266,21 +261,20 @@ export default function ApprovalRequestForm({
             }
           />
         </div>
-      </div>
-
-      <div className="space-y-1.5">
-        <Label className="text-xs font-medium text-muted-foreground">
-          {isChinese ? "审批人姓名" : "Approver Name"}
-        </Label>
-        <Input
-          value={formState.approverName}
-          onChange={(event) =>
-            setFormState((prev) => ({
-              ...prev,
-              approverName: event.target.value,
-            }))
-          }
-        />
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-muted-foreground">
+            {isChinese ? "审批人姓名" : "Approver Name"}
+          </Label>
+          <Input
+            value={formState.approverName}
+            onChange={(event) =>
+              setFormState((prev) => ({
+                ...prev,
+                approverName: event.target.value,
+              }))
+            }
+          />
+        </div>
       </div>
 
       {error && <p className="text-xs text-destructive">{error}</p>}

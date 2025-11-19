@@ -11,6 +11,8 @@ interface Props {
   type?: string;
 }
 
+const ALL_VALUE = "__all__";
+
 export default function ApprovalFilters({ locale, status, type }: Props) {
   const router = useRouter();
   const pathname = usePathname();
@@ -32,6 +34,12 @@ export default function ApprovalFilters({ locale, status, type }: Props) {
     router.replace(`${pathname}?${params.toString()}`);
   };
 
+  const getSelectValue = (current?: string) => current ?? ALL_VALUE;
+
+  const handleSelectChange = (key: string, value: string) => {
+    updateParam(key, value === ALL_VALUE ? undefined : value);
+  };
+
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -39,14 +47,14 @@ export default function ApprovalFilters({ locale, status, type }: Props) {
       </div>
       <div className="flex flex-1 flex-wrap gap-3">
         <Select
-          value={status ?? ""}
-          onValueChange={(value) => updateParam("status", value || undefined)}
+          value={getSelectValue(status)}
+          onValueChange={(value) => handleSelectChange("status", value)}
         >
           <SelectTrigger className="w-40">
             <SelectValue placeholder={isChinese ? "全部状态" : "All statuses"} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">
+            <SelectItem value={ALL_VALUE}>
               {isChinese ? "全部状态" : "All statuses"}
             </SelectItem>
             {APPROVAL_STATUSES.map((item) => (
@@ -57,15 +65,12 @@ export default function ApprovalFilters({ locale, status, type }: Props) {
           </SelectContent>
         </Select>
 
-        <Select
-          value={type ?? ""}
-          onValueChange={(value) => updateParam("type", value || undefined)}
-        >
+        <Select value={getSelectValue(type)} onValueChange={(value) => handleSelectChange("type", value)}>
           <SelectTrigger className="w-44">
             <SelectValue placeholder={isChinese ? "全部类型" : "All types"} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">
+            <SelectItem value={ALL_VALUE}>
               {isChinese ? "全部类型" : "All types"}
             </SelectItem>
             {APPROVAL_TYPES.map((item) => (

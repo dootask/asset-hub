@@ -50,7 +50,7 @@ export default function ApprovalActionForm({ approvalId, locale }: Props) {
     }
   }, []);
 
-  const canSubmit = useMemo(() => applicant.id.trim().length > 0, [applicant.id]);
+  const canSubmit = useMemo(() => `${applicant.id}`.trim().length > 0, [applicant.id]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -76,8 +76,8 @@ export default function ApprovalActionForm({ approvalId, locale }: Props) {
             action,
             comment: comment.trim() ? comment.trim() : undefined,
             actor: {
-              id: applicant.id.trim(),
-              name: applicant.name?.trim(),
+              id: `${applicant.id}`.trim(),
+              name: `${applicant.name}`.trim(),
             },
           }),
         },
@@ -158,11 +158,9 @@ export default function ApprovalActionForm({ approvalId, locale }: Props) {
           </Label>
           <Input
             required
+            readOnly
             disabled={loadingUser}
             value={applicant.id}
-            onChange={(event) =>
-              setApplicant((prev) => ({ ...prev, id: event.target.value }))
-            }
           />
         </div>
         <div className="space-y-1.5">
@@ -170,11 +168,9 @@ export default function ApprovalActionForm({ approvalId, locale }: Props) {
             {isChinese ? "操作人姓名" : "Actor Name"}
           </Label>
           <Input
+            readOnly
             disabled={loadingUser}
             value={applicant.name}
-            onChange={(event) =>
-              setApplicant((prev) => ({ ...prev, name: event.target.value }))
-            }
           />
         </div>
       </div>
