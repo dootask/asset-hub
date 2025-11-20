@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@dootask/tools':
-        specifier: ^1.2.1
-        version: 1.2.2
+        specifier: ^1.2.3
+        version: 1.2.3
       '@radix-ui/react-alert-dialog':
         specifier: ^1.1.15
         version: 1.1.15(@types/react-dom@19.2.3(@types/react@19.2.6))(@types/react@19.2.6)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -191,8 +191,8 @@ packages:
   '@date-fns/tz@1.4.1':
     resolution: {integrity: sha512-P5LUNhtbj6YfI3iJjw5EL9eUAG6OitD0W3fWQcpQjDRc/QIsL0tRNuO1PcDvPccWL1fSTXXdE1ds+l95DV/OFA==}
 
-  '@dootask/tools@1.2.2':
-    resolution: {integrity: sha512-SuLL6MKpsucaHCrAd8jG3v50B8KdyfVSuZYYFHWu05sYN9s4JXzO5WrmtzWeJZEpT/fOZXj+y8LXM71wzaGb4g==}
+  '@dootask/tools@1.2.3':
+    resolution: {integrity: sha512-JELF0Br6xNLYpJpflXpQSi9x1XGJNNyUqc3vP3Y5M395nict9Oy7B2Jg0G6C/S/aocDEWut+LLNVk7Ibc1gilg==}
 
   '@emnapi/core@1.7.1':
     resolution: {integrity: sha512-o1uhUASyo921r2XtHYOHy7gdkGLge8ghBEQHMWmyJFoXlpU58kIrhhN3w26lpQb6dspetweapMn2CSNwQ8I4wg==}
@@ -3504,7 +3504,7 @@ snapshots:
 
   '@date-fns/tz@1.4.1': {}
 
-  '@dootask/tools@1.2.2': {}
+  '@dootask/tools@1.2.3': {}
 
   '@emnapi/core@1.7.1':
     dependencies:
