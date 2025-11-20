@@ -122,7 +122,7 @@ function mapRow(row: ActionConfigRow): ActionConfig {
 export function listActionConfigs(): ActionConfig[] {
   const db = getDb();
   const rows = db
-    .prepare<ActionConfigRow[]>("SELECT * FROM asset_action_configs")
+    .prepare<[], ActionConfigRow>("SELECT * FROM asset_action_configs")
     .all();
 
   const mapped = rows.map(mapRow);
@@ -139,7 +139,7 @@ export function listActionConfigs(): ActionConfig[] {
 export function getActionConfig(id: ActionConfigId): ActionConfig {
   const db = getDb();
   const row = db
-    .prepare<ActionConfigRow>(
+    .prepare<[ActionConfigId], ActionConfigRow>(
       "SELECT * FROM asset_action_configs WHERE id = ? LIMIT 1",
     )
     .get(id);
@@ -200,5 +200,4 @@ export function upsertActionConfig(
 
   return getActionConfig(id);
 }
-
 
