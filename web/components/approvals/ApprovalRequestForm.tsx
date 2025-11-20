@@ -2,7 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { APPROVAL_TYPES, ApprovalType } from "@/lib/types/approval";
+import {
+  APPROVAL_TYPES,
+  type ApprovalRequest,
+  ApprovalType,
+} from "@/lib/types/approval";
 import type { ActionConfig } from "@/lib/types/action-config";
 import { approvalTypeToActionConfigId } from "@/lib/utils/action-config";
 import {
@@ -11,6 +15,7 @@ import {
   appReady,
   fetchUserBasic,
 } from "@dootask/tools";
+import { sendApprovalCreatedNotification } from "@/lib/client/dootask-notifications";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -372,9 +377,20 @@ export default function ApprovalRequestForm({
         }),
       });
 
+      const payload = (await response.json()) as {
+        data?: ApprovalRequest;
+        message?: string;
+      };
+
       if (!response.ok) {
-        const payload = await response.json();
         throw new Error(payload?.message ?? "无法提交审批请求");
+      }
+
+      if (payload?.data) {
+        void sendApprovalCreatedNotification({
+          approval: payload.data,
+          locale,
+        });
       }
 
       setFormState({

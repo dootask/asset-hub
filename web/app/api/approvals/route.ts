@@ -10,17 +10,23 @@ import {
   createApprovalRequest,
   listApprovalRequests,
 } from "@/lib/repositories/approvals";
-import { getRequestBaseUrl } from "@/lib/utils/server-url";
 import {
-  notifyApprovalCreated,
-} from "@/lib/integrations/dootask-notifications";
-import { extractUserFromRequest } from "@/lib/utils/request-user";
+  extractUserFromRequest,
+  type RequestUser,
+} from "@/lib/utils/request-user";
 import { getActionConfig } from "@/lib/repositories/action-configs";
 import type { ActionConfig } from "@/lib/types/action-config";
 import { approvalTypeToActionConfigId } from "@/lib/utils/action-config";
 
 const STATUS_ALLOW_LIST = APPROVAL_STATUSES.map((item) => item.value);
 const TYPE_ALLOW_LIST = APPROVAL_TYPES.map((item) => item.value);
+
+function isApprovalType(value: unknown): value is ApprovalType {
+  return (
+    typeof value === "string" &&
+    TYPE_ALLOW_LIST.includes(value as ApprovalType)
+  );
+}
 
 function parseListParam<T extends string>(
   raw: string | null,
@@ -84,7 +90,7 @@ function sanitizeCreatePayload(
   }
 
   const type = payload.type;
-  if (typeof type !== "string" || !TYPE_ALLOW_LIST.includes(type)) {
+  if (!isApprovalType(type)) {
     throw new Error("审批类型不合法");
   }
 
@@ -185,8 +191,12 @@ export async function POST(request: Request) {
   try {
     const rawBody = await request.json();
     const payload = sanitizeCreatePayload(rawBody);
+    const fallbackRequestUser: RequestUser = {
+      id: payload.applicant.id,
+      nickname: payload.applicant.name,
+    };
     const requestUser =
-      extractUserFromRequest(request) ?? payload.applicant ?? null;
+      extractUserFromRequest(request) ?? fallbackRequestUser;
 
     if (!requestUser?.id) {
       return NextResponse.json(
@@ -256,37 +266,6 @@ export async function POST(request: Request) {
       metadata: metadataWithConfig,
     };
     const approval = createApprovalRequest(safePayload);
-
-    const url = new URL(request.url);
-    const localeParam = url.searchParams.get("lang");
-    const locale = localeParam && /zh/i.test(localeParam) ? "zh" : "en";
-    const hostParams = new URLSearchParams();
-    const forwardKeys = [
-      "theme",
-      "lang",
-      "system_lang",
-      "system_theme",
-      "user_id",
-      "user_token",
-      "user_nickname",
-      "user_email",
-    ];
-    forwardKeys.forEach((key) => {
-      const value = url.searchParams.get(key);
-      if (value) {
-        hostParams.set(key, value);
-      }
-    });
-    const query = hostParams.toString();
-    const baseUrl = await getRequestBaseUrl();
-    const detailLink = `${baseUrl}/apps/asset-hub/${locale}/approvals/${approval.id}${
-      query ? `?${query}` : ""
-    }`;
-
-    await notifyApprovalCreated({
-      approval,
-      detailLink,
-    });
 
     return NextResponse.json({ data: approval }, { status: 201 });
   } catch (error) {

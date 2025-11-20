@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { ApprovalAction } from "@/lib/types/approval";
+import type { ApprovalAction, ApprovalRequest } from "@/lib/types/approval";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { sendApprovalUpdatedNotification } from "@/lib/client/dootask-notifications";
 
 const ACTIONS: { value: ApprovalAction; labelZh: string; labelEn: string }[] = [
   { value: "approve", labelZh: "通过", labelEn: "Approve" },
@@ -67,25 +68,35 @@ export default function ApprovalActionForm({ approvalId, locale }: Props) {
         return locale ? `?lang=${locale}` : "";
       })();
       const endpoint = `/apps/asset-hub/api/approvals/${approvalId}/actions${searchSuffix}`;
-      const response = await fetch(
-        endpoint,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action,
-            comment: comment.trim() ? comment.trim() : undefined,
-            actor: {
-              id: `${applicant.id}`.trim(),
-              name: `${applicant.name}`.trim(),
-            },
-          }),
-        },
-      );
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action,
+          comment: comment.trim() ? comment.trim() : undefined,
+          actor: {
+            id: `${applicant.id}`.trim(),
+            name: `${applicant.name}`.trim(),
+          },
+        }),
+      });
+
+      const payload = (await response.json()) as {
+        data?: ApprovalRequest;
+        message?: string;
+      };
 
       if (!response.ok) {
-        const payload = await response.json();
         throw new Error(payload?.message ?? "提交失败");
+      }
+
+      if (payload?.data) {
+        const actorName = applicant.name || applicant.id;
+        void sendApprovalUpdatedNotification({
+          approval: payload.data,
+          locale,
+          actorName,
+        });
       }
 
       setComment("");

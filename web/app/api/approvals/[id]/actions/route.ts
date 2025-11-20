@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import type { ApprovalActionPayload, ApprovalRequest } from "@/lib/types/approval";
 import { applyApprovalAction, getApprovalRequestById } from "@/lib/repositories/approvals";
-import { notifyApprovalUpdated } from "@/lib/integrations/dootask-notifications";
 import { extractUserFromRequest } from "@/lib/utils/request-user";
 import { appConfig } from "@/lib/config";
 
@@ -119,8 +118,6 @@ export async function POST(request: Request, { params }: RouteContext) {
         name: currentUser.nickname,
       },
     });
-
-    await notifyApprovalUpdated({ approval });
 
     return NextResponse.json({ data: approval });
   } catch (error) {

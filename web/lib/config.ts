@@ -27,10 +27,6 @@ export const appConfig = {
   db: {
     filePath: getDbFilePath(),
   },
-  dootask: {
-    apiBaseUrl: process.env.DOOTASK_API_BASE_URL ?? "",
-    apiToken: process.env.DOOTASK_API_TOKEN ?? "",
-  },
   permissions: {
     adminUserIds: parseCsv(process.env.ASSET_HUB_ADMIN_USER_IDS),
   },
