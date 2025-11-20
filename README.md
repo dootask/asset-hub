@@ -24,8 +24,16 @@ pnpm dev       # http://localhost:3000/apps/asset-hub
 
 - `pnpm lint`：ESLint + TypeScript 检查。
 - `pnpm test`：Vitest 单元测试（主要覆盖仓储层）。
+- `cd web && pnpm test:e2e`：Playwright 端到端测试。  
+  - 需在 `web/.env` 中提供 `PLAYWRIGHT_DOOTASK_HOST / PLAYWRIGHT_APP_URL / PLAYWRIGHT_USER_ID / PLAYWRIGHT_USER_TOKEN`，脚本会自动访问 `{host}/single/apps/iframe-test?url=...`，在真实 DooTask 宿主 iframe 中执行测试。  
+  - 该模式完全依赖你提供的线上环境，不会再本地启动 `pnpm dev`。
 - `Dockerfile`：构建生产镜像 `docker build -t asset-hub .`。
-- `.github/workflows/ci.yml`：GitHub Actions 自动执行 lint/test/build，保证 PR 的基础质量。
+- `.github/workflows/ci.yml`：GitHub Actions 自动执行 lint/test/build（可扩展至 Playwright）。
+
+## 当前里程碑
+
+- **阶段 5 完成**：资产 → 操作 → 审批 → 状态联动闭环已上线，并以 Playwright (`web/tests/e2e`) 自动化回归替换手动清单。
+- **阶段 6（筹备中）**：Dashboard & 报表指标拆解、聚合 API 规划以及多语言/主题联动优化。
 
 ## DooTask 插件
 

@@ -60,6 +60,19 @@ alwaysApply: false
   - 对于暂不需要独立操作记录的“配置型审批”（后期扩展），可以只用 `asset_approval_requests` 承载。
 - 首期只实现 **单级审批**，后续可在不破坏兼容性的前提下扩展多级流程（例如引入 `asset_approval_steps`）。
 
+### 2.3 配置表 `asset_action_configs`
+
+- 作用：统一定义每种操作的审批策略，供前端表单与后端 API 共同引用。
+- 字段（见 `web/lib/db/schema.ts`）：
+  - `requires_approval`：布尔值，指明该操作是否必须审批。
+  - `default_approver_type`：`none | user | role`。
+  - `default_approver_refs`：JSON 数组，存储默认审批人/角色 ID。
+  - `allow_override`：是否允许申请人修改审批人。
+  - `metadata`：JSON 预留扩展（例如额外提示、自动化策略）。
+- 维护方式：
+  - 代码端通过 `DEFAULT_ACTION_CONFIGS` 提供基线配置，迁移脚本会在首次运行时写入；
+  - 系统页面 `/system/approval` 允许管理员在 UI 上调整上述字段，并通过 `PUT /api/config/approvals/:id` 持久化。
+
 ---
 
 ## 3. 状态机设计
@@ -102,6 +115,7 @@ alwaysApply: false
 注意：
 
 - 首期可以简化为：**采购审批通过后仅记录操作，不强制自动创建资产记录**，由管理员在入库时补充/创建真实资产，避免流程过早绑定具体资产信息。
+- 每次创建审批请求时都应把与之对应的 `asset_action_configs` 结果拷贝到 `metadata.configSnapshot`，以便后续的 `applyApprovalAction`/审计使用，即使管理员之后修改了配置也不影响历史记录。
 
 ### 3.3 入库流程（Inbound）
 
@@ -174,6 +188,8 @@ alwaysApply: false
   - 在操作时间轴（timeline）中展示与审批相关的节点：
     - 显示审批状态、审批人、结果文案。
     - 点击可跳转到审批详情页 `/apps/asset-hub/approvals/:id`。
+  - “基础信息”卡片提供对话框式的编辑入口，直连 `PUT /api/assets/:id`，确保管理员可以在审批之外维护资产属性。
+  - “操作”表单（`OperationForm`）在用户选择需要审批的类型时，基于 `asset_action_configs` 自动禁用提交按钮并提示转到审批表单。
 
 ### 5.2 审批列表与详情页
 
@@ -184,6 +200,7 @@ alwaysApply: false
   - `/apps/asset-hub/approvals/:id`：审批详情页。
     - 展示基础信息、申请内容、关联资产/操作、审批历史。
     - 提供“同意/驳回/撤销”操作入口（基于当前用户权限）。
+- `/apps/asset-hub/system/approval`：审批配置管理界面，用于调整 `requires_approval`、默认审批人以及是否允许覆盖，并立即影响后续审批表单。
 
 ### 5.3 多语言与主题
 
@@ -197,16 +214,13 @@ alwaysApply: false
 
 ### 6.1 集成方式总览
 
-- 通过 `@dootask/tools` 能力与宿主 DooTask 交互：
-  - 当前代码中已使用的能力：`isMicroApp` / `appReady` / `getThemeName` / `getUserInfo` 等。
-  - 审批相关的“创建待办 / 更新待办”可能需要宿主侧提供额外 API 或工具函数，暂不在此文档中硬编码具体函数名。
+- 客户端侧通过 `@dootask/tools` 获取宿主上下文：`appReady`、`isMicroApp`、`selectUsers`、`fetchUserBasic`、`getThemeName` 等。
+- 服务器端通过 `web/lib/integrations/dootask-notifications.ts` 封装的网关向宿主推送审批通知；若未配置宿主 API，则降级为日志输出。
 
 设计约定：
 
-- 在 `web/lib/integrations/dootask-approvals.ts` 中封装一层 **DooTask 审批/待办网关**，暴露类似接口：
-  - `createApprovalTodo({ requestId, title, link, applicant, approver })`
-  - `completeApprovalTodo({ requestId, result })`
-- 服务器端 Route Handler 在处理 `/api/approvals` 创建/更新时，**只调用网关模块**，不直接依赖 `@dootask/tools` 的具体实现，便于在独立运行模式下回退为 no-op 或日志输出。
+- 审批表单必须根据 `isMicroApp` 结果决定交互：在宿主里打开 `selectUsers` 组件，独立模式则展示只读默认审批人或允许手输。
+- `/api/approvals` 创建/更新时只调用 `notifyApprovalCreated` / `notifyApprovalUpdated` 之类的统一函数，避免在 Route Handler 内直接依赖具体宿主实现，便于在本地/独立部署时降级。
 
 ### 6.2 执行时机
 

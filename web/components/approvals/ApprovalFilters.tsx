@@ -50,7 +50,11 @@ export default function ApprovalFilters({ locale, status, type }: Props) {
           value={getSelectValue(status)}
           onValueChange={(value) => handleSelectChange("status", value)}
         >
-          <SelectTrigger className="w-40">
+          <SelectTrigger
+            className="w-40"
+            data-testid="approval-status-filter"
+            aria-label="Status filter"
+          >
             <SelectValue placeholder={isChinese ? "全部状态" : "All statuses"} />
           </SelectTrigger>
           <SelectContent>
@@ -66,7 +70,11 @@ export default function ApprovalFilters({ locale, status, type }: Props) {
         </Select>
 
         <Select value={getSelectValue(type)} onValueChange={(value) => handleSelectChange("type", value)}>
-          <SelectTrigger className="w-44">
+          <SelectTrigger
+            className="w-44"
+            data-testid="approval-type-filter"
+            aria-label="Type filter"
+          >
             <SelectValue placeholder={isChinese ? "全部类型" : "All types"} />
           </SelectTrigger>
           <SelectContent>

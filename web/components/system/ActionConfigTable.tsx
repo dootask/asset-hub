@@ -106,7 +106,11 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
       {error && <p className="text-sm text-destructive">{error}</p>}
       <div className="space-y-6">
         {sortedConfigs.map((config) => (
-          <div key={config.id} className="rounded-2xl border bg-card/70 p-4 shadow-sm">
+          <div
+            key={config.id}
+            data-testid={`action-config-card-${config.id}`}
+            className="rounded-2xl border bg-card/70 p-4 shadow-sm"
+          >
             <div className="flex flex-col gap-2 pb-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm text-muted-foreground uppercase">
@@ -117,7 +121,7 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
                 </h2>
               </div>
               <Button
-                variant="primary"
+                variant="default"
                 disabled={pending || savingId === config.id}
                 onClick={() => handleSave(config)}
               >

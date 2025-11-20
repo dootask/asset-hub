@@ -28,12 +28,31 @@ pnpm dev
 # 访问 http://localhost:3000/apps/asset-hub/zh
 ```
 
+### 重要页面
+
+- `/apps/asset-hub/{locale}`：首页（待补仪表盘）。
+- `/apps/asset-hub/{locale}/assets/list`：资产列表。
+- `/apps/asset-hub/{locale}/assets/[id]`：资产详情，支持基础信息弹窗编辑、操作时间线、审批入口。
+- `/apps/asset-hub/{locale}/system`：系统管理总览 → 公司 / 角色 / 审批配置。
+
 ## 测试与校验
 
 ```bash
 pnpm lint   # 代码规范检查
 pnpm test   # Vitest 单元测试
+pnpm test:e2e    # Playwright 端到端测试（需要 DooTask 宿主配置）
 ```
+
+Playwright 依赖 DooTask 宿主提供 iframe 测试入口，请在 `web/.env` 中配置：
+
+```
+PLAYWRIGHT_DOOTASK_HOST=https://dootask.example.com
+PLAYWRIGHT_APP_URL=https://asset-hub.example.com/apps/asset-hub
+PLAYWRIGHT_USER_ID=demo-user
+PLAYWRIGHT_USER_TOKEN=demo-token
+```
+
+`pnpm test:e2e` 会访问 `{host}/single/apps/iframe-test?url=...&userid=...&token=...`，等待 `iframe.micro-app-iframe-container` 加载后再执行用例，因此不需要、也不会启动本地 `pnpm dev`。
 
 ## DooTask 宿主集成
 
@@ -41,6 +60,7 @@ pnpm test   # Vitest 单元测试
 - 配置 `DOOTASK_API_BASE_URL`、`DOOTASK_API_TOKEN` 即可启用通知；未配置时自动降级为本地日志。
 - 通知里的链接会附带 `theme/lang/user_*` 等查询参数，便于在 DooTask 内部打开插件详情页。
 - `ASSET_HUB_ADMIN_USER_IDS`（逗号分隔）可指定拥有“审批一切”权限的宿主用户 ID，其它用户只能处理与自己相关的审批。
+- 审批默认策略由 `asset_action_configs` 表驱动，可在系统页的“审批配置”中调整是否需要审批、默认审批人以及是否允许发起人覆盖。
 
 ## Docker 部署
 
