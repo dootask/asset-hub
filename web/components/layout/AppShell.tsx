@@ -21,7 +21,7 @@ const NAV_ITEMS = [
   { href: "/", match: "/", key: "dashboard" },
   { href: "/approvals", match: "/approvals", key: "approvals" },
   { href: "/assets/list", match: "/assets", key: "assets" },
-  { href: "/system/company", match: "/system", key: "system" },
+  { href: "/system", match: "/system", key: "system" },
   { href: "/about", match: "/about", key: "about" },
 ] as const;
 

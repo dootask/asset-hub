@@ -1,5 +1,6 @@
 import RoleForm from "@/components/system/RoleForm";
 import RoleTable from "@/components/system/RoleTable";
+import SystemBreadcrumb from "@/components/system/SystemBreadcrumb";
 import type { Role } from "@/lib/types/system";
 import { getRequestBaseUrl } from "@/lib/utils/server-url";
 
@@ -40,9 +41,11 @@ export default async function RolePage({
   return (
     <div className="space-y-6">
       <header>
-        <p className="text-sm text-muted-foreground">
-          {isChinese ? "系统管理 / 角色" : "System / Roles"}
-        </p>
+        <SystemBreadcrumb
+          locale={locale}
+          currentLabelZh="角色"
+          currentLabelEn="Roles"
+        />
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">
           {isChinese ? "角色管理" : "Role Management"}
         </h1>
