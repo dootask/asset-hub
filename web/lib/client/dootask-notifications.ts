@@ -72,16 +72,16 @@ export async function sendApprovalCreatedNotification(params: {
     params.locale === "zh"
       ? "**资产审批提醒**"
       : "**Asset Approval Reminder**",
-    `${params.locale === "zh" ? "类型" : "Type"}：${getApprovalTypeLabel(params.approval.type, params.locale)}`,
-    `${params.locale === "zh" ? "标题" : "Title"}：${params.approval.title}`,
-    `${params.locale === "zh" ? "申请人" : "Applicant"}：${
+    `- ${params.locale === "zh" ? "类型" : "Type"}：${getApprovalTypeLabel(params.approval.type, params.locale)}`,
+    `- ${params.locale === "zh" ? "标题" : "Title"}：${params.approval.title}`,
+    `- ${params.locale === "zh" ? "申请人" : "Applicant"}：${
       params.approval.applicantName ??
       params.approval.applicantId ??
       "-"
     }`,
     params.locale === "zh"
-      ? "查看详情：请在应用中心查看"
-      : "Details: Please open Asset Hub inside DooTask.",
+      ? "> 查看详情：请在应用中心查看"
+      : "> Details: Please open Asset Hub inside DooTask.",
   ].filter(Boolean);
 
   await sendBotMessage({
@@ -99,14 +99,14 @@ export async function sendApprovalUpdatedNotification(params: {
     params.locale === "zh"
       ? "**审批状态更新**"
       : "**Approval Status Update**",
-    `${params.locale === "zh" ? "标题" : "Title"}：${params.approval.title}`,
-    `${params.locale === "zh" ? "状态" : "Status"}：${getApprovalStatusLabel(params.approval.status, params.locale)}`,
+    `- ${params.locale === "zh" ? "标题" : "Title"}：${params.approval.title}`,
+    `- ${params.locale === "zh" ? "状态" : "Status"}：${getApprovalStatusLabel(params.approval.status, params.locale)}`,
     params.actorName
-      ? `${params.locale === "zh" ? "处理人" : "Actor"}：${params.actorName}`
+      ? `- ${params.locale === "zh" ? "处理人" : "Actor"}：${params.actorName}`
       : undefined,
     params.locale === "zh"
-      ? "查看详情：请在应用中心查看"
-      : "Details: Please open Asset Hub inside DooTask.",
+      ? "> 查看详情：请在应用中心查看"
+      : "> Details: Please open Asset Hub inside DooTask.",
   ].filter(Boolean);
 
   await sendBotMessage({
