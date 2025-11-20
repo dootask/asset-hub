@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAsset, listAssets } from "@/lib/repositories/assets";
+import { getAssetCategoryByCode } from "@/lib/repositories/asset-categories";
 import type { AssetStatus, CreateAssetPayload } from "@/lib/types/asset";
 import { ASSET_STATUSES } from "@/lib/types/asset";
 
@@ -60,6 +61,11 @@ function sanitizePayload(payload: Partial<CreateAssetPayload>): CreateAssetPaylo
 
   if (!ASSET_STATUSES.includes(payload.status as AssetStatus)) {
     throw new Error("Invalid asset status");
+  }
+
+  const category = getAssetCategoryByCode(payload.category!);
+  if (!category) {
+    throw new Error("Invalid asset category");
   }
 
   return payload as CreateAssetPayload;

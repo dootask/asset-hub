@@ -3,12 +3,9 @@ import AssetFilters from "@/components/assets/AssetFilters";
 import ListPagination from "@/components/layout/ListPagination";
 import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import {
-  type Asset,
-  getAssetCategoryLabel,
-  getAssetStatusLabel,
-} from "@/lib/types/asset";
+import { type Asset, getAssetStatusLabel } from "@/lib/types/asset";
 import { getRequestBaseUrl } from "@/lib/utils/server-url";
+import { listAssetCategories } from "@/lib/repositories/asset-categories";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -65,6 +62,13 @@ export default async function AssetListPage({
     searchParams,
   ]);
   const isChinese = locale === "zh";
+  const categories = listAssetCategories();
+  const categoryMap = new Map(
+    categories.map((category) => [
+      category.code,
+      isChinese ? category.labelZh : category.labelEn,
+    ]),
+  );
 
   let assets: Asset[] = [];
   let meta = { total: 0, page: 1, pageSize: 10 };
@@ -143,6 +147,12 @@ export default async function AssetListPage({
             >
               {isChinese ? "新增资产" : "New Asset"}
             </Link>
+            <Link
+              href={withLocale("/assets/categories")}
+              className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+            >
+              {isChinese ? "分类管理" : "Manage Categories"}
+            </Link>
             <a
               href={exportHref}
               className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
@@ -158,6 +168,7 @@ export default async function AssetListPage({
         initialSearch={normalizeParam(resolvedSearchParams.search)}
         initialCategory={normalizeParam(resolvedSearchParams.category)}
         initialStatus={parseStatuses(resolvedSearchParams.status)}
+        categories={categories}
       />
 
       {errorMessage ? (
@@ -201,7 +212,7 @@ export default async function AssetListPage({
                     <div className="text-xs text-muted-foreground">{asset.id}</div>
                   </TableCell>
                   <TableCell className="px-4 py-3">
-                    {getAssetCategoryLabel(asset.category, locale)}
+                    {categoryMap.get(asset.category) ?? asset.category}
                   </TableCell>
                   <TableCell className="px-4 py-3">
                     <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium">

@@ -4,6 +4,7 @@ import {
   getAssetById,
   updateAsset,
 } from "@/lib/repositories/assets";
+import { getAssetCategoryByCode } from "@/lib/repositories/asset-categories";
 import type { CreateAssetPayload } from "@/lib/types/asset";
 
 interface RouteParams {
@@ -28,6 +29,9 @@ export async function GET(_: Request, { params }: RouteParams) {
 export async function PUT(request: Request, { params }: RouteParams) {
   try {
     const payload = (await request.json()) as CreateAssetPayload;
+    if (!getAssetCategoryByCode(payload.category)) {
+      throw new Error("Invalid asset category");
+    }
     const updated = updateAsset(params.id, payload);
 
     if (!updated) {

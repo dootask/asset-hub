@@ -5,6 +5,7 @@ import {
   CREATE_TABLES,
   seedActionConfigs,
   seedApprovalRequests,
+  seedAssetCategories,
   seedAssets,
   seedCompanies,
   seedOperations,
@@ -86,6 +87,12 @@ function run() {
     table: "roles",
     rows: seedRoles,
     columns: ["id", "name", "scope", "description"],
+  });
+
+  seedTable({
+    table: "asset_categories",
+    rows: seedAssetCategories,
+    columns: ["id", "code", "label_zh", "label_en", "description", "color"],
   });
 
   seedTable({

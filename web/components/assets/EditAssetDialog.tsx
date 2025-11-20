@@ -5,12 +5,11 @@ import { useState } from "react";
 import { Calendar as CalendarIcon, Pencil } from "lucide-react";
 import {
   ASSET_STATUSES,
-  DEFAULT_ASSET_CATEGORIES,
   type Asset,
   type AssetStatus,
-  getAssetCategoryLabel,
   getAssetStatusLabel,
 } from "@/lib/types/asset";
+import type { AssetCategory } from "@/lib/types/asset-category";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,10 +41,33 @@ import type { CreateAssetPayload } from "@/lib/types/asset";
 type Props = {
   asset: Asset;
   locale?: string;
+  categories: AssetCategory[];
 };
 
-export default function EditAssetDialog({ asset, locale = "en" }: Props) {
+export default function EditAssetDialog({ asset, locale = "en", categories }: Props) {
   const isChinese = locale === "zh";
+  const categoryOptions = categories.map((category) => ({
+    id: category.id,
+    code: category.code,
+    label: isChinese ? category.labelZh : category.labelEn,
+    fallbackLabel: isChinese ? category.labelEn : category.labelZh,
+  }));
+
+  const currentCategory = categoryOptions.find(
+    (entry) => entry.code === formState.category,
+  );
+  const selectOptions =
+    currentCategory || !formState.category
+      ? categoryOptions
+      : [
+          ...categoryOptions,
+          {
+            id: "unknown",
+            code: formState.category,
+            label: formState.category,
+            fallbackLabel: "",
+          },
+        ];
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [purchaseDateOpen, setPurchaseDateOpen] = useState(false);
@@ -143,16 +165,36 @@ export default function EditAssetDialog({ asset, locale = "en" }: Props) {
               <Select
                 value={formState.category}
                 onValueChange={(value) => handleChange("category", value)}
+                disabled={selectOptions.length === 0}
               >
                 <SelectTrigger id="edit-asset-category" className="w-full">
-                  <SelectValue />
+                  <SelectValue
+                    placeholder={
+                      selectOptions.length === 0
+                        ? isChinese
+                          ? "暂无类别"
+                          : "No categories"
+                        : undefined
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  {DEFAULT_ASSET_CATEGORIES.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {getAssetCategoryLabel(category, locale)}
+                  {selectOptions.length === 0 ? (
+                    <SelectItem value="" disabled>
+                      {isChinese ? "无可用类别" : "No categories available"}
                     </SelectItem>
-                  ))}
+                  ) : (
+                    selectOptions.map((category) => (
+                      <SelectItem key={category.id} value={category.code}>
+                        <span className="font-medium">{category.label}</span>
+                        {category.fallbackLabel && (
+                          <span className="ml-1 text-xs text-muted-foreground">
+                            {category.fallbackLabel}
+                          </span>
+                        )}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>

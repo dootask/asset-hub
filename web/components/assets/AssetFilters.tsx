@@ -13,18 +13,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  ASSET_STATUSES,
-  DEFAULT_ASSET_CATEGORIES,
-  getAssetStatusLabel,
-  getAssetCategoryLabel,
-} from "@/lib/types/asset";
+import { ASSET_STATUSES, getAssetStatusLabel } from "@/lib/types/asset";
+import type { AssetCategory } from "@/lib/types/asset-category";
 
 export interface AssetFiltersProps {
   initialSearch?: string;
   initialStatus?: string[];
   initialCategory?: string;
   locale?: string;
+  categories?: AssetCategory[];
 }
 
 export default function AssetFilters({
@@ -32,6 +29,7 @@ export default function AssetFilters({
   initialStatus = [],
   initialCategory,
   locale = "en",
+  categories = [],
 }: AssetFiltersProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -88,10 +86,13 @@ export default function AssetFilters({
     router.push(query ? `${pathname}?${query}` : pathname);
   }, [pathname, router, searchParams]);
 
-  const categoryOptions = useMemo(
-    () => ["all", ...DEFAULT_ASSET_CATEGORIES],
-    [],
-  );
+  const categoryOptions = useMemo(() => {
+    const options = categories.map((category) => ({
+      value: category.code,
+      label: locale === "zh" ? category.labelZh : category.labelEn,
+    }));
+    return [{ value: "all", label: isChinese ? "全部" : "All" }, ...options];
+  }, [categories, isChinese, locale]);
 
   return (
     <div className="rounded-2xl border bg-muted/40 p-4">
@@ -119,21 +120,11 @@ export default function AssetFilters({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {categoryOptions.map((option) => {
-                if (option === "all") {
-                  return (
-                    <SelectItem key={option} value={option}>
-                      {isChinese ? "全部" : "All"}
-                    </SelectItem>
-                  );
-                }
-
-                return (
-                  <SelectItem key={option} value={option}>
-                    {getAssetCategoryLabel(option, locale)}
-                  </SelectItem>
-                );
-              })}
+              {categoryOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

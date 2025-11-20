@@ -11,10 +11,8 @@ import { listApprovalRequests } from "@/lib/repositories/approvals";
 import DisposeAssetButton from "@/components/assets/DisposeAssetButton";
 import EditAssetDialog from "@/components/assets/EditAssetDialog";
 import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
-import {
-  getAssetCategoryLabel,
-  getAssetStatusLabel,
-} from "@/lib/types/asset";
+import { getAssetStatusLabel } from "@/lib/types/asset";
+import { listAssetCategories } from "@/lib/repositories/asset-categories";
 
 type PageParams = { id: string; locale: string };
 type PageProps = {
@@ -45,6 +43,11 @@ export default async function AssetDetailPage({ params }: PageProps) {
   });
   const approvals = approvalsResult.data;
   const isChinese = locale === "zh";
+  const categories = listAssetCategories();
+  const categoryLabel =
+    categories.find((category) => category.code === asset.category)?.[
+      isChinese ? "labelZh" : "labelEn"
+    ] ?? asset.category;
 
   return (
     <div className="space-y-6">
@@ -79,16 +82,14 @@ export default async function AssetDetailPage({ params }: PageProps) {
           <h2 className="text-lg font-semibold">
             {isChinese ? "基础信息" : "Basic Info"}
           </h2>
-          <EditAssetDialog asset={asset} locale={locale} />
+          <EditAssetDialog asset={asset} locale={locale} categories={categories} />
         </div>
         <dl className="mt-4 grid gap-4 sm:grid-cols-2">
           <div>
             <dt className="text-xs text-muted-foreground">
               {isChinese ? "类别" : "Category"}
             </dt>
-            <dd className="text-sm font-medium">
-              {getAssetCategoryLabel(asset.category, locale)}
-            </dd>
+            <dd className="text-sm font-medium">{categoryLabel}</dd>
           </div>
           <div>
             <dt className="text-xs text-muted-foreground">

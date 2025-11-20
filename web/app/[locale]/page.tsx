@@ -3,13 +3,13 @@ import type { DashboardOverview } from "@/lib/repositories/analytics";
 import { getRequestBaseUrl } from "@/lib/utils/server-url";
 import {
   type AssetStatus,
-  getAssetCategoryLabel,
   getAssetStatusLabel,
 } from "@/lib/types/asset";
 import { getOperationTypeLabel } from "@/lib/types/operation";
 import RangeFilter from "@/components/dashboard/RangeFilter";
 import ApprovalStatusBadge from "@/components/approvals/ApprovalStatusBadge";
 import type { ApprovalStatus } from "@/lib/types/approval";
+import { listAssetCategories } from "@/lib/repositories/asset-categories";
 
 const RANGE_OPTIONS = [7, 14, 30] as const;
 
@@ -85,10 +85,17 @@ export default async function LocaleDashboard({
     ? parsedRange
     : 14;
 
-  const [summary, overview] = await Promise.all([
+  const [summary, overview, categories] = await Promise.all([
     fetchSummary(),
     fetchOverview(range),
+    listAssetCategories(),
   ]);
+  const categoryMap = new Map(
+    categories.map((category) => [
+      category.code,
+      locale === "zh" ? category.labelZh : category.labelEn,
+    ]),
+  );
 
   const withLocale = (path: string) => `/${locale}${path}`;
 
@@ -158,7 +165,7 @@ export default async function LocaleDashboard({
 
   const assetCategoryDistribution = overview.assetsByCategory.map((item) => ({
     ...item,
-    label: getAssetCategoryLabel(item.label, locale),
+    label: categoryMap.get(item.label) ?? item.label,
   }));
 
   const operationsByType = overview.operationsByType.map((item) => ({

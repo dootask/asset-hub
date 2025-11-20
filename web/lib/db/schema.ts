@@ -12,6 +12,18 @@ export const CREATE_TABLES = {
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `,
+  assetCategories: `
+    CREATE TABLE IF NOT EXISTS asset_categories (
+      id TEXT PRIMARY KEY,
+      code TEXT NOT NULL UNIQUE,
+      label_zh TEXT NOT NULL,
+      label_en TEXT NOT NULL,
+      description TEXT,
+      color TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `,
   companies: `
     CREATE TABLE IF NOT EXISTS companies (
       id TEXT PRIMARY KEY,
@@ -112,6 +124,49 @@ export const seedAssets = [
     owner: "行政部",
     location: "北京办公区",
     purchaseDate: "2022-09-20",
+  },
+];
+
+export const seedAssetCategories = [
+  {
+    id: "CAT-LAPTOP",
+    code: "Laptop",
+    label_zh: "笔记本电脑",
+    label_en: "Laptop",
+    description: "常规办公与移动开发设备",
+    color: "#2563eb",
+  },
+  {
+    id: "CAT-SERVER",
+    code: "Server",
+    label_zh: "服务器",
+    label_en: "Server",
+    description: "机房或云数据中心服务器",
+    color: "#7c3aed",
+  },
+  {
+    id: "CAT-SECURITY",
+    code: "Security",
+    label_zh: "安防设备",
+    label_en: "Security",
+    description: "摄像头、门禁等安防设备",
+    color: "#059669",
+  },
+  {
+    id: "CAT-NETWORK",
+    code: "Network",
+    label_zh: "网络设备",
+    label_en: "Network",
+    description: "交换机、路由器等网络设备",
+    color: "#0f172a",
+  },
+  {
+    id: "CAT-OTHER",
+    code: "Other",
+    label_zh: "其他资产",
+    label_en: "Other",
+    description: "暂未分类的其它资产",
+    color: "#6b7280",
   },
 ];
 

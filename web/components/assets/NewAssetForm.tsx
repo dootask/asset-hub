@@ -22,23 +22,23 @@ import {
 import { cn } from "@/lib/utils";
 import {
   ASSET_STATUSES,
-  DEFAULT_ASSET_CATEGORIES,
-  getAssetCategoryLabel,
   getAssetStatusLabel,
 } from "@/lib/types/asset";
+import type { AssetCategory } from "@/lib/types/asset-category";
 
 type Props = {
   locale?: string;
+  categories: AssetCategory[];
 };
 
-export default function NewAssetForm({ locale = "en" }: Props) {
+export default function NewAssetForm({ locale = "en", categories }: Props) {
   const router = useRouter();
   const isChinese = locale === "zh";
   const [purchaseDateOpen, setPurchaseDateOpen] = useState(false);
-
+  const firstCategory = categories[0]?.code ?? "";
   const [formState, setFormState] = useState({
     name: "",
-    category: DEFAULT_ASSET_CATEGORIES[0],
+    category: firstCategory,
     status: ASSET_STATUSES[0],
     owner: "",
     location: "",
@@ -94,6 +94,8 @@ export default function NewAssetForm({ locale = "en" }: Props) {
     return Number.isNaN(parsed.getTime()) ? undefined : parsed;
   })();
 
+  const categoryReady = formState.category.trim().length > 0;
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
@@ -113,18 +115,33 @@ export default function NewAssetForm({ locale = "en" }: Props) {
             {isChinese ? "资产类别" : "Category"}
           </Label>
           <Select
-            value={formState.category}
-            onValueChange={(value) => handleChange("category", value)}
+            value={formState.category || "none"}
+            onValueChange={(value) => handleChange("category", value === "none" ? "" : value)}
+            disabled={categories.length === 0}
           >
             <SelectTrigger id="asset-category" className="w-full">
-              <SelectValue />
+              <SelectValue
+                placeholder={
+                  categories.length === 0
+                    ? isChinese
+                      ? "请先创建资产类别"
+                      : "Create a category first"
+                    : undefined
+                }
+              />
             </SelectTrigger>
             <SelectContent>
-              {DEFAULT_ASSET_CATEGORIES.map((category) => (
-                <SelectItem key={category} value={category}>
-                  {getAssetCategoryLabel(category, locale)}
+              {categories.length === 0 ? (
+                <SelectItem value="none" disabled>
+                  {isChinese ? "无可用类别" : "No categories available"}
                 </SelectItem>
-              ))}
+              ) : (
+                categories.map((category) => (
+                  <SelectItem key={category.id} value={category.code}>
+                    {isChinese ? category.labelZh : category.labelEn}
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -223,10 +240,18 @@ export default function NewAssetForm({ locale = "en" }: Props) {
         </div>
       )}
 
+      {categories.length === 0 && (
+        <p className="rounded-2xl border border-dashed border-amber-400/60 bg-amber-50 px-4 py-2 text-sm text-amber-900 dark:bg-amber-500/10 dark:text-amber-100">
+          {isChinese
+            ? "当前没有可用的资产类别，请先在“分类管理”页面创建。"
+            : "No categories available. Please create one in the category management page first."}
+        </p>
+      )}
+
       <div className="flex items-center gap-3">
         <Button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || !categoryReady}
           className="rounded-2xl px-5 py-2 text-sm shadow disabled:opacity-60"
         >
           {submitting
