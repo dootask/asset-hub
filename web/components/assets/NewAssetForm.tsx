@@ -186,7 +186,7 @@ export default function NewAssetForm({ locale = "en" }: Props) {
                   !purchaseDateValue && "text-muted-foreground",
                 )}
               >
-                <CalendarIcon className="mr-2 h-4 w-4" />
+                <CalendarIcon className="mr-1 h-4 w-4" />
                 {purchaseDateValue
                   ? purchaseDateValue.toLocaleDateString(
                       isChinese ? "zh-CN" : "en-US",

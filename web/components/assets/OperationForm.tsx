@@ -215,8 +215,10 @@ export default function OperationForm({ assetId, locale = "en" }: Props) {
                         !borrowStartValue && "text-muted-foreground",
                       )}
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formatDateLabel(borrowStartValue)}
+                      <CalendarIcon className="mr-1 h-4 w-4" />
+                      <div className="truncate">
+                        {formatDateLabel(borrowStartValue)}
+                      </div>
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -251,8 +253,10 @@ export default function OperationForm({ assetId, locale = "en" }: Props) {
                         !borrowEndValue && "text-muted-foreground",
                       )}
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formatDateLabel(borrowEndValue)}
+                      <CalendarIcon className="mr-1 h-4 w-4" />
+                      <div className="truncate">
+                        {formatDateLabel(borrowEndValue)}
+                      </div>
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
