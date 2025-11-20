@@ -76,7 +76,7 @@ export default async function ApprovalDetailPage({ params }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <header className="space-y-3">
+      <header>
         <PageBreadcrumb
           locale={locale}
           items={[
@@ -86,16 +86,13 @@ export default async function ApprovalDetailPage({ params }: PageProps) {
               labelEn: "Approvals",
             },
             {
-              labelZh: approval.title ?? `审批 ${approval.id}`,
-              labelEn: approval.title ?? `Approval ${approval.id}`,
+              labelZh: `审批详情`,
+              labelEn: `Approval Detail`,
             },
           ]}
         />
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-sm font-semibold text-muted-foreground">
-              {isChinese ? "审批详情" : "Approval Detail"}
-            </h1>
             <h2 className="mt-2 text-2xl font-semibold">{approval.title}</h2>
             <p className="mt-1 text-sm text-muted-foreground">#{approval.id}</p>
           </div>

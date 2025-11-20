@@ -1,5 +1,6 @@
 import Link from "next/link";
 import AssetFilters from "@/components/assets/AssetFilters";
+import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   type Asset,
@@ -109,12 +110,23 @@ export default async function AssetListPage({
   return (
     <div className="space-y-6">
       <header>
-        <p className="text-sm text-muted-foreground">
-          {isChinese ? "资产管理 / 列表" : "Assets / List"}
-        </p>
-        <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <PageBreadcrumb
+          locale={locale}
+          items={[
+            {
+              href: `/${locale}`,
+              labelZh: "首页",
+              labelEn: "Dashboard",
+            },
+            {
+              labelZh: "资产列表",
+              labelEn: "Assets",
+            },
+          ]}
+        />
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight">
               {isChinese ? "资产列表" : "Asset List"}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">

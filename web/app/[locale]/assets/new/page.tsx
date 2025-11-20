@@ -1,4 +1,5 @@
 import NewAssetForm from "@/components/assets/NewAssetForm";
+import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
 
 export default async function AssetCreatePage({
   params,
@@ -10,9 +11,25 @@ export default async function AssetCreatePage({
   return (
     <div className="space-y-6">
       <header>
-        <p className="text-sm text-muted-foreground">
-          {isChinese ? "资产管理 / 新增资产" : "Assets / Create"}
-        </p>
+        <PageBreadcrumb
+          locale={locale}
+          items={[
+            {
+              href: `/${locale}`,
+              labelZh: "首页",
+              labelEn: "Dashboard",
+            },
+            {
+              href: `/${locale}/assets/list`,
+              labelZh: "资产列表",
+              labelEn: "Assets",
+            },
+            {
+              labelZh: "新增资产",
+              labelEn: "Create Asset",
+            },
+          ]}
+        />
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">
           {isChinese ? "新增资产" : "Create Asset"}
         </h1>

@@ -48,7 +48,7 @@ export default async function AssetDetailPage({ params }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <header className="space-y-3">
+      <header>
         <PageBreadcrumb
           locale={locale}
           items={[
@@ -58,14 +58,14 @@ export default async function AssetDetailPage({ params }: PageProps) {
               labelEn: "Assets",
             },
             {
-              labelZh: asset.name,
-              labelEn: asset.name,
+              labelZh: `资产详情`,
+              labelEn: `Asset Detail`,
             },
           ]}
         />
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">{asset.name}</h1>
+            <h1 className="mt-2 text-2xl font-semibold">{asset.name}</h1>
             <p className="mt-1 text-sm text-muted-foreground">{asset.id}</p>
           </div>
           <div className="flex items-center gap-2">

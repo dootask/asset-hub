@@ -1,6 +1,6 @@
 import CompanyForm from "@/components/system/CompanyForm";
 import CompanyTable from "@/components/system/CompanyTable";
-import SystemBreadcrumb from "@/components/system/SystemBreadcrumb";
+import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
 import type { Company } from "@/lib/types/system";
 import { getRequestBaseUrl } from "@/lib/utils/server-url";
 
@@ -46,10 +46,19 @@ export default async function CompanyPage({
   return (
     <div className="space-y-6">
       <header>
-        <SystemBreadcrumb
+        <PageBreadcrumb
           locale={locale}
-          currentLabelZh="公司"
-          currentLabelEn="Companies"
+          items={[
+            {
+              href: `/${locale}/system`,
+              labelZh: "系统管理",
+              labelEn: "System",
+            },
+            {
+              labelZh: "公司管理",
+              labelEn: "Company Management",
+            },
+          ]}
         />
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">
           {isChinese ? "公司管理" : "Company Management"}

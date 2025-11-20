@@ -1,4 +1,5 @@
 import Link from "next/link";
+import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
 import packageJson from "@/package.json";
 
 type PageParams = {
@@ -50,9 +51,20 @@ export default async function AboutPage({
   return (
     <div className="space-y-6">
       <header className="rounded-3xl border bg-card p-6 shadow-sm">
-        <p className="text-sm text-muted-foreground">
-          {isChinese ? "关于插件" : "About the Plugin"}
-        </p>
+        <PageBreadcrumb
+          locale={locale}
+          items={[
+            {
+              href: `/${locale}`,
+              labelZh: "首页",
+              labelEn: "Dashboard",
+            },
+            {
+              labelZh: "关于",
+              labelEn: "About",
+            },
+          ]}
+        />
         <h1 className="mt-2 text-3xl font-semibold">Asset Hub</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {isChinese

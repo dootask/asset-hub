@@ -1,4 +1,5 @@
 import Link from "next/link";
+import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
 
 type PageParams = {
   locale: string;
@@ -45,9 +46,20 @@ export default async function SystemOverviewPage({ params }: PageProps) {
   return (
     <div className="space-y-6">
       <header>
-        <p className="text-sm text-muted-foreground">
-          {isChinese ? "系统管理" : "System"}
-        </p>
+        <PageBreadcrumb
+          locale={locale}
+          items={[
+            {
+              href: `/${locale}`,
+              labelZh: "首页",
+              labelEn: "Dashboard",
+            },
+            {
+              labelZh: "系统管理",
+              labelEn: "System",
+            },
+          ]}
+        />
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">
           {isChinese ? "系统管理总览" : "System Console"}
         </h1>

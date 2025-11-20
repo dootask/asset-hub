@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { getRequestBaseUrl } from "@/lib/utils/server-url";
 import type { ActionConfig } from "@/lib/types/action-config";
 import ActionConfigTable from "@/components/system/ActionConfigTable";
-import SystemBreadcrumb from "@/components/system/SystemBreadcrumb";
+import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
 
 export const metadata: Metadata = {
   title: "审批配置 - Asset Hub",
@@ -32,10 +32,19 @@ export default async function ApprovalConfigPage({
   return (
     <div className="space-y-6">
       <header>
-        <SystemBreadcrumb
+        <PageBreadcrumb
           locale={locale}
-          currentLabelZh="审批配置"
-          currentLabelEn="Approval Config"
+          items={[
+            {
+              href: `/${locale}/system`,
+              labelZh: "系统管理",
+              labelEn: "System",
+            },
+            {
+              labelZh: "审批配置",
+              labelEn: "Approval Config",
+            },
+          ]}
         />
         <h1 className="mt-2 text-2xl font-semibold">
           {isChinese ? "审批配置" : "Approval Configuration"}

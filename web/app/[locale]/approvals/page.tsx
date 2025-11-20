@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import ApprovalTabs from "@/components/approvals/ApprovalTabs";
 import ApprovalFilters from "@/components/approvals/ApprovalFilters";
 import ApprovalStatusBadge from "@/components/approvals/ApprovalStatusBadge";
+import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { listApprovalRequests } from "@/lib/repositories/approvals";
 import {
@@ -97,9 +98,20 @@ export default async function ApprovalsPage({ params, searchParams }: PageProps)
   return (
     <div className="space-y-6">
       <header>
-        <p className="text-sm text-muted-foreground">
-          {isChinese ? "审批中心" : "Approval Center"}
-        </p>
+        <PageBreadcrumb
+          locale={locale}
+          items={[
+            {
+              href: `/${locale}`,
+              labelZh: "首页",
+              labelEn: "Dashboard",
+            },
+            {
+              labelZh: "审批中心",
+              labelEn: "Approvals",
+            },
+          ]}
+        />
         <h1 className="mt-2 text-2xl font-semibold">
           {isChinese ? "审批列表" : "Approvals"}
         </h1>
