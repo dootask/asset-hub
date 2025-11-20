@@ -5,6 +5,7 @@ import { getApprovalRequestById } from "@/lib/repositories/approvals";
 import { getAssetById } from "@/lib/repositories/assets";
 import ApprovalStatusBadge from "@/components/approvals/ApprovalStatusBadge";
 import ApprovalActionForm from "@/components/approvals/ApprovalActionForm";
+import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
 
 const knownLabels: Array<{ key: string; labelZh: string; labelEn: string }> = [
   { key: "amount", labelZh: "金额", labelEn: "Amount" },
@@ -75,15 +76,31 @@ export default async function ApprovalDetailPage({ params }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-sm font-semibold text-muted-foreground">
-            {isChinese ? "审批详情" : "Approval Detail"}
-          </h1>
-          <h2 className="mt-2 text-2xl font-semibold">{approval.title}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">#{approval.id}</p>
+      <header className="space-y-3">
+        <PageBreadcrumb
+          locale={locale}
+          items={[
+            {
+              href: `/${locale}/approvals`,
+              labelZh: "审批中心",
+              labelEn: "Approvals",
+            },
+            {
+              labelZh: approval.title ?? `审批 ${approval.id}`,
+              labelEn: approval.title ?? `Approval ${approval.id}`,
+            },
+          ]}
+        />
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-sm font-semibold text-muted-foreground">
+              {isChinese ? "审批详情" : "Approval Detail"}
+            </h1>
+            <h2 className="mt-2 text-2xl font-semibold">{approval.title}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">#{approval.id}</p>
+          </div>
+          <ApprovalStatusBadge status={approval.status} locale={locale} />
         </div>
-        <ApprovalStatusBadge status={approval.status} locale={locale} />
       </header>
 
       {asset && (

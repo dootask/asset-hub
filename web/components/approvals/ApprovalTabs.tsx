@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { getUserInfo } from "@dootask/tools";
 
 const TABS = [
   { value: "all", labelZh: "全部", labelEn: "All" },
@@ -20,16 +22,49 @@ export default function ApprovalTabs({ locale, userId, currentRole }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [resolvedUserId, setResolvedUserId] = useState<string | null>(userId ?? null);
+  const [missingUserWarning, setMissingUserWarning] = useState(false);
+
+  useEffect(() => {
+    if (userId) {
+      setResolvedUserId(userId);
+      return;
+    }
+
+    let cancelled = false;
+
+    getUserInfo()
+      .then((info) => {
+        if (cancelled) return;
+        if (info?.userid) {
+          setResolvedUserId(String(info.userid));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setResolvedUserId(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   const handleSelect = (value: string) => {
     const params = new URLSearchParams(searchParams?.toString());
     if (value === "all") {
       params.delete("role");
+      params.delete("userId");
+      setMissingUserWarning(false);
     } else {
-      params.set("role", value);
-      if (userId) {
-        params.set("userId", userId);
+      if (!resolvedUserId) {
+        setMissingUserWarning(true);
+        return;
       }
+      params.set("role", value);
+      params.set("userId", resolvedUserId);
+      setMissingUserWarning(false);
     }
     router.replace(`${pathname}?${params.toString()}`);
   };
@@ -56,7 +91,7 @@ export default function ApprovalTabs({ locale, userId, currentRole }: Props) {
           </button>
         );
       })}
-      {!userId && currentRole && (
+      {(missingUserWarning || (!resolvedUserId && currentRole)) && (
         <div className="text-xs text-destructive flex items-center">
           {isChinese
             ? "缺少 userId 参数，无法筛选个人数据。"

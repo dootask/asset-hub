@@ -52,7 +52,7 @@ export default async function ApprovalsPage({ params, searchParams }: PageProps)
     status: statusValue ? [statusValue] : undefined,
     type: typeValue ? [typeValue] : undefined,
     role: roleFilter === "my-requests" || roleFilter === "my-tasks" ? roleFilter : undefined,
-    userId: userId ?? undefined,
+    userId,
     assetId: ensureSingle(search.assetId),
     page,
     pageSize: 10,
@@ -123,7 +123,7 @@ export default async function ApprovalsPage({ params, searchParams }: PageProps)
             ? roleFilter
             : undefined
         }
-        userId={userId ?? undefined}
+        userId={userId}
       />
 
       <ApprovalFilters
