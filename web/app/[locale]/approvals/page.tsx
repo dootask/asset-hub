@@ -96,21 +96,21 @@ export default async function ApprovalsPage({ params, searchParams }: PageProps)
 
   return (
     <div className="space-y-6">
-      <header className="space-y-4">
+      <header>
         <p className="text-sm text-muted-foreground">
           {isChinese ? "审批中心" : "Approval Center"}
         </p>
-        <h1 className="text-2xl font-semibold">
+        <h1 className="mt-2 text-2xl font-semibold">
           {isChinese ? "审批列表" : "Approvals"}
         </h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="mt-1 text-sm text-muted-foreground">
           {isChinese
             ? "跟踪所有资产审批的发起与进度。"
             : "Track all approval requests and their progress."}
         </p>
         <a
           href={exportHref}
-          className="inline-flex items-center rounded-full border px-4 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+          className="mt-4 inline-flex items-center rounded-full border px-4 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
         >
           {isChinese ? "导出 CSV" : "Export CSV"}
         </a>

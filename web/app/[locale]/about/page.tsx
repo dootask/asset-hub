@@ -54,7 +54,7 @@ export default async function AboutPage({
           {isChinese ? "关于插件" : "About the Plugin"}
         </p>
         <h1 className="mt-2 text-3xl font-semibold">Asset Hub</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className="mt-1 text-sm text-muted-foreground">
           {isChinese
             ? "面向企业资产全生命周期管理的 DooTask 插件。"
             : "A DooTask plugin for end-to-end asset lifecycle management."}

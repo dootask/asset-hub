@@ -80,8 +80,8 @@ export default async function ApprovalDetailPage({ params }: PageProps) {
           <h1 className="text-sm font-semibold text-muted-foreground">
             {isChinese ? "审批详情" : "Approval Detail"}
           </h1>
-          <h2 className="text-2xl font-semibold">{approval.title}</h2>
-          <p className="text-sm text-muted-foreground">#{approval.id}</p>
+          <h2 className="mt-2 text-2xl font-semibold">{approval.title}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">#{approval.id}</p>
         </div>
         <ApprovalStatusBadge status={approval.status} locale={locale} />
       </header>

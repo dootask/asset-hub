@@ -52,8 +52,8 @@ export default async function AssetDetailPage({ params }: PageProps) {
           <p className="text-sm text-muted-foreground">
             {isChinese ? "资产管理 / 详情" : "Assets / Detail"}
           </p>
-          <h1 className="text-2xl font-semibold">{asset.name}</h1>
-          <p className="text-sm text-muted-foreground">{asset.id}</p>
+          <h1 className="mt-2 text-2xl font-semibold">{asset.name}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{asset.id}</p>
         </div>
         <div className="flex items-center gap-2">
           <Link
