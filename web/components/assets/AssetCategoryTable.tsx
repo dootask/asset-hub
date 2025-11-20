@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { forwardRef, useCallback, useImperativeHandle, useMemo, useState, useTransition } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,9 +26,14 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import type { AssetCategory } from "@/lib/types/asset-category";
 
+export interface AssetCategoryTableHandle {
+  openCreateDialog: () => void;
+}
+
 interface Props {
   initialCategories: AssetCategory[];
   locale?: string;
+  baseUrl?: string;
 }
 
 type FormState = {
@@ -47,7 +52,10 @@ const DEFAULT_FORM: FormState = {
   color: "",
 };
 
-export default function AssetCategoryTable({ initialCategories, locale = "en" }: Props) {
+const AssetCategoryTable = forwardRef<AssetCategoryTableHandle, Props>(function AssetCategoryTable(
+  { initialCategories, locale = "en", baseUrl = "" }: Props,
+  ref,
+) {
   const [categories, setCategories] = useState(initialCategories);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<AssetCategory | null>(null);
@@ -66,14 +74,22 @@ export default function AssetCategoryTable({ initialCategories, locale = "en" }:
     [categories, isChinese],
   );
 
-  const openCreateDialog = () => {
+  const openCreateDialog = useCallback(() => {
     setEditing(null);
     setFormState(DEFAULT_FORM);
     setError(null);
     setDialogOpen(true);
-  };
+  }, []);
 
-  const openEditDialog = (category: AssetCategory) => {
+  useImperativeHandle(
+    ref,
+    () => ({
+      openCreateDialog,
+    }),
+    [openCreateDialog],
+  );
+
+  const openEditDialog = useCallback((category: AssetCategory) => {
     setEditing(category);
     setFormState({
       labelZh: category.labelZh,
@@ -84,7 +100,7 @@ export default function AssetCategoryTable({ initialCategories, locale = "en" }:
     });
     setError(null);
     setDialogOpen(true);
-  };
+  }, []);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -99,7 +115,7 @@ export default function AssetCategoryTable({ initialCategories, locale = "en" }:
         let response: Response;
         if (editing) {
           response = await fetch(
-            `/apps/asset-hub/api/assets/categories/${editing.id}`,
+            `${baseUrl}/apps/asset-hub/api/assets/categories/${editing.id}`,
             {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
@@ -107,7 +123,7 @@ export default function AssetCategoryTable({ initialCategories, locale = "en" }:
             },
           );
         } else {
-          response = await fetch("/apps/asset-hub/api/assets/categories", {
+          response = await fetch(`${baseUrl}/apps/asset-hub/api/assets/categories`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -147,7 +163,7 @@ export default function AssetCategoryTable({ initialCategories, locale = "en" }:
     startTransition(async () => {
       try {
         const response = await fetch(
-          `/apps/asset-hub/api/assets/categories/${category.id}`,
+          `${baseUrl}/apps/asset-hub/api/assets/categories/${category.id}`,
           {
             method: "DELETE",
           },
@@ -186,127 +202,109 @@ export default function AssetCategoryTable({ initialCategories, locale = "en" }:
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">
-            {isChinese ? "资产类别" : "Asset Categories"}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {isChinese
-              ? "用于资产新增与筛选时的类别选项。"
-              : "Used by asset forms and filters when selecting categories."}
-          </p>
-        </div>
-        <Button
-          type="button"
-          onClick={openCreateDialog}
-          className="rounded-2xl px-4 py-2 text-sm"
-        >
-          {isChinese ? "新增类别" : "Add Category"}
-        </Button>
-      </div>
-
+    <>
       {sortedCategories.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-muted-foreground/30 bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+        <div className="rounded-2xl border bg-muted/30 p-12 text-center text-sm text-muted-foreground">
           {isChinese
             ? "尚未创建任何资产类别。"
             : "No categories yet. Create one to get started."}
         </div>
       ) : (
-        <Table className="text-sm">
-          <TableHeader className="bg-muted/30">
-            <TableRow className="text-xs uppercase tracking-wide text-muted-foreground">
-              <TableHead className="px-4 py-3">
-                {isChinese ? "显示名称" : "Display Name"}
-              </TableHead>
-              <TableHead className="px-4 py-3">Code</TableHead>
-              <TableHead className="px-4 py-3">
-                {isChinese ? "描述" : "Description"}
-              </TableHead>
-              <TableHead className="px-4 py-3">
-                {isChinese ? "颜色" : "Color"}
-              </TableHead>
-              <TableHead className="px-4 py-3 text-right">
-                {isChinese ? "操作" : "Actions"}
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedCategories.map((category) => (
-              <TableRow key={category.id}>
-                <TableCell className="px-4 py-3">
-                  <div className="font-medium text-foreground">
-                    {isChinese ? category.labelZh : category.labelEn}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {isChinese ? category.labelEn : category.labelZh}
-                  </div>
-                </TableCell>
-                <TableCell className="px-4 py-3 text-xs text-muted-foreground">
-                  {category.code}
-                </TableCell>
-                <TableCell className="px-4 py-3">
-                  {category.description ? (
-                    <span className="text-sm text-muted-foreground">
-                      {category.description}
-                    </span>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">-</span>
-                  )}
-                </TableCell>
-                <TableCell className="px-4 py-3">{renderColor(category.color)}</TableCell>
-                <TableCell className="px-4 py-3 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="rounded-full px-3"
-                      onClick={() => openEditDialog(category)}
-                    >
-                      {isChinese ? "编辑" : "Edit"}
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="rounded-full px-3 text-destructive hover:text-destructive"
-                        >
-                          {isChinese ? "删除" : "Delete"}
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>
-                            {isChinese ? "确认删除类别" : "Delete category?"}
-                          </AlertDialogTitle>
-                          <AlertDialogDescription>
-                            {isChinese
-                              ? "删除后无法恢复，且该类别必须未被资产使用。"
-                              : "This action cannot be undone and the category must not be in use."}
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>
-                            {isChinese ? "取消" : "Cancel"}
-                          </AlertDialogCancel>
-                          <AlertDialogAction
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            onClick={() => handleDelete(category)}
-                            disabled={pending}
-                          >
-                            {isChinese ? "确认删除" : "Delete"}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </TableCell>
+        <section className="overflow-hidden rounded-2xl border bg-card">
+          <Table className="text-sm">
+            <TableHeader className="bg-muted/30">
+              <TableRow className="text-xs uppercase tracking-wide text-muted-foreground">
+                <TableHead className="px-4 py-3">
+                  {isChinese ? "显示名称" : "Display Name"}
+                </TableHead>
+                <TableHead className="px-4 py-3">Code</TableHead>
+                <TableHead className="px-4 py-3">
+                  {isChinese ? "描述" : "Description"}
+                </TableHead>
+                <TableHead className="px-4 py-3">
+                  {isChinese ? "颜色" : "Color"}
+                </TableHead>
+                <TableHead className="px-4 py-3 text-right">
+                  {isChinese ? "操作" : "Actions"}
+                </TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {sortedCategories.map((category) => (
+                <TableRow key={category.id}>
+                  <TableCell className="px-4 py-3">
+                    <div className="font-medium text-foreground">
+                      {isChinese ? category.labelZh : category.labelEn}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {isChinese ? category.labelEn : category.labelZh}
+                    </div>
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-xs text-muted-foreground">
+                    {category.code}
+                  </TableCell>
+                  <TableCell className="px-4 py-3">
+                    {category.description ? (
+                      <span className="text-sm text-muted-foreground">
+                        {category.description}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="px-4 py-3">{renderColor(category.color)}</TableCell>
+                  <TableCell className="px-4 py-3 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-full px-3"
+                        onClick={() => openEditDialog(category)}
+                      >
+                        {isChinese ? "编辑" : "Edit"}
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="rounded-full px-3 text-destructive hover:text-destructive"
+                          >
+                            {isChinese ? "删除" : "Delete"}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              {isChinese ? "确认删除类别" : "Delete category?"}
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {isChinese
+                                ? "删除后无法恢复，且该类别必须未被资产使用。"
+                                : "This action cannot be undone and the category must not be in use."}
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>
+                              {isChinese ? "取消" : "Cancel"}
+                            </AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              onClick={() => handleDelete(category)}
+                              disabled={pending}
+                            >
+                              {isChinese ? "确认删除" : "Delete"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </section>
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -452,8 +450,8 @@ export default function AssetCategoryTable({ initialCategories, locale = "en" }:
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
-}
+});
 
-
+export default AssetCategoryTable;
