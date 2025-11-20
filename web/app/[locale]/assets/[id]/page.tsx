@@ -9,6 +9,7 @@ import ApprovalRequestForm from "@/components/approvals/ApprovalRequestForm";
 import ApprovalStatusBadge from "@/components/approvals/ApprovalStatusBadge";
 import { listApprovalRequests } from "@/lib/repositories/approvals";
 import DisposeAssetButton from "@/components/assets/DisposeAssetButton";
+import EditAssetDialog from "@/components/assets/EditAssetDialog";
 
 type PageParams = { id: string; locale: string };
 type PageProps = {
@@ -62,9 +63,12 @@ export default async function AssetDetailPage({ params }: PageProps) {
       </div>
 
       <section className="rounded-2xl border bg-muted/30 p-6">
-        <h2 className="text-lg font-semibold">
-          {isChinese ? "基础信息" : "Basic Info"}
-        </h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold">
+            {isChinese ? "基础信息" : "Basic Info"}
+          </h2>
+          <EditAssetDialog asset={asset} locale={locale} />
+        </div>
         <dl className="mt-4 grid gap-4 sm:grid-cols-2">
           <div>
             <dt className="text-xs text-muted-foreground">
