@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import ApprovalTabs from "@/components/approvals/ApprovalTabs";
 import ApprovalFilters from "@/components/approvals/ApprovalFilters";
 import ApprovalStatusBadge from "@/components/approvals/ApprovalStatusBadge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { listApprovalRequests } from "@/lib/repositories/approvals";
 import {
   APPROVAL_STATUSES,
@@ -132,28 +133,31 @@ export default async function ApprovalsPage({ params, searchParams }: PageProps)
       />
 
       <section className="overflow-hidden rounded-2xl border bg-card">
-        <table className="w-full table-auto text-sm">
-          <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
-            <tr>
-              <th className="px-4 py-3 font-medium">{isChinese ? "标题" : "Title"}</th>
-              <th className="px-4 py-3 font-medium">{isChinese ? "类型" : "Type"}</th>
-              <th className="px-4 py-3 font-medium">{isChinese ? "状态" : "Status"}</th>
-              <th className="px-4 py-3 font-medium">{isChinese ? "申请人" : "Applicant"}</th>
-              <th className="px-4 py-3 font-medium">{isChinese ? "审批人" : "Approver"}</th>
-              <th className="px-4 py-3 font-medium">{isChinese ? "更新时间" : "Updated"}</th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table className="text-sm">
+          <TableHeader className="bg-muted/50">
+            <TableRow className="text-left text-xs uppercase tracking-wide text-muted-foreground hover:bg-transparent">
+              <TableHead className="px-4 py-3">{isChinese ? "标题" : "Title"}</TableHead>
+              <TableHead className="px-4 py-3">{isChinese ? "类型" : "Type"}</TableHead>
+              <TableHead className="px-4 py-3">{isChinese ? "状态" : "Status"}</TableHead>
+              <TableHead className="px-4 py-3">{isChinese ? "申请人" : "Applicant"}</TableHead>
+              <TableHead className="px-4 py-3">{isChinese ? "审批人" : "Approver"}</TableHead>
+              <TableHead className="px-4 py-3">{isChinese ? "更新时间" : "Updated"}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {approvals.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-sm text-muted-foreground">
+              <TableRow>
+                <TableCell
+                  colSpan={6}
+                  className="px-4 py-10 text-center text-sm text-muted-foreground whitespace-normal"
+                >
                   {isChinese ? "暂无审批记录" : "No approvals yet"}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : (
               approvals.map((approval) => (
-                <tr key={approval.id} className="border-t">
-                  <td className="px-4 py-4">
+                <TableRow key={approval.id}>
+                  <TableCell className="px-4 py-4 whitespace-normal">
                     <div className="font-medium text-foreground">
                       <Link
                         href={`/${locale}/approvals/${approval.id}`}
@@ -163,27 +167,27 @@ export default async function ApprovalsPage({ params, searchParams }: PageProps)
                       </Link>
                     </div>
                     <p className="text-xs text-muted-foreground">#{approval.id}</p>
-                  </td>
-                  <td className="px-4 py-4">
+                  </TableCell>
+                  <TableCell className="px-4 py-4">
                     {typeLabelMap[approval.type] ?? approval.type}
-                  </td>
-                  <td className="px-4 py-4">
+                  </TableCell>
+                  <TableCell className="px-4 py-4">
                     <ApprovalStatusBadge status={approval.status} locale={locale} />
-                  </td>
-                  <td className="px-4 py-4">
+                  </TableCell>
+                  <TableCell className="px-4 py-4">
                     {approval.applicantName ?? approval.applicantId ?? "-"}
-                  </td>
-                  <td className="px-4 py-4">
+                  </TableCell>
+                  <TableCell className="px-4 py-4">
                     {approval.approverName ?? approval.approverId ?? "-"}
-                  </td>
-                  <td className="px-4 py-4 text-xs text-muted-foreground">
+                  </TableCell>
+                  <TableCell className="px-4 py-4 text-xs text-muted-foreground">
                     {new Date(approval.updatedAt).toLocaleString()}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </section>
 
       {approvals.length > 0 && (

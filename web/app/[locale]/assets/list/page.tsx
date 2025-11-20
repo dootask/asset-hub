@@ -1,5 +1,6 @@
 import Link from "next/link";
 import AssetFilters from "@/components/assets/AssetFilters";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   type Asset,
   getAssetCategoryLabel,
@@ -158,58 +159,48 @@ export default async function AssetListPage({
         </div>
       ) : (
         <section className="overflow-hidden rounded-2xl border bg-card">
-          <table className="w-full table-auto text-sm">
-            <thead className="bg-muted/50 text-left">
-              <tr>
-                <th className="px-4 py-3 font-medium whitespace-nowrap">
-                  {isChinese ? "资产名称" : "Asset"}
-                </th>
-                <th className="px-4 py-3 font-medium whitespace-nowrap">
-                  {isChinese ? "类别" : "Category"}
-                </th>
-                <th className="px-4 py-3 font-medium whitespace-nowrap">
-                  {isChinese ? "状态" : "Status"}
-                </th>
-                <th className="px-4 py-3 font-medium whitespace-nowrap">
+          <Table className="text-sm">
+            <TableHeader className="bg-muted/50">
+              <TableRow className="text-left text-xs uppercase tracking-wide text-muted-foreground hover:bg-transparent">
+                <TableHead className="px-4 py-3">{isChinese ? "资产名称" : "Asset"}</TableHead>
+                <TableHead className="px-4 py-3">{isChinese ? "类别" : "Category"}</TableHead>
+                <TableHead className="px-4 py-3">{isChinese ? "状态" : "Status"}</TableHead>
+                <TableHead className="px-4 py-3">
                   {isChinese ? "使用人 / 部门" : "Owner / Dept"}
-                </th>
-                <th className="px-4 py-3 font-medium whitespace-nowrap">
-                  {isChinese ? "位置" : "Location"}
-                </th>
-                <th className="px-4 py-3 font-medium whitespace-nowrap">
+                </TableHead>
+                <TableHead className="px-4 py-3">{isChinese ? "位置" : "Location"}</TableHead>
+                <TableHead className="px-4 py-3">
                   {isChinese ? "购入日期" : "Purchase Date"}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {assets.map((asset) => (
-                <tr key={asset.id} className="border-t">
-                  <td className="px-4 py-3">
+                <TableRow key={asset.id}>
+                  <TableCell className="px-4 py-3 whitespace-normal">
                     <Link
                       href={withLocale(`/assets/${asset.id}`)}
                       className="font-medium text-primary hover:underline"
                     >
                       {asset.name}
                     </Link>
-                    <div className="text-xs text-muted-foreground">
-                      {asset.id}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
+                    <div className="text-xs text-muted-foreground">{asset.id}</div>
+                  </TableCell>
+                  <TableCell className="px-4 py-3">
                     {getAssetCategoryLabel(asset.category, locale)}
-                  </td>
-                  <td className="px-4 py-3">
+                  </TableCell>
+                  <TableCell className="px-4 py-3">
                     <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium">
                       {getAssetStatusLabel(asset.status, locale)}
                     </span>
-                  </td>
-                  <td className="px-4 py-3">{asset.owner}</td>
-                  <td className="px-4 py-3">{asset.location}</td>
-                  <td className="px-4 py-3">{asset.purchaseDate}</td>
-                </tr>
+                  </TableCell>
+                  <TableCell className="px-4 py-3">{asset.owner}</TableCell>
+                  <TableCell className="px-4 py-3 whitespace-normal">{asset.location}</TableCell>
+                  <TableCell className="px-4 py-3">{asset.purchaseDate}</TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </section>
       )}
 

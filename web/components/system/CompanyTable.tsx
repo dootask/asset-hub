@@ -13,6 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Company } from "@/lib/types/system";
 
 interface Props {
@@ -95,39 +96,29 @@ export default function CompanyTable({ companies, locale = "en" }: Props) {
 
   return (
     <div className="overflow-hidden rounded-2xl border">
-      <table className="w-full table-auto text-sm">
-        <thead className="bg-muted/50">
-          <tr>
-            <th className="px-4 py-3 text-left font-medium whitespace-nowrap">
-              {isChinese ? "公司名称" : "Company"}
-            </th>
-            <th className="px-4 py-3 text-left font-medium whitespace-nowrap">
-              {isChinese ? "编码" : "Code"}
-            </th>
-            <th className="px-4 py-3 text-left font-medium whitespace-nowrap">
-              {isChinese ? "描述" : "Description"}
-            </th>
-            <th className="px-4 py-3 text-right font-medium whitespace-nowrap">
-              {isChinese ? "操作" : "Actions"}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table className="text-sm">
+        <TableHeader className="bg-muted/50">
+          <TableRow className="text-left text-xs uppercase tracking-wide text-muted-foreground hover:bg-transparent">
+            <TableHead className="px-4 py-3">{isChinese ? "公司名称" : "Company"}</TableHead>
+            <TableHead className="px-4 py-3">{isChinese ? "编码" : "Code"}</TableHead>
+            <TableHead className="px-4 py-3">{isChinese ? "描述" : "Description"}</TableHead>
+            <TableHead className="px-4 py-3 text-right">{isChinese ? "操作" : "Actions"}</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {companies.map((company) => {
             const isEditing = editParam === company.id;
             return (
-              <tr key={company.id} className="border-t">
-                <td className="px-4 py-3">
+              <TableRow key={company.id}>
+                <TableCell className="px-4 py-3 whitespace-normal">
                   <div className="font-medium">{company.name}</div>
-                  <p className="text-xs text-muted-foreground">
-                    {company.id}
-                  </p>
-                </td>
-                <td className="px-4 py-3">{company.code}</td>
-                <td className="px-4 py-3">
+                  <p className="text-xs text-muted-foreground">{company.id}</p>
+                </TableCell>
+                <TableCell className="px-4 py-3">{company.code}</TableCell>
+                <TableCell className="px-4 py-3 whitespace-normal">
                   {company.description ?? "-"}
-                </td>
-                <td className="px-4 py-3 text-right text-xs whitespace-nowrap">
+                </TableCell>
+                <TableCell className="px-4 py-3 text-right text-xs">
                   <Link
                     href={buildEditLink(company.id)}
                     className="rounded-full border px-3 py-1 font-medium text-muted-foreground hover:text-foreground"
@@ -152,12 +143,12 @@ export default function CompanyTable({ companies, locale = "en" }: Props) {
                   >
                     {isChinese ? "删除" : "Delete"}
                   </button>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             );
           })}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
 
       <AlertDialog
         open={deleteDialogOpen}

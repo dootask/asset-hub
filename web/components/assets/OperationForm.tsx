@@ -2,8 +2,16 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { Calendar as CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -12,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import { AssetOperationType, OPERATION_TYPES } from "@/lib/types/operation";
 
 type OperationMode = "simple" | "receive" | "borrow" | "return" | "maintenance";
@@ -36,6 +44,8 @@ export default function OperationForm({ assetId, locale = "en" }: Props) {
   const [mode, setMode] = useState<OperationMode>("simple");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [borrowStartOpen, setBorrowStartOpen] = useState(false);
+  const [borrowEndOpen, setBorrowEndOpen] = useState(false);
 
   const [formState, setFormState] = useState({
     type: MODE_FORM_MAP.simple.type,
@@ -57,6 +67,17 @@ export default function OperationForm({ assetId, locale = "en" }: Props) {
     }
     return OPERATION_TYPES.filter((item) => item.value === MODE_FORM_MAP[mode].type);
   }, [mode]);
+
+  const formatDateLabel = (value?: Date) => {
+    if (!value) {
+      return isChinese ? "选择日期" : "Pick a date";
+    }
+    return value.toLocaleDateString(isChinese ? "zh-CN" : "en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -160,7 +181,10 @@ export default function OperationForm({ assetId, locale = "en" }: Props) {
             />
           </div>
         );
-      case "borrow":
+      case "borrow": {
+        const borrowStartValue = formState.startDate ? new Date(formState.startDate) : undefined;
+        const borrowEndValue = formState.endDate ? new Date(formState.endDate) : undefined;
+
         return (
           <>
             <div className="space-y-1.5">
@@ -180,31 +204,78 @@ export default function OperationForm({ assetId, locale = "en" }: Props) {
                 <Label className="text-xs font-medium text-muted-foreground">
                   {isChinese ? "开始日期" : "Start Date"}
                 </Label>
-                <Input
-                  type="date"
-                  value={formState.startDate}
-                  onChange={(event) =>
-                    setFormState((prev) => ({ ...prev, startDate: event.target.value }))
-                  }
-                  required
-                />
+                <Popover open={borrowStartOpen} onOpenChange={setBorrowStartOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      type="button"
+                      data-empty={!borrowStartValue}
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !borrowStartValue && "text-muted-foreground",
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formatDateLabel(borrowStartValue)}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={borrowStartValue}
+                      initialFocus
+                      onSelect={(date) => {
+                        if (!date) return;
+                        setFormState((prev) => ({
+                          ...prev,
+                          startDate: date.toISOString().slice(0, 10),
+                        }));
+                        setBorrowStartOpen(false);
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">
                   {isChinese ? "归还日期" : "Due Date"}
                 </Label>
-                <Input
-                  type="date"
-                  value={formState.endDate}
-                  onChange={(event) =>
-                    setFormState((prev) => ({ ...prev, endDate: event.target.value }))
-                  }
-                  required
-                />
+                <Popover open={borrowEndOpen} onOpenChange={setBorrowEndOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      type="button"
+                      data-empty={!borrowEndValue}
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !borrowEndValue && "text-muted-foreground",
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formatDateLabel(borrowEndValue)}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={borrowEndValue}
+                      initialFocus
+                      onSelect={(date) => {
+                        if (!date) return;
+                        setFormState((prev) => ({
+                          ...prev,
+                          endDate: date.toISOString().slice(0, 10),
+                        }));
+                        setBorrowEndOpen(false);
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
           </>
         );
+      }
       case "return":
         return (
           <div className="space-y-1.5">

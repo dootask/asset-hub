@@ -13,6 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Role } from "@/lib/types/system";
 
 interface Props {
@@ -93,33 +94,27 @@ export default function RoleTable({ roles, locale = "en" }: Props) {
 
   return (
     <div className="overflow-hidden rounded-2xl border">
-      <table className="w-full table-auto text-sm">
-        <thead className="bg-muted/50">
-          <tr>
-            <th className="px-4 py-3 text-left font-medium whitespace-nowrap">
-              {isChinese ? "角色名称" : "Role"}
-            </th>
-            <th className="px-4 py-3 text-left font-medium whitespace-nowrap">
-              {isChinese ? "作用域" : "Scope"}
-            </th>
-            <th className="px-4 py-3 text-left font-medium whitespace-nowrap">
-              {isChinese ? "描述" : "Description"}
-            </th>
-            <th className="px-4 py-3 text-right font-medium whitespace-nowrap">
-              {isChinese ? "操作" : "Actions"}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table className="text-sm">
+        <TableHeader className="bg-muted/50">
+          <TableRow className="text-left text-xs uppercase tracking-wide text-muted-foreground hover:bg-transparent">
+            <TableHead className="px-4 py-3">{isChinese ? "角色名称" : "Role"}</TableHead>
+            <TableHead className="px-4 py-3">{isChinese ? "作用域" : "Scope"}</TableHead>
+            <TableHead className="px-4 py-3">{isChinese ? "描述" : "Description"}</TableHead>
+            <TableHead className="px-4 py-3 text-right">{isChinese ? "操作" : "Actions"}</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {roles.map((role) => (
-            <tr key={role.id} className="border-t">
-              <td className="px-4 py-3">
+            <TableRow key={role.id}>
+              <TableCell className="px-4 py-3 whitespace-normal">
                 <div className="font-medium">{role.name}</div>
                 <p className="text-xs text-muted-foreground">{role.id}</p>
-              </td>
-              <td className="px-4 py-3">{role.scope}</td>
-              <td className="px-4 py-3">{role.description ?? "-"}</td>
-              <td className="px-4 py-3 text-right text-xs whitespace-nowrap">
+              </TableCell>
+              <TableCell className="px-4 py-3">{role.scope}</TableCell>
+              <TableCell className="px-4 py-3 whitespace-normal">
+                {role.description ?? "-"}
+              </TableCell>
+              <TableCell className="px-4 py-3 text-right text-xs">
                 <Link
                   href={buildEditLink(role.id)}
                   className="rounded-full border px-3 py-1 font-medium text-muted-foreground hover:text-foreground"
@@ -144,11 +139,11 @@ export default function RoleTable({ roles, locale = "en" }: Props) {
                 >
                   {isChinese ? "删除" : "Delete"}
                 </button>
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
 
       <AlertDialog
         open={deleteDialogOpen}
