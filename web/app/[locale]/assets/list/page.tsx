@@ -193,7 +193,8 @@ export default async function AssetListPage({
                   <TableCell className="px-4 py-3 whitespace-normal">
                     <Link
                       href={withLocale(`/assets/${asset.id}`)}
-                      className="font-medium text-primary hover:underline"
+                      className="font-medium text-primary hover:underline line-clamp-2 break-words"
+                      title={asset.name}
                     >
                       {asset.name}
                     </Link>

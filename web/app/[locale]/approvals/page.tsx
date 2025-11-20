@@ -163,11 +163,11 @@ export default async function ApprovalsPage({ params, searchParams }: PageProps)
             ) : (
               approvals.map((approval) => (
                 <TableRow key={approval.id}>
-                  <TableCell className="px-4 py-4 whitespace-normal">
+                  <TableCell className="px-4 py-3 whitespace-normal">
                     <div className="font-medium text-foreground">
                       <Link
                         href={`/${locale}/approvals/${approval.id}`}
-                        className="text-primary hover:underline"
+                        className="font-medium text-primary hover:underline line-clamp-2 break-words"
                       >
                         {approval.title}
                       </Link>
