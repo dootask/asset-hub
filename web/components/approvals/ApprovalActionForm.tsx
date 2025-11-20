@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useId } from "react";
 import { useRouter } from "next/navigation";
 import type { ApprovalAction, ApprovalRequest } from "@/lib/types/approval";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,12 @@ export default function ApprovalActionForm({ approvalId, locale }: Props) {
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fieldIds = {
+    action: useId(),
+    comment: useId(),
+    actorId: useId(),
+    actorName: useId(),
+  };
 
   useEffect(() => {
     try {
@@ -131,11 +137,14 @@ export default function ApprovalActionForm({ approvalId, locale }: Props) {
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">
+        <Label
+          htmlFor={fieldIds.action}
+          className="text-xs text-muted-foreground"
+        >
           {isChinese ? "操作类型" : "Action"}
         </Label>
         <Select value={action} onValueChange={(value) => setAction(value as ApprovalAction)}>
-          <SelectTrigger className="w-full">
+          <SelectTrigger id={fieldIds.action} className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -149,10 +158,14 @@ export default function ApprovalActionForm({ approvalId, locale }: Props) {
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">
+        <Label
+          htmlFor={fieldIds.comment}
+          className="text-xs text-muted-foreground"
+        >
           {isChinese ? "审批意见" : "Comment"}
         </Label>
         <Textarea
+          id={fieldIds.comment}
           rows={3}
           value={comment}
           onChange={(event) => setComment(event.target.value)}
@@ -164,10 +177,14 @@ export default function ApprovalActionForm({ approvalId, locale }: Props) {
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">
+          <Label
+            htmlFor={fieldIds.actorId}
+            className="text-xs text-muted-foreground"
+          >
             {isChinese ? "操作人 ID" : "Actor ID"}
           </Label>
           <Input
+            id={fieldIds.actorId}
             required
             readOnly
             disabled={loadingUser}
@@ -175,10 +192,14 @@ export default function ApprovalActionForm({ approvalId, locale }: Props) {
           />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">
+          <Label
+            htmlFor={fieldIds.actorName}
+            className="text-xs text-muted-foreground"
+          >
             {isChinese ? "操作人姓名" : "Actor Name"}
           </Label>
           <Input
+            id={fieldIds.actorName}
             readOnly
             disabled={loadingUser}
             value={applicant.name}
@@ -200,5 +221,3 @@ export default function ApprovalActionForm({ approvalId, locale }: Props) {
     </form>
   );
 }
-
-

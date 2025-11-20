@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useId } from "react";
 import { useRouter } from "next/navigation";
 import {
   APPROVAL_TYPES,
@@ -81,6 +81,15 @@ export default function ApprovalRequestForm({
   const [configs, setConfigs] = useState<ActionConfig[]>([]);
   const [loadingConfigs, setLoadingConfigs] = useState(true);
   const [configError, setConfigError] = useState<string | null>(null);
+  const fieldIds = {
+    type: useId(),
+    title: useId(),
+    reason: useId(),
+    applicantId: useId(),
+    applicantName: useId(),
+    approverId: useId(),
+    approverName: useId(),
+  };
 
   useEffect(() => {
     try {
@@ -478,14 +487,17 @@ export default function ApprovalRequestForm({
       )}
 
       <div className="space-y-1.5">
-        <Label className="text-xs font-medium text-muted-foreground">
+        <Label
+          htmlFor={fieldIds.type}
+          className="text-xs font-medium text-muted-foreground"
+        >
           {isChinese ? "审批类型" : "Approval Type"}
         </Label>
         <Select
           value={formState.type}
           onValueChange={(value) => handleTypeChange(value as ApprovalType)}
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger id={fieldIds.type} className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -499,10 +511,14 @@ export default function ApprovalRequestForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-xs font-medium text-muted-foreground">
+        <Label
+          htmlFor={fieldIds.title}
+          className="text-xs font-medium text-muted-foreground"
+        >
           {isChinese ? "标题" : "Title"}
         </Label>
         <Input
+          id={fieldIds.title}
           required
           value={formState.title}
           onChange={(event) =>
@@ -512,10 +528,14 @@ export default function ApprovalRequestForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-xs font-medium text-muted-foreground">
+        <Label
+          htmlFor={fieldIds.reason}
+          className="text-xs font-medium text-muted-foreground"
+        >
           {isChinese ? "事由" : "Reason"}
         </Label>
         <Textarea
+          id={fieldIds.reason}
           required
           rows={3}
           value={formState.reason}
@@ -527,21 +547,29 @@ export default function ApprovalRequestForm({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-muted-foreground">
+          <Label
+            htmlFor={fieldIds.applicantId}
+            className="text-xs font-medium text-muted-foreground"
+          >
             {isChinese ? "申请人 ID" : "Applicant ID"}
           </Label>
           <Input
             required
             readOnly
+            id={fieldIds.applicantId}
             value={applicant.id}
             disabled={loadingUser}
           />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-muted-foreground">
+          <Label
+            htmlFor={fieldIds.applicantName}
+            className="text-xs font-medium text-muted-foreground"
+          >
             {isChinese ? "申请人姓名" : "Applicant Name"}
           </Label>
           <Input
+            id={fieldIds.applicantName}
             readOnly
             value={applicant.name ?? ""}
             disabled={loadingUser}
@@ -588,10 +616,14 @@ export default function ApprovalRequestForm({
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">
+                <Label
+                  htmlFor={fieldIds.approverId}
+                  className="text-xs text-muted-foreground"
+                >
                   {isChinese ? "审批人 ID" : "Approver ID"}
                 </Label>
                 <Input
+                  id={fieldIds.approverId}
                   value={formState.approverId}
                   onChange={(event) =>
                     setFormState((prev) => ({
@@ -603,10 +635,14 @@ export default function ApprovalRequestForm({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">
+                <Label
+                  htmlFor={fieldIds.approverName}
+                  className="text-xs text-muted-foreground"
+                >
                   {isChinese ? "审批人姓名（可选）" : "Approver name (optional)"}
                 </Label>
                 <Input
+                  id={fieldIds.approverName}
                   value={formState.approverName}
                   onChange={(event) =>
                     setFormState((prev) => ({
@@ -668,5 +704,3 @@ export default function ApprovalRequestForm({
     </form>
   );
 }
-
-

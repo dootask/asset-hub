@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { openApp, type AppContext } from "../app-context";
+import { createTestAsset, createTestApproval } from "../test-data";
 
 async function selectDropdownOption(page: Page, app: AppContext, triggerTestId: string, optionPattern: RegExp) {
   const trigger = app.locator(`[data-testid="${triggerTestId}"]`);
@@ -30,6 +31,22 @@ async function selectDropdownOption(page: Page, app: AppContext, triggerTestId: 
 
 test.describe("Approvals center", () => {
   test("filters by status and type, updates export link", async ({ page }) => {
+    const pendingAsset = await createTestAsset(page.request);
+    const pendingApproval = await createTestApproval(page.request, {
+      assetId: pendingAsset.id,
+      type: "inbound",
+      status: "pending",
+      title: `E2E Pending ${Date.now()}`,
+    });
+
+    const approvedAsset = await createTestAsset(page.request);
+    const approvedApproval = await createTestApproval(page.request, {
+      assetId: approvedAsset.id,
+      type: "purchase",
+      status: "approved",
+      title: `E2E Approved ${Date.now()}`,
+    });
+
     const app = await openApp(page, "/en/approvals");
 
     await expect(app.getByRole("heading", { name: "Approvals" })).toBeVisible();
@@ -38,33 +55,27 @@ test.describe("Approvals center", () => {
     await expect(exportLink).toHaveAttribute("href", /approvals\/export/);
 
     await selectDropdownOption(page, app, "approval-status-filter", /待审批|Pending/);
+    await selectDropdownOption(page, app, "approval-type-filter", /入库确认|Inbound/);
 
+    await expect(app.getByText(pendingApproval.title)).toBeVisible();
+    await expect(app.getByText(approvedApproval.title)).toHaveCount(0);
     await expect(exportLink).toHaveAttribute("href", /status=pending/);
-
-    await selectDropdownOption(page, app, "approval-type-filter", /Purchase|采购审批/);
-
-    await expect(exportLink).toHaveAttribute("href", /status=pending/);
-    await expect(exportLink).toHaveAttribute("href", /type=purchase/);
-
-    await expect(app.locator("table tbody tr").first()).toBeVisible();
+    await expect(exportLink).toHaveAttribute("href", /type=inbound/);
   });
 
   test("opens approval detail from the list", async ({ page }) => {
+    const asset = await createTestAsset(page.request);
+    const approval = await createTestApproval(page.request, {
+      assetId: asset.id,
+      title: `E2E Detail ${Date.now()}`,
+    });
+
     const app = await openApp(page, "/en/approvals");
 
-    const approvalLinks = app.locator("table tbody tr a");
-    const linkCount = await approvalLinks.count();
-    if (linkCount === 0) {
-      test.info().annotations.push({
-        type: "skip",
-        description: "No approval records available to open detail view.",
-      });
-      return;
-    }
+    const targetRow = app.locator("tr", { hasText: approval.title }).first();
+    await targetRow.getByRole("link", { name: approval.title }).click();
 
-    await approvalLinks.first().click();
-
-    await expect(app.getByText(/Approval Detail|审批详情/)).toBeVisible();
-    await expect(app.getByText(/#APR-/)).toBeVisible();
+    await expect(app.getByRole("heading", { name: "Approval Detail" })).toBeVisible();
+    await expect(app.getByText(approval.title)).toBeVisible();
   });
 });

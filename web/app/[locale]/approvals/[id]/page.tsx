@@ -6,6 +6,13 @@ import { getAssetById } from "@/lib/repositories/assets";
 import ApprovalStatusBadge from "@/components/approvals/ApprovalStatusBadge";
 import ApprovalActionForm from "@/components/approvals/ApprovalActionForm";
 
+const knownLabels: Array<{ key: string; labelZh: string; labelEn: string }> = [
+  { key: "amount", labelZh: "金额", labelEn: "Amount" },
+  { key: "currency", labelZh: "币种", labelEn: "Currency" },
+  { key: "initiatedFrom", labelZh: "来源", labelEn: "Source" },
+  { key: "reason", labelZh: "原因", labelEn: "Reason" },
+];
+
 type PageParams = { locale: string; id: string };
 type PageProps = {
   params: Promise<PageParams>;
@@ -31,12 +38,6 @@ function splitMetadata(metadata?: Record<string, unknown> | null) {
       labels,
     };
   }
-  const knownLabels: Array<{ key: string; labelZh: string; labelEn: string }> = [
-    { key: "amount", labelZh: "金额", labelEn: "Amount" },
-    { key: "currency", labelZh: "币种", labelEn: "Currency" },
-    { key: "initiatedFrom", labelZh: "来源", labelEn: "Source" },
-    { key: "reason", labelZh: "原因", labelEn: "Reason" },
-  ];
   const known: Array<{ key: string; value: string }> = [];
   const rest: Record<string, unknown> = {};
 
@@ -76,10 +77,10 @@ export default async function ApprovalDetailPage({ params }: PageProps) {
     <div className="space-y-6">
       <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-sm font-semibold text-muted-foreground">
             {isChinese ? "审批详情" : "Approval Detail"}
-          </p>
-          <h1 className="text-2xl font-semibold">{approval.title}</h1>
+          </h1>
+          <h2 className="text-2xl font-semibold">{approval.title}</h2>
           <p className="text-sm text-muted-foreground">#{approval.id}</p>
         </div>
         <ApprovalStatusBadge status={approval.status} locale={locale} />
@@ -202,5 +203,4 @@ export default async function ApprovalDetailPage({ params }: PageProps) {
     </div>
   );
 }
-
 
