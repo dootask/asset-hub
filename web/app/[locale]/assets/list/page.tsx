@@ -1,5 +1,6 @@
 import Link from "next/link";
 import AssetFilters from "@/components/assets/AssetFilters";
+import ListPagination from "@/components/layout/ListPagination";
 import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
@@ -217,35 +218,19 @@ export default async function AssetListPage({
       )}
 
       {!errorMessage && (
-        <div className="flex flex-col items-start justify-between gap-3 rounded-2xl border bg-muted/30 px-4 py-3 text-sm text-muted-foreground md:flex-row md:items-center">
-          <p>
+        <div className="flex flex-col gap-3 rounded-2xl border bg-muted/30 px-4 py-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
+          <p className="shrink-0">
             {isChinese
               ? `共 ${meta.total} 条记录`
               : `${meta.total} records total`}
           </p>
-          <div className="flex items-center gap-2">
-            <Link
-              href={`${withLocale("/assets/list")}${buildPageLink(Math.max(1, meta.page - 1))}`}
-              aria-disabled={meta.page <= 1}
-              className="rounded-full border px-3 py-1.5 text-xs font-medium aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
-            >
-              {isChinese ? "上一页" : "Prev"}
-            </Link>
-            <span>
-              {isChinese
-                ? `第 ${meta.page} / ${totalPages} 页`
-                : `Page ${meta.page} / ${totalPages}`}
-            </span>
-            <Link
-              href={`${withLocale("/assets/list")}${buildPageLink(
-                Math.min(totalPages, meta.page + 1),
-              )}`}
-              aria-disabled={meta.page >= totalPages}
-              className="rounded-full border px-3 py-1.5 text-xs font-medium aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
-            >
-              {isChinese ? "下一页" : "Next"}
-            </Link>
-          </div>
+          <ListPagination
+            locale={locale}
+            currentPage={meta.page}
+            totalPages={totalPages}
+            getHref={(page) => buildPageLink(page)}
+            className="md:justify-end"
+          />
         </div>
       )}
     </div>

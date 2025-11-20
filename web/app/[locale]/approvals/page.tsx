@@ -1,8 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import ApprovalTabs from "@/components/approvals/ApprovalTabs";
 import ApprovalFilters from "@/components/approvals/ApprovalFilters";
 import ApprovalStatusBadge from "@/components/approvals/ApprovalStatusBadge";
+import ListPagination from "@/components/layout/ListPagination";
 import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { listApprovalRequests } from "@/lib/repositories/approvals";
@@ -67,8 +67,6 @@ export default async function ApprovalsPage({ params, searchParams }: PageProps)
     ]),
   );
 
-  const nextPage = meta.page + 1;
-  const prevPage = meta.page - 1;
   const totalPages = Math.max(1, Math.ceil(meta.total / meta.pageSize));
 
   const buildQueryParams = () => {
@@ -112,31 +110,27 @@ export default async function ApprovalsPage({ params, searchParams }: PageProps)
             },
           ]}
         />
-        <h1 className="mt-2 text-2xl font-semibold">
-          {isChinese ? "审批列表" : "Approvals"}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {isChinese
-            ? "跟踪所有资产审批的发起与进度。"
-            : "Track all approval requests and their progress."}
-        </p>
-        <a
-          href={exportHref}
-          className="mt-4 inline-flex items-center rounded-full border px-4 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
-        >
-          {isChinese ? "导出 CSV" : "Export CSV"}
-        </a>
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight">
+              {isChinese ? "审批列表" : "Approvals"}
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {isChinese
+                ? "跟踪所有资产审批的发起与进度。"
+                : "Track all approval requests and their progress."}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <a
+              href={exportHref}
+              className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+            >
+              {isChinese ? "导出 CSV" : "Export CSV"}
+            </a>
+          </div>
+        </div>
       </header>
-
-      <ApprovalTabs
-        locale={locale}
-        currentRole={
-          roleFilter === "my-requests" || roleFilter === "my-tasks"
-            ? roleFilter
-            : undefined
-        }
-        userId={userId}
-      />
 
       <ApprovalFilters
         locale={locale}
@@ -203,28 +197,19 @@ export default async function ApprovalsPage({ params, searchParams }: PageProps)
       </section>
 
       {approvals.length > 0 && (
-        <div className="flex flex-col gap-3 rounded-2xl border bg-card p-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <span>
+        <div className="flex flex-col gap-3 rounded-2xl border bg-card p-4 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
+          <p className="shrink-0">
             {isChinese
-              ? `共 ${meta.total} 条 · 第 ${meta.page} / ${totalPages} 页`
-              : `${meta.total} records · Page ${meta.page} of ${totalPages}`}
-          </span>
-          <div className="flex items-center gap-2">
-            <Link
-              href={buildPageLink(Math.max(1, prevPage))}
-              aria-disabled={meta.page <= 1}
-              className="rounded-full border px-3 py-1.5 text-xs font-medium aria-disabled:opacity-50"
-            >
-              {isChinese ? "上一页" : "Prev"}
-            </Link>
-            <Link
-              href={buildPageLink(Math.min(totalPages, nextPage))}
-              aria-disabled={meta.page >= totalPages}
-              className="rounded-full border px-3 py-1.5 text-xs font-medium aria-disabled:opacity-50"
-            >
-              {isChinese ? "下一页" : "Next"}
-            </Link>
-          </div>
+              ? `共 ${meta.total} 条记录`
+              : `${meta.total} records total`}
+          </p>
+          <ListPagination
+            locale={locale}
+            currentPage={meta.page}
+            totalPages={totalPages}
+            getHref={(page) => buildPageLink(page)}
+            className="md:justify-end"
+          />
         </div>
       )}
     </div>
