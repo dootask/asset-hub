@@ -3,7 +3,7 @@ import { defineConfig, devices, type PlaywrightTestConfig } from "@playwright/te
 
 const config: PlaywrightTestConfig = {
   testDir: "./tests/e2e/spec",
-  timeout: 30_000,
+  timeout: 20_000,
   expect: {
     timeout: 10_000,
   },

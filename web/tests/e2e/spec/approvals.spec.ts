@@ -2,22 +2,30 @@ import { test, expect, type Page } from "@playwright/test";
 import { openApp, type AppContext } from "../app-context";
 
 async function selectDropdownOption(page: Page, app: AppContext, triggerTestId: string, optionPattern: RegExp) {
-  await app.locator(`[data-testid="${triggerTestId}"]`).click();
+  const trigger = app.locator(`[data-testid="${triggerTestId}"]`);
   const frameOption = app.getByRole("option", { name: optionPattern }).first();
-  try {
-    await frameOption.waitFor({ state: "visible", timeout: 1500 });
-    await frameOption.click();
-    return;
-  } catch {
-    // 在 DooTask 宿主 iframe 中，Radix Select 的 Portal 会挂载到宿主页面，
-    // 此时需要直接在顶层 page 上寻找 option。
+  const hostOption = page.locator('[role="option"]', { hasText: optionPattern }).first(); // Radix portal may mount on host
+
+  const waitForVisibleOption = async (timeout: number) => {
+    const deadline = Date.now() + timeout;
+    while (Date.now() < deadline) {
+      if (await frameOption.isVisible()) return frameOption;
+      if (await hostOption.isVisible()) return hostOption;
+      await page.waitForTimeout(100);
+    }
+    return null;
+  };
+
+  for (const timeout of [2500, 4000]) {
+    await trigger.click();
+    const option = await waitForVisibleOption(timeout);
+    if (option) {
+      await option.click();
+      return;
+    }
   }
 
-  const hostOption = page
-    .locator('[role="option"]', { hasText: optionPattern })
-    .first();
-  await hostOption.waitFor({ state: "visible" });
-  await hostOption.click();
+  throw new Error(`Dropdown option ${optionPattern.toString()} not found`);
 }
 
 test.describe("Approvals center", () => {
@@ -60,5 +68,3 @@ test.describe("Approvals center", () => {
     await expect(app.getByText(/#APR-/)).toBeVisible();
   });
 });
-
-
