@@ -8,6 +8,7 @@ import {
   seedAssetCategories,
   seedAssets,
   seedCompanies,
+  seedOperationTemplates,
   seedOperations,
   seedRoles,
 } from "@/lib/db/schema";
@@ -116,6 +117,21 @@ function run() {
     table: "asset_operations",
     rows: seedOperations,
     columns: ["id", "asset_id", "type", "description", "actor", "status"],
+  });
+
+  seedTable({
+    table: "asset_operation_templates",
+    rows: seedOperationTemplates,
+    columns: [
+      "id",
+      "type",
+      "label_zh",
+      "label_en",
+      "description_zh",
+      "description_en",
+      "require_attachment",
+      "metadata",
+    ],
   });
 
   seedTable({

@@ -95,6 +95,20 @@ export const CREATE_TABLES = {
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `,
+  operationTemplates: `
+    CREATE TABLE IF NOT EXISTS asset_operation_templates (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL UNIQUE,
+      label_zh TEXT NOT NULL,
+      label_en TEXT NOT NULL,
+      description_zh TEXT,
+      description_en TEXT,
+      require_attachment INTEGER NOT NULL DEFAULT 0,
+      metadata TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `,
 };
 
 export const seedAssets = [
@@ -344,6 +358,105 @@ export const seedActionConfigs = [
     default_approver_refs: JSON.stringify([]),
     allow_override: 1,
     metadata: null,
+  },
+];
+
+export const seedOperationTemplates = [
+  {
+    id: "tpl-purchase",
+    type: "purchase",
+    label_zh: "采购流程",
+    label_en: "Purchase",
+    description_zh: "记录采购申请、预算和供应商信息。",
+    description_en: "Capture purchase requests, budget, and vendor details.",
+    require_attachment: 0,
+    metadata: JSON.stringify({
+      fields: ["budget", "vendor", "expectedDate"],
+    }),
+  },
+  {
+    id: "tpl-inbound",
+    type: "inbound",
+    label_zh: "入库流程",
+    label_en: "Inbound",
+    description_zh: "入库确认可上传检验报告和收货照片。",
+    description_en: "Upload inspection reports or delivery photos during inbound.",
+    require_attachment: 1,
+    metadata: JSON.stringify({
+      fields: ["warehouse", "receiver", "photos"],
+    }),
+  },
+  {
+    id: "tpl-receive",
+    type: "receive",
+    label_zh: "领用流程",
+    label_en: "Receive",
+    description_zh: "记录领取人、用途和计划归还时间。",
+    description_en: "Track recipient, usage note, and planned return date.",
+    require_attachment: 0,
+    metadata: JSON.stringify({
+      fields: ["receiver", "purpose", "returnPlan"],
+    }),
+  },
+  {
+    id: "tpl-borrow",
+    type: "borrow",
+    label_zh: "借用流程",
+    label_en: "Borrow",
+    description_zh: "借用需填写借用人、时长及押金凭证。",
+    description_en: "Borrowing requires borrower details and deposit proof.",
+    require_attachment: 0,
+    metadata: JSON.stringify({
+      fields: ["borrower", "duration", "depositAttachment"],
+    }),
+  },
+  {
+    id: "tpl-return",
+    type: "return",
+    label_zh: "归还流程",
+    label_en: "Return",
+    description_zh: "归还时可记录设备状态与异常说明。",
+    description_en: "Record asset condition and exceptions when returning.",
+    require_attachment: 0,
+    metadata: JSON.stringify({
+      fields: ["condition", "notes"],
+    }),
+  },
+  {
+    id: "tpl-maintenance",
+    type: "maintenance",
+    label_zh: "维护流程",
+    label_en: "Maintenance",
+    description_zh: "维护记录需要维修商和费用信息。",
+    description_en: "Capture vendor and cost information for maintenance.",
+    require_attachment: 0,
+    metadata: JSON.stringify({
+      fields: ["vendor", "cost", "report"],
+    }),
+  },
+  {
+    id: "tpl-dispose",
+    type: "dispose",
+    label_zh: "报废流程",
+    label_en: "Disposal",
+    description_zh: "报废需上传佐证资料并填写处理方式。",
+    description_en: "Upload supporting documents and specify disposal method.",
+    require_attachment: 1,
+    metadata: JSON.stringify({
+      fields: ["method", "evidence"],
+    }),
+  },
+  {
+    id: "tpl-other",
+    type: "other",
+    label_zh: "其它操作",
+    label_en: "Other",
+    description_zh: "用于记录其它资产操作，可自定义说明。",
+    description_en: "Generic template for other asset operations.",
+    require_attachment: 0,
+    metadata: JSON.stringify({
+      fields: ["notes"],
+    }),
   },
 ];
 

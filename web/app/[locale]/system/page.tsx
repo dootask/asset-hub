@@ -37,6 +37,33 @@ const CARDS = [
     descriptionEn:
       "Define approval policies per operation type, including default approvers.",
   },
+  {
+    id: "reports",
+    href: "data/reports",
+    titleZh: "数据报表",
+    titleEn: "Data Reports",
+    descriptionZh: "查看资产业务的聚合指标并下载标准报表。",
+    descriptionEn:
+      "Review aggregated metrics and download standard CSV reports.",
+  },
+  {
+    id: "operations",
+    href: "operation",
+    titleZh: "操作管理",
+    titleEn: "Operation Management",
+    descriptionZh: "配置各类资产操作的字段、附件要求与审批说明（即将上线）。",
+    descriptionEn:
+      "Configure asset operation templates and requirements (coming soon).",
+  },
+  {
+    id: "upgrade",
+    href: "upgrade",
+    titleZh: "升级与版本",
+    titleEn: "Upgrade & Version",
+    descriptionZh: "查看当前插件版本、套餐与升级渠道信息（即将上线）。",
+    descriptionEn:
+      "Check plugin version, plans, and upgrade channels (coming soon).",
+  },
 ];
 
 export default async function SystemOverviewPage({ params }: PageProps) {
