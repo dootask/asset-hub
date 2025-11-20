@@ -1,17 +1,11 @@
 import Link from "next/link";
 import AssetFilters from "@/components/assets/AssetFilters";
-import type { Asset } from "@/lib/types/asset";
+import {
+  type Asset,
+  getAssetCategoryLabel,
+  getAssetStatusLabel,
+} from "@/lib/types/asset";
 import { getRequestBaseUrl } from "@/lib/utils/server-url";
-
-const statusText: Record<
-  Asset["status"],
-  { zh: string; en: string }
-> = {
-  "in-use": { zh: "使用中", en: "In Use" },
-  idle: { zh: "闲置", en: "Idle" },
-  maintenance: { zh: "维护中", en: "Maintenance" },
-  retired: { zh: "已退役", en: "Retired" },
-};
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -201,12 +195,12 @@ export default async function AssetListPage({
                       {asset.id}
                     </div>
                   </td>
-                  <td className="px-4 py-3">{asset.category}</td>
+                  <td className="px-4 py-3">
+                    {getAssetCategoryLabel(asset.category, locale)}
+                  </td>
                   <td className="px-4 py-3">
                     <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium">
-                      {isChinese
-                        ? statusText[asset.status].zh
-                        : statusText[asset.status].en}
+                      {getAssetStatusLabel(asset.status, locale)}
                     </span>
                   </td>
                   <td className="px-4 py-3">{asset.owner}</td>

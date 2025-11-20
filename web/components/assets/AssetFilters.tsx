@@ -13,7 +13,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ASSET_STATUSES, DEFAULT_ASSET_CATEGORIES } from "@/lib/types/asset";
+import {
+  ASSET_STATUSES,
+  DEFAULT_ASSET_CATEGORIES,
+  getAssetStatusLabel,
+  getAssetCategoryLabel,
+} from "@/lib/types/asset";
 
 export interface AssetFiltersProps {
   initialSearch?: string;
@@ -21,13 +26,6 @@ export interface AssetFiltersProps {
   initialCategory?: string;
   locale?: string;
 }
-
-const STATUS_LABELS: Record<string, { zh: string; en: string }> = {
-  "in-use": { zh: "使用中", en: "In Use" },
-  idle: { zh: "闲置", en: "Idle" },
-  maintenance: { zh: "维护中", en: "Maintenance" },
-  retired: { zh: "已退役", en: "Retired" },
-};
 
 export default function AssetFilters({
   initialSearch,
@@ -121,15 +119,21 @@ export default function AssetFilters({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {categoryOptions.map((option) => (
-                <SelectItem key={option} value={option}>
-                  {option === "all"
-                    ? isChinese
-                      ? "全部"
-                      : "All"
-                    : option}
-                </SelectItem>
-              ))}
+              {categoryOptions.map((option) => {
+                if (option === "all") {
+                  return (
+                    <SelectItem key={option} value={option}>
+                      {isChinese ? "全部" : "All"}
+                    </SelectItem>
+                  );
+                }
+
+                return (
+                  <SelectItem key={option} value={option}>
+                    {getAssetCategoryLabel(option, locale)}
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </div>
@@ -172,7 +176,7 @@ export default function AssetFilters({
                     : "border-dashed border-border text-muted-foreground hover:border-primary/60",
                 )}
               >
-                {isChinese ? STATUS_LABELS[status].zh : STATUS_LABELS[status].en}
+                {getAssetStatusLabel(status, locale)}
               </button>
             );
           })}

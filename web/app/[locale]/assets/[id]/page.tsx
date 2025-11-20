@@ -10,6 +10,10 @@ import ApprovalStatusBadge from "@/components/approvals/ApprovalStatusBadge";
 import { listApprovalRequests } from "@/lib/repositories/approvals";
 import DisposeAssetButton from "@/components/assets/DisposeAssetButton";
 import EditAssetDialog from "@/components/assets/EditAssetDialog";
+import {
+  getAssetCategoryLabel,
+  getAssetStatusLabel,
+} from "@/lib/types/asset";
 
 type PageParams = { id: string; locale: string };
 type PageProps = {
@@ -74,13 +78,17 @@ export default async function AssetDetailPage({ params }: PageProps) {
             <dt className="text-xs text-muted-foreground">
               {isChinese ? "类别" : "Category"}
             </dt>
-            <dd className="text-sm font-medium">{asset.category}</dd>
+            <dd className="text-sm font-medium">
+              {getAssetCategoryLabel(asset.category, locale)}
+            </dd>
           </div>
           <div>
             <dt className="text-xs text-muted-foreground">
               {isChinese ? "状态" : "Status"}
             </dt>
-            <dd className="text-sm font-medium">{asset.status}</dd>
+            <dd className="text-sm font-medium">
+              {getAssetStatusLabel(asset.status, locale)}
+            </dd>
           </div>
           <div>
             <dt className="text-xs text-muted-foreground">

@@ -8,6 +8,8 @@ import {
   DEFAULT_ASSET_CATEGORIES,
   type Asset,
   type AssetStatus,
+  getAssetCategoryLabel,
+  getAssetStatusLabel,
 } from "@/lib/types/asset";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -148,7 +150,7 @@ export default function EditAssetDialog({ asset, locale = "en" }: Props) {
                 <SelectContent>
                   {DEFAULT_ASSET_CATEGORIES.map((category) => (
                     <SelectItem key={category} value={category}>
-                      {category}
+                      {getAssetCategoryLabel(category, locale)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -168,7 +170,7 @@ export default function EditAssetDialog({ asset, locale = "en" }: Props) {
                 <SelectContent>
                   {ASSET_STATUSES.map((status) => (
                     <SelectItem key={status} value={status}>
-                      {status}
+                      {getAssetStatusLabel(status, locale)}
                     </SelectItem>
                   ))}
                 </SelectContent>

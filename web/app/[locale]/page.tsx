@@ -1,6 +1,12 @@
 import Link from "next/link";
 import type { DashboardOverview } from "@/lib/repositories/analytics";
 import { getRequestBaseUrl } from "@/lib/utils/server-url";
+import {
+  type AssetStatus,
+  getAssetCategoryLabel,
+  getAssetStatusLabel,
+} from "@/lib/types/asset";
+import { getOperationTypeLabel } from "@/lib/types/operation";
 
 async function fetchSummary() {
   const baseUrl = await getRequestBaseUrl();
@@ -97,6 +103,21 @@ export default async function LocaleDashboard({
 
   const withLocale = (path: string) => `/${locale}${path}`;
 
+  const assetStatusDistribution = overview.assetsByStatus.map((item) => ({
+    ...item,
+    label: getAssetStatusLabel(item.label as AssetStatus, locale),
+  }));
+
+  const assetCategoryDistribution = overview.assetsByCategory.map((item) => ({
+    ...item,
+    label: getAssetCategoryLabel(item.label, locale),
+  }));
+
+  const operationsByType = overview.operationsByType.map((item) => ({
+    ...item,
+    label: getOperationTypeLabel(item.label, locale),
+  }));
+
   const renderDistribution = (
     titleZh: string,
     titleEn: string,
@@ -111,7 +132,7 @@ export default async function LocaleDashboard({
       );
     }
     return (
-      <ul className="space-y-3">
+      <ul className="space-y-4">
         {items.map((item) => {
           const percent = Math.round((item.count / total) * 100);
           return (
@@ -122,7 +143,7 @@ export default async function LocaleDashboard({
                   {item.count} · {percent}%
                 </span>
               </div>
-              <div className="mt-1 h-2 rounded-full bg-muted">
+              <div className="mt-1.5 h-2 rounded-full bg-muted">
                 <div
                   className="h-2 rounded-full bg-primary"
                   style={{ width: `${percent}%` }}
@@ -196,11 +217,7 @@ export default async function LocaleDashboard({
               {isChinese ? "按状态" : "By Status"}
             </h3>
             <div className="mt-3">
-              {renderDistribution(
-                "按状态",
-                "By Status",
-                overview.assetsByStatus,
-              )}
+              {renderDistribution("按状态", "By Status", assetStatusDistribution)}
             </div>
           </div>
           <div>
@@ -211,7 +228,7 @@ export default async function LocaleDashboard({
               {renderDistribution(
                 "按类别",
                 "By Category",
-                overview.assetsByCategory,
+                assetCategoryDistribution,
               )}
             </div>
           </div>
@@ -259,13 +276,13 @@ export default async function LocaleDashboard({
             {isChinese ? "查看资产列表" : "View assets"}
           </Link>
         </div>
-        {overview.operationsByType.length === 0 ? (
+        {operationsByType.length === 0 ? (
           <p className="mt-4 text-sm text-muted-foreground">
             {isChinese ? "暂无操作记录" : "No operations recorded"}
           </p>
         ) : (
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {overview.operationsByType.map((item) => (
+            {operationsByType.map((item) => (
               <div
                 key={item.label}
                 className="rounded-2xl border bg-muted/30 p-4 text-center"

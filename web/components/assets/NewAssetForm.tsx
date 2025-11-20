@@ -20,7 +20,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { ASSET_STATUSES, DEFAULT_ASSET_CATEGORIES } from "@/lib/types/asset";
+import {
+  ASSET_STATUSES,
+  DEFAULT_ASSET_CATEGORIES,
+  getAssetCategoryLabel,
+  getAssetStatusLabel,
+} from "@/lib/types/asset";
 
 type Props = {
   locale?: string;
@@ -117,7 +122,7 @@ export default function NewAssetForm({ locale = "en" }: Props) {
             <SelectContent>
               {DEFAULT_ASSET_CATEGORIES.map((category) => (
                 <SelectItem key={category} value={category}>
-                  {category}
+                  {getAssetCategoryLabel(category, locale)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -137,7 +142,7 @@ export default function NewAssetForm({ locale = "en" }: Props) {
             <SelectContent>
               {ASSET_STATUSES.map((status) => (
                 <SelectItem key={status} value={status}>
-                  {status}
+                  {getAssetStatusLabel(status, locale)}
                 </SelectItem>
               ))}
             </SelectContent>

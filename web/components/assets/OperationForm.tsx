@@ -302,7 +302,7 @@ export default function OperationForm({ assetId, locale = "en" }: Props) {
               <SelectContent>
                 {currentTypeOptions.map((type) => (
                   <SelectItem key={type.value} value={type.value}>
-                    {type.label}
+                    {isChinese ? type.label.zh : type.label.en}
                   </SelectItem>
                 ))}
               </SelectContent>

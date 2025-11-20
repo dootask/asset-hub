@@ -10,16 +10,42 @@ export type AssetOperationType =
 
 export type AssetOperationStatus = "pending" | "done" | "cancelled";
 
-export const OPERATION_TYPES: { value: AssetOperationType; label: string }[] = [
-  { value: "purchase", label: "采购" },
-  { value: "inbound", label: "入库" },
-  { value: "receive", label: "领用" },
-  { value: "borrow", label: "借用" },
-  { value: "return", label: "归还" },
-  { value: "maintenance", label: "维护" },
-  { value: "dispose", label: "报废" },
-  { value: "other", label: "其他" },
-];
+type SupportedLocale = "en" | "zh";
+
+const resolveLocale = (locale?: string): SupportedLocale =>
+  locale === "zh" ? "zh" : "en";
+
+export const OPERATION_TYPE_LABELS: Record<
+  AssetOperationType,
+  { en: string; zh: string }
+> = {
+  purchase: { en: "Purchase", zh: "采购" },
+  inbound: { en: "Inbound", zh: "入库" },
+  receive: { en: "Receive", zh: "领用" },
+  borrow: { en: "Borrow", zh: "借用" },
+  return: { en: "Return", zh: "归还" },
+  maintenance: { en: "Maintenance", zh: "维护" },
+  dispose: { en: "Dispose", zh: "报废" },
+  other: { en: "Other", zh: "其他" },
+};
+
+export const OPERATION_TYPES: {
+  value: AssetOperationType;
+  label: { en: string; zh: string };
+}[] = (Object.entries(OPERATION_TYPE_LABELS) as Array<
+  [AssetOperationType, { en: string; zh: string }]
+>).map(([value, label]) => ({
+  value,
+  label,
+}));
+
+export const getOperationTypeLabel = (
+  type: string,
+  locale?: string,
+): string => {
+  const labels = OPERATION_TYPE_LABELS[type as AssetOperationType];
+  return labels ? labels[resolveLocale(locale)] : type;
+};
 
 export interface AssetOperation {
   id: string;
