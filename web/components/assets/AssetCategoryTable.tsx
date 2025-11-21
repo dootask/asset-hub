@@ -60,19 +60,26 @@ const AssetCategoryTable = forwardRef<AssetCategoryTableHandle, Props>(function 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<AssetCategory | null>(null);
   const [formState, setFormState] = useState<FormState>(DEFAULT_FORM);
+  const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const isChinese = locale === "zh";
 
-  const sortedCategories = useMemo(
-    () =>
-      [...categories].sort((a, b) => {
-        const labelA = (isChinese ? a.labelZh : a.labelEn).toLowerCase();
-        const labelB = (isChinese ? b.labelZh : b.labelEn).toLowerCase();
-        return labelA.localeCompare(labelB);
-      }),
-    [categories, isChinese],
-  );
+  const displayedCategories = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    const filtered = categories.filter((category) => {
+      if (!normalizedSearch) {
+        return true;
+      }
+      const target = `${category.labelZh} ${category.labelEn} ${category.code}`.toLowerCase();
+      return target.includes(normalizedSearch);
+    });
+    return filtered.sort((a, b) => {
+      const labelA = (isChinese ? a.labelZh : a.labelEn).toLowerCase();
+      const labelB = (isChinese ? b.labelZh : b.labelEn).toLowerCase();
+      return labelA.localeCompare(labelB);
+    });
+  }, [categories, isChinese, search]);
 
   const openCreateDialog = useCallback(() => {
     setEditing(null);
@@ -203,11 +210,29 @@ const AssetCategoryTable = forwardRef<AssetCategoryTableHandle, Props>(function 
 
   return (
     <>
-      {sortedCategories.length === 0 ? (
-        <div className="rounded-2xl border bg-muted/30 p-12 text-center text-sm text-muted-foreground">
+      <div className="rounded-2xl border bg-muted/20 p-3 text-sm text-muted-foreground md:flex md:items-center md:justify-between">
+        <p>
           {isChinese
-            ? "尚未创建任何资产类别。"
-            : "No categories yet. Create one to get started."}
+            ? `共 ${categories.length} 个类别`
+            : `${categories.length} categories`}
+        </p>
+        <Input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder={isChinese ? "搜索名称或编码" : "Search name or code"}
+          className="mt-2 md:mt-0 md:w-64"
+        />
+      </div>
+
+      {displayedCategories.length === 0 ? (
+        <div className="rounded-2xl border bg-muted/30 p-12 text-center text-sm text-muted-foreground">
+          {categories.length === 0 && !search.trim()
+            ? isChinese
+              ? "尚未创建任何资产类别。"
+              : "No categories yet. Create one to get started."
+            : isChinese
+              ? "没有匹配的类别，请调整搜索条件。"
+              : "No categories match the current search."}
         </div>
       ) : (
         <section className="overflow-hidden rounded-2xl border bg-card">
@@ -230,7 +255,7 @@ const AssetCategoryTable = forwardRef<AssetCategoryTableHandle, Props>(function 
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedCategories.map((category) => (
+              {displayedCategories.map((category) => (
                 <TableRow key={category.id}>
                   <TableCell className="px-4 py-3">
                     <div className="font-medium text-foreground">

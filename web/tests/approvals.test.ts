@@ -183,6 +183,158 @@ describe("Approval repository", () => {
         ?.operationTemplate,
     ).toBeTruthy();
   });
+
+  it("auto creates receive operations when approval lacks operation link", () => {
+    const asset = createAsset({
+      name: "ThinkPad",
+      category: "Laptop",
+      status: "idle",
+      owner: "仓库",
+      location: "上海",
+      purchaseDate: "2024-02-01",
+    });
+
+    const approval = createApprovalRequest({
+      type: "receive",
+      title: "新人领用",
+      reason: "新员工入职",
+      assetId: asset.id,
+      applicant: { id: "user-ops", name: "Ops User" },
+      approver: { id: "manager-ops", name: "Manager" },
+      metadata: {
+        operationTemplate: {
+          snapshot: {
+            type: "receive",
+            labelZh: "领用",
+            labelEn: "Receive",
+            requireAttachment: false,
+            fields: [
+              { key: "receiver", labelZh: "领用人", labelEn: "Receiver", widget: "text" },
+              { key: "purpose", labelZh: "用途", labelEn: "Purpose", widget: "textarea" },
+            ],
+          },
+          values: {
+            receiver: "新人小张",
+            purpose: "研发办公",
+          },
+        },
+      },
+    });
+
+    const updated = applyApprovalAction(approval.id, {
+      action: "approve",
+      actor: { id: "manager-ops", name: "Manager" },
+    });
+
+    expect(updated.operationId).toBeTruthy();
+    const updatedAsset = getAssetById(asset.id);
+    expect(updatedAsset?.status).toBe("in-use");
+    expect(updatedAsset?.owner).toBe("新人小张");
+
+    const operations = listOperationsForAsset(asset.id);
+    const receiveOp = operations.find((op) => op.id === updated.operationId);
+    expect(receiveOp?.type).toBe("receive");
+    expect(
+      (receiveOp?.metadata as { operationTemplate?: unknown })?.operationTemplate,
+    ).toBeTruthy();
+  });
+
+  it("auto links return operations and falls back to receiver for owner update", () => {
+    const asset = createAsset({
+      name: "iPad",
+      category: "Tablet",
+      status: "in-use",
+      owner: "新人小张",
+      location: "北京",
+      purchaseDate: "2023-08-15",
+    });
+
+    const approval = createApprovalRequest({
+      type: "return",
+      title: "归还 iPad",
+      reason: "项目结束",
+      assetId: asset.id,
+      applicant: { id: "user-ops", name: "Ops" },
+      approver: { id: "manager-ops", name: "Manager" },
+      metadata: {
+        operationTemplate: {
+          snapshot: {
+            type: "return",
+            labelZh: "归还",
+            labelEn: "Return",
+            requireAttachment: false,
+            fields: [
+              { key: "receiver", labelZh: "接收人", labelEn: "Receiver", widget: "text" },
+              { key: "condition", labelZh: "状态", labelEn: "Condition", widget: "textarea" },
+            ],
+          },
+          values: {
+            receiver: "资产管理员",
+            condition: "完好无损",
+          },
+        },
+      },
+    });
+
+    const updated = applyApprovalAction(approval.id, {
+      action: "approve",
+      actor: { id: "manager-ops", name: "Manager" },
+    });
+
+    expect(updated.operationId).toBeTruthy();
+    const updatedAsset = getAssetById(asset.id);
+    expect(updatedAsset?.status).toBe("idle");
+    expect(updatedAsset?.owner).toBe("资产管理员");
+  });
+
+  it("auto creates dispose operation and retires the asset", () => {
+    const asset = createAsset({
+      name: "Old Router",
+      category: "Network",
+      status: "maintenance",
+      owner: "网络组",
+      location: "深圳",
+      purchaseDate: "2020-05-20",
+    });
+
+    const approval = createApprovalRequest({
+      type: "dispose",
+      title: "淘汰旧路由器",
+      reason: "硬件老化",
+      assetId: asset.id,
+      applicant: { id: "user-net", name: "NetOps" },
+      approver: { id: "manager-net", name: "Manager" },
+      metadata: {
+        operationTemplate: {
+          snapshot: {
+            type: "dispose",
+            labelZh: "报废",
+            labelEn: "Dispose",
+            requireAttachment: true,
+            fields: [
+              { key: "method", labelZh: "方式", labelEn: "Method", widget: "text" },
+            ],
+          },
+          values: {
+            method: "环保回收",
+          },
+        },
+      },
+    });
+
+    const updated = applyApprovalAction(approval.id, {
+      action: "approve",
+      actor: { id: "manager-net", name: "Manager" },
+    });
+
+    expect(updated.operationId).toBeTruthy();
+    const updatedAsset = getAssetById(asset.id);
+    expect(updatedAsset?.status).toBe("retired");
+
+    const operations = listOperationsForAsset(asset.id);
+    const disposeOp = operations.find((op) => op.id === updated.operationId);
+    expect(disposeOp?.type).toBe("dispose");
+  });
 });
 
 

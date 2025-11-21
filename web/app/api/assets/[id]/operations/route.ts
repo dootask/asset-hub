@@ -3,12 +3,17 @@ import {
   createAssetOperation,
   listOperationsForAsset,
 } from "@/lib/repositories/asset-operations";
-import { getAssetById } from "@/lib/repositories/assets";
+import { getAssetById, updateAsset } from "@/lib/repositories/assets";
 import {
   OPERATION_TYPES,
+  type AssetOperation,
   type AssetOperationType,
   type CreateAssetOperationPayload,
 } from "@/lib/types/operation";
+import {
+  extractOwnerFromOperationMetadata,
+  inferAssetStatusFromAction,
+} from "@/lib/utils/asset-state";
 
 const VALID_OPERATION_TYPES = OPERATION_TYPES.map((item) => item.value);
 
@@ -87,6 +92,7 @@ export async function POST(request: Request, { params }: RouteContext) {
     );
 
     const operation = createAssetOperation(id, payload);
+    applyOperationSideEffects(asset, operation);
     return NextResponse.json({ data: operation }, { status: 201 });
   } catch (error) {
     return NextResponse.json(
@@ -98,5 +104,29 @@ export async function POST(request: Request, { params }: RouteContext) {
       { status: 400 },
     );
   }
+}
+
+function applyOperationSideEffects(asset: NonNullable<ReturnType<typeof getAssetById>>, operation: AssetOperation) {
+  const targetStatus = inferAssetStatusFromAction(operation.type);
+  if (!targetStatus) {
+    return;
+  }
+
+  const nextOwner =
+    extractOwnerFromOperationMetadata(operation.metadata ?? undefined) ??
+    asset.owner;
+
+  if (targetStatus === asset.status && nextOwner === asset.owner) {
+    return;
+  }
+
+  updateAsset(asset.id, {
+    name: asset.name,
+    category: asset.category,
+    status: targetStatus,
+    owner: nextOwner,
+    location: asset.location,
+    purchaseDate: asset.purchaseDate,
+  });
 }
 

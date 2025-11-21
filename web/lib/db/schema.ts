@@ -109,6 +109,30 @@ export const CREATE_TABLES = {
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `,
+  reportViews: `
+    CREATE TABLE IF NOT EXISTS report_views (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      data_source TEXT NOT NULL,
+      fields TEXT NOT NULL,
+      filters TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `,
+  inventoryTasks: `
+    CREATE TABLE IF NOT EXISTS asset_inventory_tasks (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      scope TEXT,
+      filters TEXT,
+      owner TEXT,
+      status TEXT NOT NULL,
+      description TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `,
 };
 
 export const seedAssets = [

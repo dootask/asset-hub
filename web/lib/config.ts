@@ -57,6 +57,11 @@ export const appConfig = {
     maxUsers: parseNumberEnv(process.env.ASSET_HUB_LICENSE_MAX_USERS),
     expiresAt: process.env.ASSET_HUB_LICENSE_EXPIRES_AT ?? null,
   },
+  dootaskTodo: {
+    baseUrl: process.env.DOOTASK_TODO_BASE_URL ?? null,
+    token: process.env.DOOTASK_TODO_TOKEN ?? null,
+    linkBase: process.env.DOOTASK_TODO_LINK_BASE ?? null,
+  },
 };
 
 export function getDataDirectory() {

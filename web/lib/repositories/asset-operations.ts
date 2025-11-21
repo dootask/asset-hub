@@ -128,3 +128,23 @@ export function createAssetOperation(
   };
 }
 
+export type OperationStats = {
+  type: AssetOperationType;
+  total: number;
+  pending: number;
+};
+
+export function getOperationStats(): OperationStats[] {
+  const db = getDb();
+  const rows = db
+    .prepare(
+      `SELECT type,
+              COUNT(1) as total,
+              SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending
+         FROM asset_operations
+        GROUP BY type`,
+    )
+    .all() as { type: AssetOperationType; total: number; pending: number }[];
+  return rows;
+}
+

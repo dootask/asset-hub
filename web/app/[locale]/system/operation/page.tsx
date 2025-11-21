@@ -1,6 +1,8 @@
 import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
 import OperationTemplateList from "@/components/system/OperationTemplateList";
 import { listOperationTemplates } from "@/lib/repositories/operation-templates";
+import { listActionConfigs } from "@/lib/repositories/action-configs";
+import { getOperationStats } from "@/lib/repositories/asset-operations";
 
 export default async function OperationManagementPage({
   params,
@@ -10,6 +12,8 @@ export default async function OperationManagementPage({
   const { locale } = await params;
   const isChinese = locale === "zh";
   const templates = listOperationTemplates();
+  const actionConfigs = listActionConfigs();
+  const stats = getOperationStats();
 
   return (
     <div className="space-y-6">
@@ -38,7 +42,12 @@ export default async function OperationManagementPage({
         </p>
       </header>
 
-      <OperationTemplateList templates={templates} locale={locale} />
+      <OperationTemplateList
+        templates={templates}
+        locale={locale}
+        actionConfigs={actionConfigs}
+        stats={stats}
+      />
     </div>
   );
 }

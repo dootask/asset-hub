@@ -153,6 +153,12 @@ export default async function AssetListPage({
             >
               {isChinese ? "分类管理" : "Manage Categories"}
             </Link>
+            <Link
+              href={withLocale("/assets/import-export")}
+              className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+            >
+              {isChinese ? "导入 / 导出" : "Import / Export"}
+            </Link>
             <a
               href={exportHref}
               className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"

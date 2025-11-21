@@ -32,6 +32,8 @@ import type {
   OperationTemplateMetadata,
   OperationTemplateSnapshot,
 } from "@/lib/types/operation-template";
+import type { ActionConfig } from "@/lib/types/action-config";
+import { operationTypeToActionConfigId } from "@/lib/utils/action-config";
 import {
   getOperationTypeLabel,
   OPERATION_TYPES,
@@ -74,6 +76,9 @@ export default function OperationForm({
   const [openDateField, setOpenDateField] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [actionConfigs, setActionConfigs] = useState<ActionConfig[]>([]);
+  const [loadingConfigs, setLoadingConfigs] = useState(true);
+  const [configError, setConfigError] = useState<string | null>(null);
 
   useEffect(() => {
     setFormState((prev) => {
@@ -93,6 +98,23 @@ export default function OperationForm({
     [templateType, currentTemplate],
   );
 
+  const currentActionConfig = useMemo(() => {
+    if (!actionConfigs.length) {
+      return null;
+    }
+    const configId = operationTypeToActionConfigId(
+      formState.type as AssetOperationType,
+    );
+    return actionConfigs.find((config) => config.id === configId) ?? null;
+  }, [actionConfigs, formState.type]);
+
+  const isInboundType = formState.type === "inbound";
+  const inboundUnlocked =
+    isInboundType &&
+    !loadingConfigs &&
+    currentActionConfig?.requiresApproval === false;
+  const operationLocked = isInboundType && !inboundUnlocked;
+
   useEffect(() => {
     setFieldValues((prev) => {
       const next: Record<string, string> = {};
@@ -102,6 +124,45 @@ export default function OperationForm({
       return next;
     });
   }, [templateFields]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchConfigs() {
+      setLoadingConfigs(true);
+      try {
+        const response = await fetch("/apps/asset-hub/api/config/approvals", {
+          cache: "no-store",
+        });
+        if (!response.ok) {
+          throw new Error("Failed to load action configs");
+        }
+        const payload = (await response.json()) as { data: ActionConfig[] };
+        if (!cancelled) {
+          setActionConfigs(payload.data);
+          setConfigError(null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setActionConfigs([]);
+          setConfigError(
+            err instanceof Error
+              ? err.message
+              : isChinese
+                ? "无法加载操作配置，请稍后重试。"
+                : "Failed to load operation configuration.",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingConfigs(false);
+        }
+      }
+    }
+    fetchConfigs();
+    return () => {
+      cancelled = true;
+    };
+  }, [isChinese]);
 
   const handleFieldChange = (key: string, value: string) => {
     setFieldValues((prev) => ({ ...prev, [key]: value }));
@@ -168,6 +229,18 @@ export default function OperationForm({
     setError(null);
 
     try {
+      if (isInboundType && !inboundUnlocked) {
+        throw new Error(
+          loadingConfigs
+            ? isChinese
+              ? "正在加载入库配置，请稍候。"
+              : "Loading inbound configuration, please wait."
+            : isChinese
+              ? "入库操作已配置为必须走审批，请在审批表单中提交。"
+              : "Inbound operations require approval. Please submit a request via the approval form.",
+        );
+      }
+
       if (!formState.actor.trim()) {
         throw new Error(
           isChinese ? "请填写经办人。" : "Please provide an actor.",
@@ -374,6 +447,26 @@ export default function OperationForm({
       onSubmit={handleSubmit}
       className="space-y-4 rounded-2xl border bg-muted/40 p-4"
     >
+      {configError && (
+        <p className="rounded-2xl border border-destructive/40 bg-destructive/5 p-3 text-xs text-destructive">
+          {configError}
+        </p>
+      )}
+      {isInboundType && (
+        <div className="rounded-2xl border border-dashed border-muted-foreground/40 bg-muted/20 p-3 text-xs text-muted-foreground">
+          {loadingConfigs
+            ? isChinese
+              ? "正在加载入库操作配置..."
+              : "Loading inbound operation configuration..."
+            : inboundUnlocked
+              ? isChinese
+                ? "当前入库流程无需审批，可直接在此记录结果。"
+                : "Inbound operations currently do not require approval and can be logged directly."
+              : isChinese
+                ? "入库流程已配置为必须走审批，请在审批表单中提交请求。"
+                : "Inbound operations require approval. Please submit the request via the approval form."}
+        </div>
+      )}
       <div className="space-y-1.5">
         <Label className="text-xs font-medium text-muted-foreground">
           {isChinese ? "操作类型" : "Operation Type"}
@@ -464,7 +557,7 @@ export default function OperationForm({
 
       <Button
         type="submit"
-        disabled={submitting}
+        disabled={submitting || operationLocked}
         className="w-full rounded-2xl px-4 py-2 text-sm"
       >
         {submitting

@@ -169,7 +169,7 @@ export const DEFAULT_OPERATION_TEMPLATE_FIELDS: Record<
   inbound: ["warehouse", "receiver", "photos"],
   receive: ["receiver", "purpose", "returnPlan"],
   borrow: ["borrower", "duration", "depositAttachment"],
-  return: ["condition", "notes"],
+  return: ["receiver", "condition", "notes"],
   maintenance: ["vendor", "cost", "report"],
   dispose: ["method", "evidence"],
   other: ["notes"],

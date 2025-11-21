@@ -1,18 +1,28 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import type { OperationTemplate } from "@/lib/types/operation-template";
+import type { ActionConfig } from "@/lib/types/action-config";
+import type { OperationStats } from "@/lib/repositories/asset-operations";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { operationTypeToActionConfigId } from "@/lib/utils/action-config";
 
 interface Props {
   templates: OperationTemplate[];
   locale?: string;
+  actionConfigs: ActionConfig[];
+  stats: OperationStats[];
 }
 
-export default function OperationTemplateList({ templates, locale = "en" }: Props) {
+export default function OperationTemplateList({
+  templates,
+  locale = "en",
+  actionConfigs,
+  stats,
+}: Props) {
   const isChinese = locale === "zh";
   const [items, setItems] = useState(() => templates);
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -27,7 +37,22 @@ export default function OperationTemplateList({ templates, locale = "en" }: Prop
     }, {}),
   );
 
-  const handleChange = (type: OperationTemplate["type"], partial: Partial<OperationTemplate>) => {
+  const configMap = useMemo(() => {
+    const map = new Map<string, ActionConfig>();
+    actionConfigs.forEach((config) => map.set(config.id, config));
+    return map;
+  }, [actionConfigs]);
+
+  const statsMap = useMemo(() => {
+    const map = new Map<string, OperationStats>();
+    stats.forEach((entry) => map.set(entry.type, entry));
+    return map;
+  }, [stats]);
+
+  const handleChange = (
+    type: OperationTemplate["type"],
+    partial: Partial<OperationTemplate>,
+  ) => {
     setItems((prev) =>
       prev.map((item) => (item.type === type ? { ...item, ...partial } : item)),
     );
@@ -150,7 +175,80 @@ export default function OperationTemplateList({ templates, locale = "en" }: Prop
               />
             </div>
           </div>
-          <div className="mt-4 grid gap-4 lg:grid-cols-[1fr,2fr]">
+          <div className="mt-4 grid gap-4 lg:grid-cols-[1fr,1fr,2fr]">
+            <div className="rounded-2xl border bg-muted/20 px-4 py-3 text-sm">
+              <p className="font-semibold">
+                {isChinese ? "审批策略" : "Approval Policy"}
+              </p>
+              {(() => {
+                const config = configMap.get(
+                  operationTypeToActionConfigId(template.type),
+                );
+                if (!config) {
+                  return (
+                    <p className="text-xs text-muted-foreground">
+                      {isChinese ? "暂无配置" : "No configuration yet."}
+                    </p>
+                  );
+                }
+                return (
+                  <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                    <p>
+                      {isChinese ? "需要审批：" : "Requires approval:"}{" "}
+                      {config.requiresApproval
+                        ? isChinese
+                          ? "是"
+                          : "Yes"
+                        : isChinese
+                          ? "否"
+                          : "No"}
+                    </p>
+                    <p>
+                      {isChinese ? "允许修改审批人：" : "Override allowed:"}{" "}
+                      {config.allowOverride
+                        ? isChinese
+                          ? "是"
+                          : "Yes"
+                        : isChinese
+                          ? "否"
+                          : "No"}
+                    </p>
+                    {config.defaultApproverType !== "none" && (
+                      <p>
+                        {isChinese ? "默认审批人：" : "Default approver:"}{" "}
+                        {config.defaultApproverRefs.join(", ") || "-"}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+            <div className="rounded-2xl border bg-muted/20 px-4 py-3 text-sm">
+              <p className="font-semibold">
+                {isChinese ? "使用统计（全部资产）" : "Usage (all assets)"}
+              </p>
+              {(() => {
+                const stat = statsMap.get(template.type);
+                if (!stat) {
+                  return (
+                    <p className="text-xs text-muted-foreground">
+                      {isChinese ? "暂无数据" : "No data yet."}
+                    </p>
+                  );
+                }
+                return (
+                  <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                    <p>
+                      {isChinese ? "累计操作：" : "Total operations:"}{" "}
+                      {stat.total}
+                    </p>
+                    <p>
+                      {isChinese ? "进行中：" : "Pending:"} {stat.pending}
+                    </p>
+                  </div>
+                );
+              })()}
+            </div>
             <div className="flex items-center justify-between rounded-2xl border bg-muted/30 px-4 py-3">
               <div>
                 <p className="text-sm font-medium">

@@ -9,6 +9,7 @@ import {
 import {
   createApprovalRequest,
   listApprovalRequests,
+  setApprovalExternalTodo,
 } from "@/lib/repositories/approvals";
 import {
   extractUserFromRequest,
@@ -17,6 +18,7 @@ import {
 import { getActionConfig } from "@/lib/repositories/action-configs";
 import type { ActionConfig } from "@/lib/types/action-config";
 import { approvalTypeToActionConfigId } from "@/lib/utils/action-config";
+import { createExternalApprovalTodo } from "@/lib/integrations/dootask-todos";
 
 const STATUS_ALLOW_LIST = APPROVAL_STATUSES.map((item) => item.value);
 const TYPE_ALLOW_LIST = APPROVAL_TYPES.map((item) => item.value);
@@ -266,6 +268,13 @@ export async function POST(request: Request) {
       metadata: metadataWithConfig,
     };
     const approval = createApprovalRequest(safePayload);
+
+    void (async () => {
+      const externalId = await createExternalApprovalTodo(approval);
+      if (externalId) {
+        setApprovalExternalTodo(approval.id, externalId);
+      }
+    })();
 
     return NextResponse.json({ data: approval }, { status: 201 });
   } catch (error) {

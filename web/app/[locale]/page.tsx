@@ -10,6 +10,7 @@ import RangeFilter from "@/components/dashboard/RangeFilter";
 import ApprovalStatusBadge from "@/components/approvals/ApprovalStatusBadge";
 import type { ApprovalStatus } from "@/lib/types/approval";
 import { listAssetCategories } from "@/lib/repositories/asset-categories";
+import { listInventoryTasks } from "@/lib/repositories/inventory-tasks";
 
 const RANGE_OPTIONS = [7, 14, 30] as const;
 
@@ -85,10 +86,11 @@ export default async function LocaleDashboard({
     ? parsedRange
     : 14;
 
-  const [summary, overview, categories] = await Promise.all([
+  const [summary, overview, categories, inventoryTasks] = await Promise.all([
     fetchSummary(),
     fetchOverview(range),
     listAssetCategories(),
+    listInventoryTasks(),
   ]);
   const categoryMap = new Map(
     categories.map((category) => [
@@ -96,6 +98,11 @@ export default async function LocaleDashboard({
       locale === "zh" ? category.labelZh : category.labelEn,
     ]),
   );
+  const recentOperations = overview.operationsTrend.reduce(
+    (sum, item) => sum + item.count,
+    0,
+  );
+  const inventoryCount = inventoryTasks.length;
 
   const withLocale = (path: string) => `/${locale}${path}`;
 
@@ -122,6 +129,14 @@ export default async function LocaleDashboard({
       value: overview.stats.pendingApprovals,
       href: "/approvals?role=my-tasks",
     },
+    {
+      key: "operations-range",
+      label: isChinese
+        ? `${range} 天操作`
+        : `Ops (${range}d)`,
+      value: recentOperations,
+      href: "/system/operation",
+    },
   ];
 
   const secondaryStats = [
@@ -136,6 +151,12 @@ export default async function LocaleDashboard({
       label: isChinese ? "角色数量" : "Roles",
       value: summary.roles,
       href: "/system/role",
+    },
+    {
+      key: "inventory-tasks",
+      label: isChinese ? "盘点任务" : "Inventory Tasks",
+      value: inventoryCount,
+      href: "/assets/inventory",
     },
   ];
 
@@ -155,6 +176,18 @@ export default async function LocaleDashboard({
     {
       label: isChinese ? "审批中心" : "Approvals",
       href: "/approvals",
+    },
+    {
+      label: isChinese ? "资产盘点" : "Inventory",
+      href: "/assets/inventory",
+    },
+    {
+      label: isChinese ? "耗材管理" : "Consumables",
+      href: "/consumables",
+    },
+    {
+      label: isChinese ? "版本信息" : "Version Info",
+      href: "/about",
     },
   ];
 

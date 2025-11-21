@@ -9,6 +9,7 @@ import ApprovalActionForm from "@/components/approvals/ApprovalActionForm";
 import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
 import OperationTemplateView from "@/components/operations/OperationTemplateView";
 import { extractOperationTemplateMetadata } from "@/lib/utils/operation-template";
+import { appConfig } from "@/lib/config";
 
 const knownLabels: Array<{ key: string; labelZh: string; labelEn: string }> = [
   { key: "amount", labelZh: "金额", labelEn: "Amount" },
@@ -112,6 +113,27 @@ export default async function ApprovalDetailPage({ params }: PageProps) {
           <ApprovalStatusBadge status={approval.status} locale={locale} />
         </div>
       </header>
+
+      {approval.externalTodoId && (
+        <section className="rounded-2xl border bg-card/70 p-4 text-sm text-muted-foreground">
+          <p className="font-semibold">
+            {isChinese ? "DooTask 待办" : "DooTask Todo"}
+          </p>
+          <p className="mt-1">
+            ID: <span className="font-mono">{approval.externalTodoId}</span>
+          </p>
+          {appConfig.dootaskTodo.linkBase && (
+            <a
+              className="mt-2 inline-flex text-sm text-primary hover:underline"
+              href={`${appConfig.dootaskTodo.linkBase.replace(/\/$/, "")}/${approval.externalTodoId}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {isChinese ? "在 DooTask 中打开" : "Open in DooTask"}
+            </a>
+          )}
+        </section>
+      )}
 
       {asset && (
         <section className="rounded-2xl border bg-muted/30 p-4 text-sm">
