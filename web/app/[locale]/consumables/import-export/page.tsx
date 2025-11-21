@@ -1,21 +1,19 @@
 import type { Metadata } from "next";
+import ConsumableImportExportClient from "@/components/consumables/ConsumableImportExportClient";
 import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
-import ConsumableCategoryTable from "@/components/consumables/ConsumableCategoryTable";
 import { listConsumableCategories } from "@/lib/repositories/consumable-categories";
-import { getRequestBaseUrl } from "@/lib/utils/server-url";
 
 export const metadata: Metadata = {
-  title: "耗材类别 - Asset Hub",
+  title: "耗材导入导出 - Asset Hub",
 };
 
-export default async function ConsumableSettingsPage({
+export default async function ConsumableImportExportPage({
   params,
 }: {
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
   const categories = listConsumableCategories();
-  const baseUrl = await getRequestBaseUrl();
   const isChinese = locale === "zh";
 
   return (
@@ -30,25 +28,21 @@ export default async function ConsumableSettingsPage({
               labelEn: "Consumables",
             },
             {
-              labelZh: "耗材类别",
-              labelEn: "Categories",
+              labelZh: "导入 / 导出",
+              labelEn: "Import / Export",
             },
           ]}
         />
         <h1 className="mt-2 text-2xl font-semibold">
-          {isChinese ? "耗材类别管理" : "Consumable Categories"}
+          {isChinese ? "耗材导入导出" : "Consumable Import / Export"}
         </h1>
         <p className="text-sm text-muted-foreground">
           {isChinese
-            ? "定义耗材类别与默认单位，便于录入与报表统计。"
-            : "Define categories and default units for consumables."}
+            ? "批量下载或导入耗材库存数据。"
+            : "Download or import consumable inventory data in bulk."}
         </p>
       </header>
-      <ConsumableCategoryTable
-        initialCategories={categories}
-        locale={locale}
-        baseUrl={baseUrl}
-      />
+      <ConsumableImportExportClient locale={locale} categories={categories} />
     </div>
   );
 }

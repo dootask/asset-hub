@@ -1,5 +1,6 @@
 import { appConfig } from "@/lib/config";
 import type { ApprovalRequest } from "@/lib/types/approval";
+import type { ConsumableAlert } from "@/lib/types/consumable-alert";
 
 const todoConfig = appConfig.dootaskTodo;
 
@@ -64,6 +65,38 @@ export async function updateExternalApprovalTodo(
     body: {
       status: approval.status,
       result: approval.result,
+    },
+  });
+}
+
+export async function createConsumableAlertTodo(alert: ConsumableAlert) {
+  const payload = await sendRequest({
+    path: `/todos`,
+    method: "POST",
+    body: {
+      type: "consumable-alert",
+      alertId: alert.id,
+      consumableId: alert.consumableId,
+      level: alert.level,
+      title: `[Consumable] ${alert.consumableName}`,
+      message: alert.message,
+      keeper: alert.keeper,
+      link: todoConfig.linkBase
+        ? `${todoConfig.linkBase}/consumables/${alert.consumableId}`
+        : undefined,
+    },
+  });
+  return payload?.id ?? null;
+}
+
+export async function resolveConsumableAlertTodo(alert: ConsumableAlert) {
+  if (!alert.externalTodoId) return;
+  await sendRequest({
+    path: `/todos/${alert.externalTodoId}`,
+    method: "PATCH",
+    body: {
+      status: "resolved",
+      result: alert.message,
     },
   });
 }

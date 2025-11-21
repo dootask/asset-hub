@@ -13,6 +13,12 @@ import {
   listApprovalRequests,
 } from "@/lib/repositories/approvals";
 import { getAssetById } from "@/lib/repositories/assets";
+import { createConsumableCategory } from "@/lib/repositories/consumable-categories";
+import {
+  createConsumable,
+  getConsumableById,
+} from "@/lib/repositories/consumables";
+import { createConsumableOperation } from "@/lib/repositories/consumable-operations";
 
 const TEST_DB_PATH = path.join(process.cwd(), "data", "test-approvals.db");
 
@@ -334,6 +340,54 @@ describe("Approval repository", () => {
     const operations = listOperationsForAsset(asset.id);
     const disposeOp = operations.find((op) => op.id === updated.operationId);
     expect(disposeOp?.type).toBe("dispose");
+  });
+
+  it("updates consumable stock when linked approvals are approved", () => {
+    createConsumableCategory({
+      code: "OfficeSupplies",
+      labelZh: "办公用品",
+      labelEn: "Office Supplies",
+    });
+    const consumable = createConsumable({
+      name: "A4 纸",
+      category: "OfficeSupplies",
+      status: "in-stock",
+      quantity: 50,
+      unit: "box",
+      keeper: "Ops",
+      location: "Shanghai",
+      safetyStock: 10,
+    });
+
+    const operation = createConsumableOperation(consumable.id, {
+      type: "outbound",
+      actor: "Ops",
+      description: "项目发放",
+      status: "pending",
+      quantityDelta: -5,
+    });
+
+    const approval = createApprovalRequest({
+      type: "outbound",
+      title: "耗材出库审批",
+      reason: "季度发放",
+      consumableId: consumable.id,
+      consumableOperationId: operation.id,
+      applicant: { id: "ops-user", name: "Ops" },
+      approver: { id: "manager-ops", name: "Manager" },
+    });
+
+    const updated = applyApprovalAction(approval.id, {
+      action: "approve",
+      actor: { id: "manager-ops", name: "Manager" },
+      comment: "同意发放",
+    });
+
+    expect(updated.status).toBe("approved");
+    expect(updated.consumableOperationId).toBe(operation.id);
+
+    const refreshed = getConsumableById(consumable.id)!;
+    expect(refreshed.quantity).toBe(45);
   });
 });
 

@@ -62,7 +62,9 @@ export const CREATE_TABLES = {
     CREATE TABLE IF NOT EXISTS asset_approval_requests (
       id TEXT PRIMARY KEY,
       asset_id TEXT,
+      consumable_id TEXT,
       operation_id TEXT,
+      consumable_operation_id TEXT,
       type TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT ('pending'),
       title TEXT NOT NULL,
@@ -78,7 +80,62 @@ export const CREATE_TABLES = {
       updated_at TEXT NOT NULL DEFAULT (datetime('now')),
       completed_at TEXT,
       FOREIGN KEY(asset_id) REFERENCES assets(id) ON DELETE SET NULL,
-      FOREIGN KEY(operation_id) REFERENCES asset_operations(id) ON DELETE SET NULL
+      FOREIGN KEY(consumable_id) REFERENCES consumables(id) ON DELETE SET NULL,
+      FOREIGN KEY(operation_id) REFERENCES asset_operations(id) ON DELETE SET NULL,
+      FOREIGN KEY(consumable_operation_id) REFERENCES consumable_operations(id) ON DELETE SET NULL
+    );
+  `,
+  consumableInventoryTasks: `
+    CREATE TABLE IF NOT EXISTS consumable_inventory_tasks (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      scope TEXT,
+      filters TEXT,
+      owner TEXT,
+      status TEXT NOT NULL DEFAULT ('draft'),
+      description TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `,
+  consumableInventoryEntries: `
+    CREATE TABLE IF NOT EXISTS consumable_inventory_entries (
+      id TEXT PRIMARY KEY,
+      task_id TEXT NOT NULL,
+      consumable_id TEXT NOT NULL,
+      consumable_name TEXT NOT NULL,
+      category TEXT,
+      keeper TEXT,
+      expected_quantity INTEGER NOT NULL DEFAULT 0,
+      expected_reserved INTEGER NOT NULL DEFAULT 0,
+      actual_quantity INTEGER,
+      actual_reserved INTEGER,
+      variance_quantity INTEGER,
+      variance_reserved INTEGER,
+      note TEXT,
+      status TEXT NOT NULL DEFAULT ('pending'),
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY(task_id) REFERENCES consumable_inventory_tasks(id) ON DELETE CASCADE,
+      FOREIGN KEY(consumable_id) REFERENCES consumables(id) ON DELETE CASCADE
+    );
+  `,
+  consumableAlerts: `
+    CREATE TABLE IF NOT EXISTS consumable_alerts (
+      id TEXT PRIMARY KEY,
+      consumable_id TEXT NOT NULL,
+      consumable_name TEXT NOT NULL,
+      keeper TEXT,
+      level TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT ('open'),
+      message TEXT,
+      quantity INTEGER NOT NULL DEFAULT 0,
+      reserved_quantity INTEGER NOT NULL DEFAULT 0,
+      external_todo_id TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      resolved_at TEXT,
+      FOREIGN KEY(consumable_id) REFERENCES consumables(id) ON DELETE CASCADE
     );
   `,
   actionConfigs: `
@@ -131,6 +188,53 @@ export const CREATE_TABLES = {
       description TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `,
+  consumableCategories: `
+    CREATE TABLE IF NOT EXISTS consumable_categories (
+      id TEXT PRIMARY KEY,
+      code TEXT NOT NULL UNIQUE,
+      label_zh TEXT NOT NULL,
+      label_en TEXT NOT NULL,
+      description TEXT,
+      unit TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `,
+  consumables: `
+    CREATE TABLE IF NOT EXISTS consumables (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      category TEXT NOT NULL,
+      status TEXT NOT NULL,
+      quantity INTEGER NOT NULL DEFAULT 0,
+      reserved_quantity INTEGER NOT NULL DEFAULT 0,
+      unit TEXT NOT NULL DEFAULT ('pcs'),
+      keeper TEXT NOT NULL DEFAULT (''),
+      location TEXT NOT NULL DEFAULT (''),
+      safety_stock INTEGER NOT NULL DEFAULT 0,
+      description TEXT,
+      metadata TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY(category) REFERENCES consumable_categories(code) ON DELETE SET NULL
+    );
+  `,
+  consumableOperations: `
+    CREATE TABLE IF NOT EXISTS consumable_operations (
+      id TEXT PRIMARY KEY,
+      consumable_id TEXT NOT NULL,
+      type TEXT NOT NULL,
+      description TEXT,
+      actor TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT ('done'),
+      quantity_delta INTEGER NOT NULL DEFAULT 0,
+      reserved_delta INTEGER NOT NULL DEFAULT 0,
+      metadata TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY(consumable_id) REFERENCES consumables(id) ON DELETE CASCADE
     );
   `,
 };
@@ -269,7 +373,9 @@ export const seedApprovalRequests = [
   {
     id: "APR-001",
     asset_id: "AST-001",
+    consumable_id: null,
     operation_id: "OP-001",
+    consumable_operation_id: null,
     type: "purchase",
     status: "approved",
     title: "采购 MacBook Pro 16”",
@@ -286,7 +392,9 @@ export const seedApprovalRequests = [
   {
     id: "APR-002",
     asset_id: "AST-001",
+    consumable_id: null,
     operation_id: "OP-002",
+    consumable_operation_id: null,
     type: "inbound",
     status: "pending",
     title: "MacBook Pro 入库确认",
@@ -367,6 +475,46 @@ export const seedActionConfigs = [
     id: "dispose",
     label_zh: "报废",
     label_en: "Dispose",
+    requires_approval: 1,
+    default_approver_type: "none",
+    default_approver_refs: JSON.stringify([]),
+    allow_override: 1,
+    metadata: null,
+  },
+  {
+    id: "outbound",
+    label_zh: "出库",
+    label_en: "Outbound",
+    requires_approval: 1,
+    default_approver_type: "none",
+    default_approver_refs: JSON.stringify([]),
+    allow_override: 1,
+    metadata: null,
+  },
+  {
+    id: "reserve",
+    label_zh: "预留",
+    label_en: "Reserve",
+    requires_approval: 0,
+    default_approver_type: "none",
+    default_approver_refs: JSON.stringify([]),
+    allow_override: 1,
+    metadata: null,
+  },
+  {
+    id: "release",
+    label_zh: "释放预留",
+    label_en: "Release",
+    requires_approval: 0,
+    default_approver_type: "none",
+    default_approver_refs: JSON.stringify([]),
+    allow_override: 1,
+    metadata: null,
+  },
+  {
+    id: "adjust",
+    label_zh: "库存调整",
+    label_en: "Adjust",
     requires_approval: 1,
     default_approver_type: "none",
     default_approver_refs: JSON.stringify([]),
@@ -481,6 +629,56 @@ export const seedOperationTemplates = [
     metadata: JSON.stringify({
       fields: ["notes"],
     }),
+  },
+];
+
+export const seedConsumableCategories = [
+  {
+    id: "CC-PRINT",
+    code: "PrinterSupplies",
+    label_zh: "打印耗材",
+    label_en: "Printer Supplies",
+    description: "墨盒、硒鼓等打印机耗材",
+    unit: "pcs",
+  },
+  {
+    id: "CC-OFFICE",
+    code: "OfficeSupplies",
+    label_zh: "办公用品",
+    label_en: "Office Supplies",
+    description: "常用办公耗材，如笔记本、便签等",
+    unit: "pcs",
+  },
+];
+
+export const seedConsumables = [
+  {
+    id: "CON-001",
+    name: "黑色硒鼓 135A",
+    category: "PrinterSupplies",
+    status: "in-stock",
+    quantity: 24,
+    reserved_quantity: 0,
+    unit: "pcs",
+    keeper: "行政部",
+    location: "上海总部仓库",
+    safety_stock: 10,
+    description: "适配 HP LaserJet MFP 135w",
+    metadata: null,
+  },
+  {
+    id: "CON-002",
+    name: "A4 复印纸 70g",
+    category: "OfficeSupplies",
+    status: "in-stock",
+    quantity: 80,
+    reserved_quantity: 0,
+    unit: "box",
+    keeper: "行政部",
+    location: "上海总部仓库",
+    safety_stock: 30,
+    description: "500 张/包，5 包/箱",
+    metadata: null,
   },
 ];
 

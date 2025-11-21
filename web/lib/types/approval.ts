@@ -5,6 +5,10 @@ export type ApprovalType =
   | "borrow"
   | "return"
   | "dispose"
+  | "outbound"
+  | "reserve"
+  | "release"
+  | "adjust"
   | "generic";
 
 export const APPROVAL_TYPES: {
@@ -18,6 +22,10 @@ export const APPROVAL_TYPES: {
   { value: "borrow", labelZh: "借用审批", labelEn: "Borrow" },
   { value: "return", labelZh: "归还确认", labelEn: "Return" },
   { value: "dispose", labelZh: "报废处理", labelEn: "Dispose" },
+  { value: "outbound", labelZh: "耗材出库", labelEn: "Outbound" },
+  { value: "reserve", labelZh: "耗材预留", labelEn: "Reserve" },
+  { value: "release", labelZh: "预留释放", labelEn: "Release" },
+  { value: "adjust", labelZh: "库存调整", labelEn: "Adjust" },
   { value: "generic", labelZh: "其它审批", labelEn: "General" },
 ];
 
@@ -37,7 +45,9 @@ export const APPROVAL_STATUSES: { value: ApprovalStatus; label: string }[] = [
 export interface ApprovalRequest {
   id: string;
   assetId?: string | null;
+  consumableId?: string | null;
   operationId?: string | null;
+  consumableOperationId?: string | null;
   type: ApprovalType;
   status: ApprovalStatus;
   title: string;
@@ -56,7 +66,9 @@ export interface ApprovalRequest {
 
 export interface CreateApprovalRequestPayload {
   assetId?: string;
+  consumableId?: string;
   operationId?: string;
+  consumableOperationId?: string;
   type: ApprovalType;
   title: string;
   reason?: string;
@@ -88,7 +100,9 @@ export interface ApprovalListFilters {
   applicantId?: string;
   approverId?: string;
   assetId?: string;
+  consumableId?: string;
   operationId?: string;
+  consumableOperationId?: string;
   role?: "my-requests" | "my-tasks";
   userId?: string;
   page?: number;

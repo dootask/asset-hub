@@ -16,6 +16,10 @@ import {
   updateAssetOperationStatus,
 } from "@/lib/repositories/asset-operations";
 import { getAssetById, updateAsset } from "@/lib/repositories/assets";
+import {
+  getConsumableOperationById,
+  updateConsumableOperationStatus,
+} from "@/lib/repositories/consumable-operations";
 import type { AssetStatus } from "@/lib/types/asset";
 import type { AssetOperationType } from "@/lib/types/operation";
 import type { OperationTemplateMetadata } from "@/lib/types/operation-template";
@@ -30,7 +34,9 @@ import {
 type ApprovalRow = {
   id: string;
   asset_id: string | null;
+  consumable_id: string | null;
   operation_id: string | null;
+  consumable_operation_id: string | null;
   type: ApprovalType;
   status: ApprovalStatus;
   title: string;
@@ -60,7 +66,9 @@ function mapRow(row: ApprovalRow): ApprovalRequest {
   return {
     id: row.id,
     assetId: row.asset_id,
+    consumableId: row.consumable_id,
     operationId: row.operation_id,
+    consumableOperationId: row.consumable_operation_id,
     type: row.type,
     status: row.status,
     title: row.title,
@@ -145,9 +153,19 @@ function buildFilters(filters: ApprovalListFilters | undefined) {
     params.assetId = filters.assetId;
   }
 
+  if (filters?.consumableId) {
+    conditions.push(`consumable_id = @consumableId`);
+    params.consumableId = filters.consumableId;
+  }
+
   if (filters?.operationId) {
     conditions.push(`operation_id = @operationId`);
     params.operationId = filters.operationId;
+  }
+
+  if (filters?.consumableOperationId) {
+    conditions.push(`consumable_operation_id = @consumableOperationId`);
+    params.consumableOperationId = filters.consumableOperationId;
   }
 
   const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
@@ -209,7 +227,9 @@ export function createApprovalRequest(
     `INSERT INTO asset_approval_requests (
       id,
       asset_id,
+      consumable_id,
       operation_id,
+      consumable_operation_id,
       type,
       status,
       title,
@@ -224,7 +244,9 @@ export function createApprovalRequest(
     ) VALUES (
       @id,
       @assetId,
+      @consumableId,
       @operationId,
+      @consumableOperationId,
       @type,
       'pending',
       @title,
@@ -240,7 +262,9 @@ export function createApprovalRequest(
   ).run({
     id,
     assetId: payload.assetId ?? null,
+    consumableId: payload.consumableId ?? null,
     operationId: payload.operationId ?? null,
+    consumableOperationId: payload.consumableOperationId ?? null,
     type: payload.type,
     title: payload.title,
     reason: payload.reason ?? null,
@@ -253,6 +277,10 @@ export function createApprovalRequest(
 
   if (payload.operationId) {
     updateAssetOperationStatus(payload.operationId, "pending");
+  }
+
+  if (payload.consumableOperationId) {
+    updateConsumableOperationStatus(payload.consumableOperationId, "pending");
   }
 
   return getApprovalRequestById(id)!;
@@ -293,11 +321,24 @@ function mapApprovalTypeToOperationType(
   }
 }
 
-function linkApprovalToOperation(approvalId: string, operationId: string) {
+function linkApprovalToAssetOperation(approvalId: string, operationId: string) {
   const db = getDb();
   db.prepare(
     `UPDATE asset_approval_requests
      SET operation_id = @operationId,
+         updated_at = datetime('now')
+     WHERE id = @approvalId`,
+  ).run({ approvalId, operationId });
+}
+
+function linkApprovalToConsumableOperation(
+  approvalId: string,
+  operationId: string,
+) {
+  const db = getDb();
+  db.prepare(
+    `UPDATE asset_approval_requests
+     SET consumable_operation_id = @operationId,
          updated_at = datetime('now')
      WHERE id = @approvalId`,
   ).run({ approvalId, operationId });
@@ -399,7 +440,7 @@ function ensureOperationRecordForApproval(
     metadata: metadataPayload,
   });
 
-  linkApprovalToOperation(approval.id, operation.id);
+  linkApprovalToAssetOperation(approval.id, operation.id);
   return getApprovalRequestById(approval.id)!;
 }
 
@@ -407,43 +448,52 @@ function applyApprovalSuccessEffects(
   approval: ApprovalRequest,
   actor: ApprovalActionPayload["actor"],
 ) {
-  if (!approval.assetId) {
+  if (approval.assetId) {
+    const asset = getAssetById(approval.assetId);
+    if (!asset) {
+      return;
+    }
+
+    const operation = approval.operationId
+      ? getAssetOperationById(approval.operationId)
+      : null;
+    const templateMetadata = resolveTemplateMetadataFromSources(
+      operation?.metadata ?? undefined,
+      approval.metadata ?? undefined,
+    );
+    const targetStatus = inferAssetStatusFromAction(
+      operation?.type ?? approval.type,
+    );
+
+    if (targetStatus) {
+      const ownerFromMetadata =
+        extractOwnerFromOperationMetadata(operation?.metadata ?? undefined) ??
+        extractOwnerFromOperationMetadata(approval.metadata ?? undefined);
+
+      const { id: assetId, ...assetPayload } = asset;
+      const nextPayload = {
+        ...assetPayload,
+        status: targetStatus,
+        owner: ownerFromMetadata ?? asset.owner,
+      };
+
+      updateAsset(assetId, nextPayload);
+    }
+
+    if (approval.type === "purchase") {
+      ensurePendingInboundOperation(approval, templateMetadata, actor);
+    }
     return;
   }
 
-  const asset = getAssetById(approval.assetId);
-  if (!asset) {
-    return;
-  }
-
-  const operation = approval.operationId
-    ? getAssetOperationById(approval.operationId)
-    : null;
-  const templateMetadata = resolveTemplateMetadataFromSources(
-    operation?.metadata ?? undefined,
-    approval.metadata ?? undefined,
-  );
-  const targetStatus = inferAssetStatusFromAction(
-    operation?.type ?? approval.type,
-  );
-
-  if (targetStatus) {
-    const ownerFromMetadata =
-      extractOwnerFromOperationMetadata(operation?.metadata ?? undefined) ??
-      extractOwnerFromOperationMetadata(approval.metadata ?? undefined);
-
-    const { id: assetId, ...assetPayload } = asset;
-    const nextPayload = {
-      ...assetPayload,
-      status: targetStatus,
-      owner: ownerFromMetadata ?? asset.owner,
-    };
-
-    updateAsset(assetId, nextPayload);
-  }
-
-  if (approval.type === "purchase") {
-    ensurePendingInboundOperation(approval, templateMetadata, actor);
+  if (approval.consumableId && approval.consumableOperationId) {
+    const operation = getConsumableOperationById(
+      approval.consumableOperationId,
+    );
+    if (!operation || operation.status === "done") {
+      return;
+    }
+    updateConsumableOperationStatus(operation.id, "done");
   }
 }
 
@@ -499,6 +549,13 @@ export function applyApprovalAction(
   if (existing.operationId) {
     updateAssetOperationStatus(
       existing.operationId,
+      status === "approved" ? "done" : "cancelled",
+    );
+  }
+
+  if (existing.consumableOperationId) {
+    updateConsumableOperationStatus(
+      existing.consumableOperationId,
       status === "approved" ? "done" : "cancelled",
     );
   }

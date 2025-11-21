@@ -15,25 +15,39 @@ export default async function ConsumablesOverviewPage({
   const isChinese = locale === "zh";
   const sections = [
     {
+      href: `/${locale}/consumables/list`,
+      titleZh: "耗材列表",
+      titleEn: "Consumable List",
+      descriptionZh: "管理在库耗材、库存状态与保管人。",
+      descriptionEn: "Manage consumable stock, status, and keeper info.",
+    },
+    {
+      href: `/${locale}/consumables/operations`,
+      titleZh: "操作审计 / 报表",
+      titleEn: "Operation Audit & Reports",
+      descriptionZh: "查看耗材采购、出入库、预留等操作明细并导出报表。",
+      descriptionEn: "Review purchase/inbound/outbound logs and export audit reports.",
+    },
+    {
+      href: `/${locale}/consumables/inventory`,
+      titleZh: "耗材盘点",
+      titleEn: "Inventory",
+      descriptionZh: "创建盘点任务、记录实盘数据并跟踪差异。",
+      descriptionEn: "Create inventory tasks, record actual counts, and review variances.",
+    },
+    {
+      href: `/${locale}/consumables/alerts`,
+      titleZh: "低库存告警",
+      titleEn: "Alerts",
+      descriptionZh: "集中查看低库存/缺货提醒并标记为已处理。",
+      descriptionEn: "Monitor low-stock or out-of-stock alerts and mark them resolved.",
+    },
+    {
       href: `/${locale}/consumables/settings`,
       titleZh: "耗材设置",
       titleEn: "Settings",
       descriptionZh: "定义耗材类别与字段，为后续流程做准备。",
-      descriptionEn: "Define consumable categories and fields for future workflows.",
-    },
-    {
-      href: `/${locale}/consumables/operations`,
-      titleZh: "操作流程（占位）",
-      titleEn: "Operations (Coming Soon)",
-      descriptionZh: "预留采购、入库、出库等流程入口。",
-      descriptionEn: "Placeholder for purchase, inbound, and outbound workflows.",
-    },
-    {
-      href: `/${locale}/consumables/inventory`,
-      titleZh: "耗材盘点（占位）",
-      titleEn: "Inventory (Coming Soon)",
-      descriptionZh: "预留盘点任务与报表入口。",
-      descriptionEn: "Placeholder for inventory tasks and reporting.",
+      descriptionEn: "Define consumable categories and metadata for downstream workflows.",
     },
   ];
 
@@ -55,12 +69,12 @@ export default async function ConsumablesOverviewPage({
           ]}
         />
         <h1 className="mt-2 text-2xl font-semibold">
-          {isChinese ? "耗材管理（预览版）" : "Consumables (Preview)"}
+          {isChinese ? "耗材管理" : "Consumables"}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {isChinese
-            ? "预留耗材管理入口，即将支持耗材采购、库存和盘点。"
-            : "Early preview area for consumable workflows, coming soon."}
+            ? "管理耗材库存、盘点任务、告警通知以及操作审计报表。"
+            : "Manage consumable stock, inventory tasks, alerts, and audit reports."}
         </p>
       </header>
       <section className="grid gap-4 md:grid-cols-2">
@@ -82,4 +96,3 @@ export default async function ConsumablesOverviewPage({
     </div>
   );
 }
-

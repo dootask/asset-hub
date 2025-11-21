@@ -8,6 +8,8 @@ import {
   seedAssetCategories,
   seedAssets,
   seedCompanies,
+  seedConsumableCategories,
+  seedConsumables,
   seedOperationTemplates,
   seedOperations,
   seedRoles,
@@ -42,6 +44,21 @@ function ensureSchemaUpgrades() {
     "asset_operations",
     "updated_at",
     "updated_at TEXT NOT NULL DEFAULT (datetime('now'))",
+  );
+  ensureColumn(
+    "asset_approval_requests",
+    "consumable_id",
+    "consumable_id TEXT",
+  );
+  ensureColumn(
+    "asset_approval_requests",
+    "consumable_operation_id",
+    "consumable_operation_id TEXT",
+  );
+  ensureColumn(
+    "consumables",
+    "reserved_quantity",
+    "reserved_quantity INTEGER NOT NULL DEFAULT 0",
   );
 }
 
@@ -140,7 +157,9 @@ function run() {
     columns: [
       "id",
       "asset_id",
+      "consumable_id",
       "operation_id",
+      "consumable_operation_id",
       "type",
       "status",
       "title",
@@ -167,6 +186,31 @@ function run() {
       "default_approver_type",
       "default_approver_refs",
       "allow_override",
+      "metadata",
+    ],
+  });
+
+  seedTable({
+    table: "consumable_categories",
+    rows: seedConsumableCategories,
+    columns: ["id", "code", "label_zh", "label_en", "description", "unit"],
+  });
+
+  seedTable({
+    table: "consumables",
+    rows: seedConsumables,
+    columns: [
+      "id",
+      "name",
+      "category",
+      "status",
+      "quantity",
+      "reserved_quantity",
+      "unit",
+      "keeper",
+      "location",
+      "safety_stock",
+      "description",
       "metadata",
     ],
   });

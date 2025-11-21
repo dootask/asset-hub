@@ -6,6 +6,10 @@ export type ActionConfigId =
   | "return"
   | "maintenance"
   | "dispose"
+  | "outbound"
+  | "reserve"
+  | "release"
+  | "adjust"
   | "other";
 
 export type ApproverType = "none" | "user" | "role";

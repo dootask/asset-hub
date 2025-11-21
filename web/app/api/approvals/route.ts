@@ -70,7 +70,10 @@ export async function GET(request: Request) {
     applicantId: searchParams.get("applicantId") ?? undefined,
     approverId: searchParams.get("approverId") ?? undefined,
     assetId: searchParams.get("assetId") ?? undefined,
+    consumableId: searchParams.get("consumableId") ?? undefined,
     operationId: searchParams.get("operationId") ?? undefined,
+    consumableOperationId:
+      searchParams.get("consumableOperationId") ?? undefined,
     userId,
     role: role === "my-requests" || role === "my-tasks" ? role : undefined,
     page: Number.isNaN(page) ? undefined : page,
@@ -125,6 +128,26 @@ function sanitizeCreatePayload(
 
   if (typeof payload.operationId === "string") {
     cleaned.operationId = payload.operationId;
+  }
+
+  if (typeof payload.consumableId === "string") {
+    cleaned.consumableId = payload.consumableId;
+  }
+
+  if (typeof payload.consumableOperationId === "string") {
+    cleaned.consumableOperationId = payload.consumableOperationId;
+  }
+
+  if (cleaned.assetId && cleaned.consumableId) {
+    throw new Error("审批请求不能同时关联资产与耗材");
+  }
+
+  if (cleaned.operationId && !cleaned.assetId) {
+    throw new Error("资产操作审批必须提供资产 ID");
+  }
+
+  if (cleaned.consumableOperationId && !cleaned.consumableId) {
+    throw new Error("耗材操作审批必须提供耗材 ID");
   }
 
   if (isRecord(payload.approver)) {
@@ -248,7 +271,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const metadataWithConfig = {
+    const metadataWithConfig: Record<string, unknown> = {
       ...(payload.metadata ?? {}),
       configSnapshot: {
         id: config.id,
@@ -257,6 +280,10 @@ export async function POST(request: Request) {
         allowOverride: config.allowOverride,
       },
     };
+
+    if (!("scope" in metadataWithConfig)) {
+      metadataWithConfig.scope = payload.consumableId ? "consumable" : "asset";
+    }
 
     const safePayload: CreateApprovalRequestPayload = {
       ...payload,

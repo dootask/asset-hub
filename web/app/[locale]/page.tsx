@@ -25,12 +25,30 @@ async function fetchSummary() {
     cache: "no-store",
   });
   if (!response.ok) {
-    return { assets: 0, companies: 0, roles: 0 };
+    return {
+      assets: 0,
+      companies: 0,
+      roles: 0,
+      consumables: 0,
+      lowStockConsumables: 0,
+    };
   }
   const payload = (await response.json()) as {
-    data: { assets: number; companies: number; roles: number };
+    data: {
+      assets: number;
+      companies: number;
+      roles: number;
+      consumables?: number;
+      lowStockConsumables?: number;
+    };
   };
-  return payload.data;
+  return {
+    assets: payload.data.assets,
+    companies: payload.data.companies,
+    roles: payload.data.roles,
+    consumables: payload.data.consumables ?? 0,
+    lowStockConsumables: payload.data.lowStockConsumables ?? 0,
+  };
 }
 
 async function fetchOverview(days: number) {
@@ -151,6 +169,18 @@ export default async function LocaleDashboard({
       label: isChinese ? "角色数量" : "Roles",
       value: summary.roles,
       href: "/system/role",
+    },
+    {
+      key: "consumables",
+      label: isChinese ? "耗材记录" : "Consumables",
+      value: summary.consumables ?? 0,
+      href: "/consumables/list",
+    },
+    {
+      key: "consumables-low-stock",
+      label: isChinese ? "低库存耗材" : "Low-stock",
+      value: summary.lowStockConsumables ?? 0,
+      href: "/consumables/alerts",
     },
     {
       key: "inventory-tasks",
