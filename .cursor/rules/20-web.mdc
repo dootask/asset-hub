@@ -26,7 +26,7 @@ alwaysApply: true
 
 ## 参考
 
-- 项目整体说明：`.cursor/rules/00-project-overview.mdc`。
+- 项目整体说明：仓库根目录 `AGENTS.md`。
 - 功能需求规划：`.cursor/rules/30-feature-plan.mdc`。
 - 页面与 API 路由规划：`.cursor/rules/21-web-routing.mdc`。
 - shadcn/ui 安装与使用示例：`https://ui.shadcn.com/docs/installation/next.md`（以 pnpm + Next.js App Router 为基准）。

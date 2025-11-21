@@ -20,6 +20,6 @@ alwaysApply: true
 
 ## 参考
 
-- 项目整体说明：`.cursor/rules/00-project-overview.mdc`。
+- 项目整体说明：仓库根目录 `AGENTS.md`。
 - 与 Web 应用的职责划分：`.cursor/rules/20-web.mdc`。
 
