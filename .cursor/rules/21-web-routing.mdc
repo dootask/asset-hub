@@ -23,7 +23,6 @@ alwaysApply: true
   - 子路由建议：
     - `/`：系统管理总览（卡片跳转至各子模块）。
     - `/company`：公司管理。
-    - `/user`：人员管理。
     - `/role`：角色管理（含资产类型管理员）。
     - `/approval`：审批中心配置。
     - `/data/reports`：报表统计。
