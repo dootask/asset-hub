@@ -35,7 +35,11 @@ export async function openApp(page: Page, path = "/en"): Promise<AppContext> {
   await iframeLocator.locator("body").waitFor();
   await iframeLocator.locator("body").evaluate(
     (_, user) => {
-      const payload = { id: user.id, nickname: user.nickname };
+      const resolvedId = Number(user.id);
+      const payload = {
+        id: Number.isFinite(resolvedId) ? resolvedId : user.id,
+        nickname: user.nickname,
+      };
       try {
         sessionStorage.setItem("asset-hub:dootask-user", JSON.stringify(payload));
         window.dispatchEvent(new CustomEvent("asset-hub:user-updated", { detail: payload }));

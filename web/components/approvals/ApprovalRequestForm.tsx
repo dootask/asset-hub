@@ -35,11 +35,16 @@ import {
 import { Calendar as CalendarIcon, X as XICon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import type { OperationTemplate } from "@/lib/types/operation-template";
+import type {
+  OperationTemplate,
+  OperationTemplateField,
+  OperationTemplateFieldValue,
+  OperationTemplateMetadata,
+  OperationTemplateSnapshot,
+} from "@/lib/types/operation-template";
 import {
   deriveOperationTemplateFields,
   mapApprovalTypeToTemplateType,
-  type OperationTemplateField,
 } from "@/lib/config/operation-template-fields";
 
 type Applicant = {
@@ -141,11 +146,11 @@ export default function ApprovalRequestForm({
       const raw = sessionStorage.getItem("asset-hub:dootask-user");
       if (raw) {
         const parsed = JSON.parse(raw) as {
-          id?: string;
+          id?: number;
           nickname?: string;
         };
         setApplicant({
-          id: parsed.id ?? "",
+          id: parsed.id !== undefined ? String(parsed.id) : "",
           name: parsed.nickname ?? "",
         });
       }
@@ -405,7 +410,7 @@ export default function ApprovalRequestForm({
   const normalizeOperationFieldValue = (
     field: OperationTemplateField,
     raw: string,
-  ): unknown => {
+  ): OperationTemplateFieldValue | undefined => {
     const value = raw.trim();
     if (!value) return undefined;
     if (field.widget === "number") {
@@ -458,7 +463,8 @@ export default function ApprovalRequestForm({
         );
       }
 
-      const operationFieldEntries: [string, unknown][] = [];
+      const operationFieldEntries: [string, OperationTemplateFieldValue][] =
+        [];
       operationTemplateFields.forEach((field) => {
         const raw = operationFieldValues[field.key];
         if (!raw || !raw.trim()) return;
@@ -474,38 +480,44 @@ export default function ApprovalRequestForm({
       const shouldAttachTemplateMetadata =
         operationFieldEntries.length > 0 || !!currentOperationTemplate;
 
-      const operationTemplateSnapshot = shouldAttachTemplateMetadata
-        ? {
-            ...(currentOperationTemplate
-              ? {
-                  id: currentOperationTemplate.id,
-                  type: currentOperationTemplate.type,
-                  labelZh: currentOperationTemplate.labelZh,
-                  labelEn: currentOperationTemplate.labelEn,
-                  requireAttachment: currentOperationTemplate.requireAttachment,
-                }
-              : {
-                  type: operationTemplateType,
-                  labelZh: fallbackTemplateLabel?.labelZh ?? operationTemplateType,
-                  labelEn: fallbackTemplateLabel?.labelEn ?? operationTemplateType,
-                  requireAttachment: false,
-                }),
-            fields: operationTemplateFields.map((field) => ({
-              key: field.key,
-              labelZh: field.labelZh,
-              labelEn: field.labelEn,
-              widget: field.widget,
-            })),
-          }
-        : undefined;
+      const operationTemplateSnapshot: OperationTemplateSnapshot | undefined =
+        shouldAttachTemplateMetadata
+          ? {
+              ...(currentOperationTemplate
+                ? {
+                    id: currentOperationTemplate.id,
+                    type: currentOperationTemplate.type,
+                    labelZh: currentOperationTemplate.labelZh,
+                    labelEn: currentOperationTemplate.labelEn,
+                    requireAttachment:
+                      currentOperationTemplate.requireAttachment,
+                  }
+                : {
+                    type: operationTemplateType,
+                    labelZh:
+                      fallbackTemplateLabel?.labelZh ?? operationTemplateType,
+                    labelEn:
+                      fallbackTemplateLabel?.labelEn ?? operationTemplateType,
+                    requireAttachment: false,
+                  }),
+              fields: operationTemplateFields.map((field) => ({
+                key: field.key,
+                labelZh: field.labelZh,
+                labelEn: field.labelEn,
+                widget: field.widget,
+              })),
+            }
+          : undefined;
 
-      const operationTemplateMetadata =
+      const operationTemplateMetadata: OperationTemplateMetadata | undefined =
         operationTemplateSnapshot !== undefined
           ? {
               snapshot: operationTemplateSnapshot,
               values:
                 operationFieldEntries.length > 0
-                  ? Object.fromEntries(operationFieldEntries)
+                  ? (Object.fromEntries(
+                      operationFieldEntries,
+                    ) as Record<string, OperationTemplateFieldValue>)
                   : undefined,
             }
           : undefined;

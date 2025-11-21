@@ -27,11 +27,11 @@ export default async function RolePage({
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<SearchParams>;
+  searchParams?: Promise<SearchParams>;
 }) {
   const [{ locale }, resolvedSearchParams] = await Promise.all([
     params,
-    searchParams,
+    searchParams ?? Promise.resolve({}),
   ]);
   const result = await fetchRoles();
   const editId = normalizeParam(resolvedSearchParams.edit);

@@ -5,6 +5,11 @@ import {
   APPROVAL_TYPES,
 } from "@/lib/types/approval";
 import { listApprovalRequests } from "@/lib/repositories/approvals";
+import { extractOperationTemplateMetadata } from "@/lib/utils/operation-template";
+import type {
+  OperationTemplateFieldValue,
+  OperationTemplateFieldWidget,
+} from "@/lib/types/operation-template";
 
 function parseListParam<T extends string>(
   value: string | null,
@@ -72,17 +77,56 @@ export async function GET(request: Request) {
     );
   }
 
-  const rows = result.data.map((approval) => ({
-    id: approval.id,
-    title: approval.title,
-    type: approval.type,
-    status: approval.status,
-    applicant: approval.applicantName ?? approval.applicantId ?? "",
-    approver: approval.approverName ?? approval.approverId ?? "",
-    createdAt: approval.createdAt,
-    updatedAt: approval.updatedAt,
-    result: approval.result ?? "",
-  }));
+  const templateFieldMap = new Map<
+    string,
+    { widget?: OperationTemplateFieldWidget }
+  >();
+
+  result.data.forEach((approval) => {
+    const metadata = extractOperationTemplateMetadata(approval.metadata ?? undefined);
+    if (!metadata) {
+      return;
+    }
+    metadata.snapshot?.fields.forEach((field) => {
+      if (!templateFieldMap.has(field.key)) {
+        templateFieldMap.set(field.key, { widget: field.widget });
+      }
+    });
+    Object.keys(metadata.values ?? {}).forEach((key) => {
+      if (!templateFieldMap.has(key)) {
+        templateFieldMap.set(key, { widget: undefined });
+      }
+    });
+  });
+
+  const templateColumns = Array.from(templateFieldMap.keys()).sort();
+
+  const rows = result.data.map((approval) => {
+    const metadata = extractOperationTemplateMetadata(approval.metadata ?? undefined);
+    const templateValues = metadata?.values ?? {};
+    const templateFields = templateColumns.reduce<Record<string, string>>(
+      (acc, key) => {
+        acc[`operation_${key}`] = formatTemplateFieldValue(
+          templateValues[key] as OperationTemplateFieldValue | undefined,
+          templateFieldMap.get(key)?.widget,
+        );
+        return acc;
+      },
+      {},
+    );
+    return {
+      id: approval.id,
+      title: approval.title,
+      type: approval.type,
+      status: approval.status,
+      applicant: approval.applicantName ?? approval.applicantId ?? "",
+      approver: approval.approverName ?? approval.approverId ?? "",
+      createdAt: approval.createdAt,
+      updatedAt: approval.updatedAt,
+      result: approval.result ?? "",
+      ...templateFields,
+    };
+  });
 
   const csv = toCsv(rows);
   return new NextResponse(csv, {
@@ -92,6 +136,22 @@ export async function GET(request: Request) {
       "Cache-Control": "no-store",
     },
   });
+}
+
+function formatTemplateFieldValue(
+  value: OperationTemplateFieldValue | undefined,
+  widget?: OperationTemplateFieldWidget,
+): string {
+  if (value === undefined || value === null) {
+    return "";
+  }
+  if (Array.isArray(value)) {
+    return value.join(" | ");
+  }
+  if (widget === "number" && typeof value === "number") {
+    return value.toString();
+  }
+  return typeof value === "string" ? value : String(value);
 }
 
 

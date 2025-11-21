@@ -6,6 +6,7 @@ import AssetCategoryTable, {
   type AssetCategoryTableHandle,
 } from "@/components/assets/AssetCategoryTable";
 import type { AssetCategory } from "@/lib/types/asset-category";
+import { APPROVAL_TYPES } from "@/lib/types/approval";
 
 interface Props {
   locale: string;
@@ -14,9 +15,21 @@ interface Props {
     assetsByStatus: { label: string; count: number }[];
     assetsByCategory: { label: string; count: number }[];
     approvalsByStatus: { label: string; count: number }[];
+    approvalsByType: { label: string; count: number }[];
+    approvalsRecent30d: { label: string; count: number }[];
     operationsByType: { label: string; count: number }[];
   };
 }
+
+const APPROVAL_STATUS_LABELS: Record<
+  string,
+  { zh: string; en: string }
+> = {
+  pending: { zh: "待审批", en: "Pending" },
+  approved: { zh: "已通过", en: "Approved" },
+  rejected: { zh: "已驳回", en: "Rejected" },
+  cancelled: { zh: "已撤销", en: "Cancelled" },
+};
 
 export default function ReportsClient({ locale, categories, summary }: Props) {
   const isChinese = locale === "zh";
@@ -26,6 +39,14 @@ export default function ReportsClient({ locale, categories, summary }: Props) {
       : "";
 
   const categoryTableRef = useRef<AssetCategoryTableHandle>(null);
+  const approvalTypeLabelMap = useMemo(() => {
+    const map: Record<string, { zh: string; en: string }> = {};
+    APPROVAL_TYPES.forEach((type) => {
+      map[type.value] = { zh: type.labelZh, en: type.labelEn };
+    });
+    return map;
+  }, []);
+
   const tiles = useMemo(
     () => [
       {
@@ -47,13 +68,37 @@ export default function ReportsClient({ locale, categories, summary }: Props) {
         link: `/${locale}/approvals`,
       },
       {
+        titleZh: "审批类型",
+        titleEn: "Approvals by Type",
+        data: summary.approvalsByType.map((entry) => ({
+          label:
+            approvalTypeLabelMap[entry.label]?.[
+              locale === "zh" ? "zh" : "en"
+            ] ?? entry.label,
+          count: entry.count,
+        })),
+        link: `/${locale}/approvals`,
+      },
+      {
         titleZh: "操作类型（30 天）",
         titleEn: "Operations (30d)",
         data: summary.operationsByType,
         link: `/${locale}/assets/list`,
       },
+      {
+        titleZh: "审批结果（30 天）",
+        titleEn: "Approval outcomes (30d)",
+        data: summary.approvalsRecent30d.map((entry) => ({
+          label:
+            APPROVAL_STATUS_LABELS[entry.label]?.[
+              locale === "zh" ? "zh" : "en"
+            ] ?? entry.label,
+          count: entry.count,
+        })),
+        link: `/${locale}/approvals`,
+      },
     ],
-    [summary, locale],
+    [summary, locale, approvalTypeLabelMap],
   );
 
   return (

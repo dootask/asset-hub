@@ -26,7 +26,8 @@ export default async function ApprovalConfigPage({
 }: {
   params: Promise<{ locale: string }>;
 }) {
-  const [configs, { locale }] = await Promise.all([fetchConfigs(), params]);
+  const { locale } = await params;
+  const configs = await fetchConfigs();
   const isChinese = locale === "zh";
 
   return (

@@ -8,6 +8,8 @@ interface SummaryResponse {
     assetsByStatus: { label: string; count: number }[];
     assetsByCategory: { label: string; count: number }[];
     approvalsByStatus: { label: string; count: number }[];
+    approvalsByType: { label: string; count: number }[];
+    approvalsRecent30d: { label: string; count: number }[];
     operationsByType: { label: string; count: number }[];
   };
 }
@@ -30,7 +32,11 @@ export default async function ReportsPage({
 }) {
   const { locale } = await params;
   const isChinese = locale === "zh";
-  const [summary, categories] = await Promise.all([fetchSummary(), listAssetCategories()]);
+
+  const [summary, categories] = await Promise.all([
+    fetchSummary(),
+    listAssetCategories(),
+  ]);
 
   return (
     <div className="space-y-6">

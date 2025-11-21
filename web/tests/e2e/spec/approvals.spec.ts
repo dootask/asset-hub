@@ -61,6 +61,10 @@ test.describe("Approvals center", () => {
     await expect(app.getByText(approvedApproval.title)).toHaveCount(0);
     await expect(exportLink).toHaveAttribute("href", /status=pending/);
     await expect(exportLink).toHaveAttribute("href", /type=inbound/);
+
+    await expect(
+      app.getByText(/Auto-generated/, { exact: false }).first(),
+    ).toBeVisible();
   });
 
   test("opens approval detail from the list", async ({ page }) => {
@@ -77,5 +81,20 @@ test.describe("Approvals center", () => {
 
     await expect(app.getByRole("heading", { name: "Approval Detail" })).toBeVisible();
     await expect(app.getByText(approval.title)).toBeVisible();
+  });
+
+  test("switches role tabs to my requests", async ({ page }) => {
+    await createTestApproval(page.request, {});
+
+    const app = await openApp(page, "/en/approvals");
+
+    const myRequestsTab = app.locator('[data-testid="approval-role-my-requests"]');
+    await myRequestsTab.click();
+
+    await expect
+      .poll(async () =>
+        app.locator("body").evaluate(() => window.location.search),
+      )
+      .toContain("role=my-requests");
   });
 });

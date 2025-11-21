@@ -2,6 +2,8 @@
 
 import type { AssetOperation } from "@/lib/types/operation";
 import clsx from "clsx";
+import OperationTemplateView from "@/components/operations/OperationTemplateView";
+import { extractOperationTemplateMetadata } from "@/lib/utils/operation-template";
 
 const TYPE_LABELS: Record<
   AssetOperation["type"],
@@ -56,32 +58,48 @@ export default function OperationTimeline({ operations, locale }: Props) {
 
   return (
     <ul className="space-y-4">
-      {operations.map((operation) => (
-        <li key={operation.id} className="rounded-2xl border bg-card/60 p-4">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>
+      {operations.map((operation) => {
+        const templateMetadata = extractOperationTemplateMetadata(
+          operation.metadata ?? undefined,
+        );
+        return (
+          <li key={operation.id} className="rounded-2xl border bg-card/60 p-4">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>
+                {isChinese
+                  ? TYPE_LABELS[operation.type].zh
+                  : TYPE_LABELS[operation.type].en}
+              </span>
+              <span>{new Date(operation.createdAt).toLocaleString()}</span>
+            </div>
+            <span
+              className={clsx(
+                "mt-2 inline-flex rounded-full px-3 py-1 text-xs font-medium",
+                STATUS_LABELS[operation.status].className,
+              )}
+            >
               {isChinese
-                ? TYPE_LABELS[operation.type].zh
-                : TYPE_LABELS[operation.type].en}
+                ? STATUS_LABELS[operation.status].zh
+                : STATUS_LABELS[operation.status].en}
             </span>
-            <span>{new Date(operation.createdAt).toLocaleString()}</span>
-          </div>
-          <span
-            className={clsx(
-              "mt-2 inline-flex rounded-full px-3 py-1 text-xs font-medium",
-              STATUS_LABELS[operation.status].className,
+            <p className="mt-2 text-sm font-medium text-foreground">
+              {operation.description || "-"}
+            </p>
+            <p className="text-xs text-muted-foreground">{operation.actor}</p>
+            {templateMetadata && (
+              <div className="mt-3">
+                <OperationTemplateView
+                  metadata={templateMetadata}
+                  locale={locale}
+                  variant="inline"
+                  className="bg-transparent p-0"
+                  title={isChinese ? "操作详情" : "Operation Details"}
+                />
+              </div>
             )}
-          >
-            {isChinese
-              ? STATUS_LABELS[operation.status].zh
-              : STATUS_LABELS[operation.status].en}
-          </span>
-          <p className="mt-2 text-sm font-medium text-foreground">
-            {operation.description || "-"}
-          </p>
-          <p className="text-xs text-muted-foreground">{operation.actor}</p>
-        </li>
-      ))}
+          </li>
+        );
+      })}
     </ul>
   );
 }

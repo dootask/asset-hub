@@ -5,6 +5,7 @@ import { NextIntlClientProvider } from "next-intl";
 import AppShell from "@/components/layout/AppShell";
 import { ThemeSync } from "@/components/providers/ThemeSync";
 import { normalizeLocale, isSupportedLocale } from "@/lib/i18n";
+import { appConfig } from "@/lib/config";
 
 type LocaleLayoutProps = {
   children: ReactNode;
@@ -51,7 +52,12 @@ export default async function LocaleLayout({
   return (
     <NextIntlClientProvider locale={normalizedLocale} messages={messages}>
       <ThemeSync />
-      <AppShell locale={normalizedLocale}>{children}</AppShell>
+      <AppShell
+        locale={normalizedLocale}
+        adminUserIds={appConfig.permissions.adminUserIds}
+      >
+        {children}
+      </AppShell>
     </NextIntlClientProvider>
   );
 }

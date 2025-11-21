@@ -24,9 +24,14 @@ import { cn } from "@/lib/utils";
 import {
   deriveOperationTemplateFields,
   normalizeOperationTypeToTemplateType,
-  type OperationTemplateField,
 } from "@/lib/config/operation-template-fields";
-import type { OperationTemplate } from "@/lib/types/operation-template";
+import type {
+  OperationTemplate,
+  OperationTemplateField,
+  OperationTemplateFieldValue,
+  OperationTemplateMetadata,
+  OperationTemplateSnapshot,
+} from "@/lib/types/operation-template";
 import {
   getOperationTypeLabel,
   OPERATION_TYPES,
@@ -120,7 +125,7 @@ export default function OperationForm({
   const normalizeFieldValue = (
     field: OperationTemplateField,
     raw: string,
-  ): unknown => {
+  ): OperationTemplateFieldValue | undefined => {
     const value = raw.trim();
     if (!value) return undefined;
     if (field.widget === "number") {
@@ -187,7 +192,7 @@ export default function OperationForm({
         );
       }
 
-      const metadataEntries: [string, unknown][] = [];
+      const metadataEntries: [string, OperationTemplateFieldValue][] = [];
       templateFields.forEach((field) => {
         const raw = fieldValues[field.key];
         if (!raw || !raw.trim()) {
@@ -199,31 +204,39 @@ export default function OperationForm({
         }
       });
 
-      const templateSnapshot = currentTemplate
-        ? {
-            id: currentTemplate.id,
-            type: currentTemplate.type,
-            labelZh: currentTemplate.labelZh,
-            labelEn: currentTemplate.labelEn,
-            requireAttachment: currentTemplate.requireAttachment,
-            fields: templateFields.map((field) => ({
-              key: field.key,
-              labelZh: field.labelZh,
-              labelEn: field.labelEn,
-              widget: field.widget,
-            })),
-          }
-        : undefined;
-
-      const metadata =
-        metadataEntries.length || templateSnapshot
+      const templateSnapshot: OperationTemplateSnapshot | undefined =
+        currentTemplate
           ? {
-              ...(metadataEntries.length
-                ? Object.fromEntries(metadataEntries)
-                : {}),
-              ...(templateSnapshot ? { templateSnapshot } : {}),
+              id: currentTemplate.id,
+              type: currentTemplate.type,
+              labelZh: currentTemplate.labelZh,
+              labelEn: currentTemplate.labelEn,
+              requireAttachment: currentTemplate.requireAttachment,
+              fields: templateFields.map((field) => ({
+                key: field.key,
+                labelZh: field.labelZh,
+                labelEn: field.labelEn,
+                widget: field.widget,
+              })),
             }
           : undefined;
+
+      const operationTemplateMetadata: OperationTemplateMetadata | undefined =
+        templateSnapshot || metadataEntries.length
+          ? {
+              snapshot: templateSnapshot,
+              values:
+                metadataEntries.length > 0
+                  ? (Object.fromEntries(
+                      metadataEntries,
+                    ) as Record<string, OperationTemplateFieldValue>)
+                  : undefined,
+            }
+          : undefined;
+
+      const metadata = operationTemplateMetadata
+        ? { operationTemplate: operationTemplateMetadata }
+        : undefined;
 
       const payload = {
         type: formState.type as AssetOperationType,

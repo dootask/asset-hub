@@ -6,13 +6,14 @@ import { useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
 import { useTranslations } from "next-intl";
 import DooTaskBridge from "@/components/providers/DooTaskBridge";
+import { normalizeUserId } from "@/lib/utils/user-id";
 
 const BASE_PATH = "/apps/asset-hub";
 const USER_STORAGE_KEY = "asset-hub:dootask-user";
 const USER_EVENT = "asset-hub:user-updated";
 
 type SessionUser = {
-  id: string;
+  id: number;
   nickname?: string;
   email?: string;
 };
@@ -28,12 +29,14 @@ const NAV_ITEMS = [
 type Props = {
   children: React.ReactNode;
   locale: string;
+  adminUserIds: number[];
 };
 
-export default function AppShell({ children, locale }: Props) {
+export default function AppShell({ children, locale, adminUserIds }: Props) {
   const pathname = usePathname() || "/";
   const tNav = useTranslations("Nav");
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
+  const [userReady, setUserReady] = useState(false);
   const pathWithoutBase = pathname.startsWith(BASE_PATH)
     ? pathname.slice(BASE_PATH.length) || "/"
     : pathname;
@@ -68,11 +71,21 @@ export default function AppShell({ children, locale }: Props) {
         const stored = sessionStorage.getItem(USER_STORAGE_KEY);
         if (!stored) {
           setSessionUser(null);
+          setUserReady(true);
           return;
         }
-        setSessionUser(JSON.parse(stored));
+        const parsed = JSON.parse(stored) as SessionUser;
+        const normalizedId = normalizeUserId(parsed?.id);
+        if (normalizedId === null) {
+          setSessionUser(null);
+          setUserReady(true);
+          return;
+        }
+        setSessionUser({ ...parsed, id: normalizedId });
+        setUserReady(true);
       } catch {
         setSessionUser(null);
+        setUserReady(true);
       }
     };
 
@@ -80,11 +93,13 @@ export default function AppShell({ children, locale }: Props) {
 
     const handleUserUpdated = (event: Event) => {
       const detail = (event as CustomEvent<SessionUser | null>).detail;
-      if (detail?.id) {
-        setSessionUser(detail);
-      } else {
-        readStoredUser();
+      const normalizedId = normalizeUserId(detail?.id);
+      if (normalizedId !== null) {
+        setSessionUser(detail ? { ...detail, id: normalizedId } : null);
+        setUserReady(true);
+        return;
       }
+      readStoredUser();
     };
 
     window.addEventListener(USER_EVENT, handleUserUpdated);
@@ -92,6 +107,16 @@ export default function AppShell({ children, locale }: Props) {
       window.removeEventListener(USER_EVENT, handleUserUpdated);
     };
   }, []);
+
+  const showSystemNav =
+    adminUserIds.length === 0 ||
+    (userReady &&
+      sessionUser?.id !== undefined &&
+      adminUserIds.includes(sessionUser.id));
+
+  const visibleNavItems = navItems.filter(
+    (item) => item.key !== "system" || showSystemNav,
+  );
 
   return (
     <div className="min-h-screen bg-background transition-colors">
@@ -104,7 +129,7 @@ export default function AppShell({ children, locale }: Props) {
             </p>
           </div>
           <nav className="flex flex-1 flex-col gap-2">
-            {navItems.map((item) => {
+            {visibleNavItems.map((item) => {
               const matchPath = item.match ?? item.href;
               const active =
                 normalizedPathname === item.href ||
@@ -156,7 +181,7 @@ export default function AppShell({ children, locale }: Props) {
               </p>
             </div>
             <nav className="mt-4 flex flex-wrap gap-2 lg:hidden">
-              {navItems.map((item) => {
+            {visibleNavItems.map((item) => {
                 const matchPath = item.match ?? item.href;
                 const active =
                   normalizedPathname === item.href ||
@@ -190,4 +215,3 @@ export default function AppShell({ children, locale }: Props) {
     </div>
   );
 }
-

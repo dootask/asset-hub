@@ -60,9 +60,9 @@ const CARDS = [
     href: "upgrade",
     titleZh: "升级与版本",
     titleEn: "Upgrade & Version",
-    descriptionZh: "查看当前插件版本、套餐与升级渠道信息（即将上线）。",
+    descriptionZh: "查看当前插件版本、套餐与升级渠道信息。",
     descriptionEn:
-      "Check plugin version, plans, and upgrade channels (coming soon).",
+      "Check the current plugin version, plan, and available upgrade paths.",
   },
 ];
 

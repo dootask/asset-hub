@@ -34,9 +34,9 @@ export default function DisposeAssetButton({ assetId, locale }: Props) {
     try {
       const raw = sessionStorage.getItem("asset-hub:dootask-user");
       if (raw) {
-        const parsed = JSON.parse(raw) as { id?: string; nickname?: string };
-        if (parsed.id) {
-          setCurrentUser({ id: parsed.id, name: parsed.nickname });
+        const parsed = JSON.parse(raw) as { id?: number; nickname?: string };
+        if (parsed.id !== undefined) {
+          setCurrentUser({ id: String(parsed.id), name: parsed.nickname });
         }
       }
     } catch {
@@ -139,5 +139,4 @@ export default function DisposeAssetButton({ assetId, locale }: Props) {
     </AlertDialog>
   );
 }
-
 

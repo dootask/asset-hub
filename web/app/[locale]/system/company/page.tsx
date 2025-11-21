@@ -32,11 +32,11 @@ export default async function CompanyPage({
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<SearchParams>;
+  searchParams?: Promise<SearchParams>;
 }) {
   const [{ locale }, resolvedSearchParams] = await Promise.all([
     params,
-    searchParams,
+    searchParams ?? Promise.resolve({}),
   ]);
   const result = await fetchCompanies();
   const editId = normalizeParam(resolvedSearchParams.edit);

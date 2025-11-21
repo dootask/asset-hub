@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { ApprovalActionPayload, ApprovalRequest } from "@/lib/types/approval";
 import { applyApprovalAction, getApprovalRequestById } from "@/lib/repositories/approvals";
 import { extractUserFromRequest } from "@/lib/utils/request-user";
-import { appConfig } from "@/lib/config";
+import { isAdminUser } from "@/lib/utils/permissions";
 
 type RouteContext = {
   params: Promise<{
@@ -38,19 +38,15 @@ function sanitizeActionPayload(payload: unknown): {
   };
 }
 
-function isAdmin(userId: string) {
-  return appConfig.permissions.adminUserIds.includes(userId);
-}
-
 function canApprove(approval: ApprovalRequest, userId: string) {
   if (approval.approverId && approval.approverId === userId) {
     return true;
   }
-  return isAdmin(userId);
+  return isAdminUser(userId);
 }
 
 function canCancel(approval: ApprovalRequest, userId: string) {
-  return approval.applicantId === userId || isAdmin(userId);
+  return approval.applicantId === userId || isAdminUser(userId);
 }
 
 export async function POST(request: Request, { params }: RouteContext) {
@@ -133,5 +129,4 @@ export async function POST(request: Request, { params }: RouteContext) {
     );
   }
 }
-
 

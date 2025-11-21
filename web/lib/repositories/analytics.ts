@@ -110,6 +110,31 @@ export function getApprovalStatusDistribution(): DistributionItem[] {
   return rows;
 }
 
+export function getApprovalTypeDistribution(): DistributionItem[] {
+  const db = getDb();
+  const rows = db
+    .prepare(
+      `SELECT type as label, COUNT(1) as count
+       FROM asset_approval_requests
+       GROUP BY type`,
+    )
+    .all() as { label: string; count: number }[];
+  return rows;
+}
+
+export function getRecentApprovalOutcome(days = 30): DistributionItem[] {
+  const db = getDb();
+  const rows = db
+    .prepare(
+      `SELECT status as label, COUNT(1) as count
+       FROM asset_approval_requests
+       WHERE date(created_at) >= date('now', ?)
+       GROUP BY status`,
+    )
+    .all(`-${days} days`) as { label: string; count: number }[];
+  return rows;
+}
+
 export function getApprovalTrend(days = 14): TrendItem[] {
   const db = getDb();
   const normalized = normalizeDays(days);

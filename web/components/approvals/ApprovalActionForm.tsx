@@ -42,11 +42,11 @@ export default function ApprovalActionForm({ approvalId, locale }: Props) {
       const raw = sessionStorage.getItem("asset-hub:dootask-user");
       if (raw) {
         const parsed = JSON.parse(raw) as {
-          id?: string;
+          id?: number;
           nickname?: string;
         };
         setApplicant({
-          id: parsed.id ?? "",
+          id: parsed.id !== undefined ? String(parsed.id) : "",
           name: parsed.nickname ?? "",
         });
       }

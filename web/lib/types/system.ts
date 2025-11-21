@@ -26,3 +26,15 @@ export interface CreateRolePayload {
   description?: string;
 }
 
+export interface SystemVersionInfo {
+  version: string;
+  releaseDate?: string | null;
+  edition: string;
+  plan: string;
+  changelogUrl?: string | null;
+  license: {
+    maxUsers?: number | null;
+    expiresAt?: string | null;
+  };
+}
+

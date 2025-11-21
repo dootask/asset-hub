@@ -3,9 +3,12 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getApprovalRequestById } from "@/lib/repositories/approvals";
 import { getAssetById } from "@/lib/repositories/assets";
+import { getAssetOperationById } from "@/lib/repositories/asset-operations";
 import ApprovalStatusBadge from "@/components/approvals/ApprovalStatusBadge";
 import ApprovalActionForm from "@/components/approvals/ApprovalActionForm";
 import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
+import OperationTemplateView from "@/components/operations/OperationTemplateView";
+import { extractOperationTemplateMetadata } from "@/lib/utils/operation-template";
 
 const knownLabels: Array<{ key: string; labelZh: string; labelEn: string }> = [
   { key: "amount", labelZh: "金额", labelEn: "Amount" },
@@ -13,6 +16,7 @@ const knownLabels: Array<{ key: string; labelZh: string; labelEn: string }> = [
   { key: "initiatedFrom", labelZh: "来源", labelEn: "Source" },
   { key: "reason", labelZh: "原因", labelEn: "Reason" },
 ];
+const RESERVED_METADATA_KEYS = new Set(["operationTemplate", "configSnapshot"]);
 
 type PageParams = { locale: string; id: string };
 type PageProps = {
@@ -43,6 +47,9 @@ function splitMetadata(metadata?: Record<string, unknown> | null) {
   const rest: Record<string, unknown> = {};
 
   Object.entries(metadata).forEach(([key, value]) => {
+    if (RESERVED_METADATA_KEYS.has(key)) {
+      return;
+    }
     const match = knownLabels.find((item) => item.key === key);
     if (match) {
       known.push({
@@ -71,8 +78,14 @@ export default async function ApprovalDetailPage({ params }: PageProps) {
   }
 
   const asset = approval.assetId ? getAssetById(approval.assetId) : null;
+  const operation = approval.operationId
+    ? getAssetOperationById(approval.operationId)
+    : null;
   const isChinese = locale === "zh";
   const metadataSplit = splitMetadata(approval.metadata);
+  const operationTemplateMetadata =
+    extractOperationTemplateMetadata(operation?.metadata ?? undefined) ??
+    extractOperationTemplateMetadata(approval.metadata ?? undefined);
 
   return (
     <div className="space-y-6">
@@ -177,6 +190,18 @@ export default async function ApprovalDetailPage({ params }: PageProps) {
               {approval.result ?? (isChinese ? "待处理" : "Pending")}
             </p>
           </div>
+          {operationTemplateMetadata && (
+            <div>
+              <p className="text-xs text-muted-foreground">
+                {isChinese ? "操作详情" : "Operation Details"}
+              </p>
+              <OperationTemplateView
+                metadata={operationTemplateMetadata}
+                locale={locale}
+                className="mt-2"
+              />
+            </div>
+          )}
           <div>
             <p className="text-xs text-muted-foreground">
               {isChinese ? "附加信息" : "Metadata"}

@@ -2,27 +2,10 @@ import type { ApprovalType } from "@/lib/types/approval";
 import type { AssetOperationType } from "@/lib/types/operation";
 import type {
   OperationTemplate,
+  OperationTemplateField,
+  OperationTemplateFieldWidget,
   OperationTemplateId,
 } from "@/lib/types/operation-template";
-
-export type OperationTemplateFieldWidget =
-  | "text"
-  | "textarea"
-  | "number"
-  | "date"
-  | "attachments";
-
-export interface OperationTemplateField {
-  key: string;
-  widget: OperationTemplateFieldWidget;
-  labelZh: string;
-  labelEn: string;
-  placeholderZh?: string;
-  placeholderEn?: string;
-  helperZh?: string;
-  helperEn?: string;
-  required?: boolean;
-}
 
 type RawFieldSpec =
   | string

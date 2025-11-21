@@ -8,6 +8,7 @@ import {
   isMicroApp,
   getUserInfo,
 } from "@dootask/tools";
+import { normalizeUserId } from "@/lib/utils/user-id";
 
 export default function DooTaskBridge() {
   const { setTheme } = useTheme();
@@ -22,15 +23,16 @@ export default function DooTaskBridge() {
         setTheme(theme.includes("dark") ? "dark" : "light");
 
         const user = await getUserInfo();
-        if (user?.userid) {
-          const payload = {
-            id: user.userid,
-            nickname: user.nickname,
-            email: user.email,
-          };
-          sessionStorage.setItem("asset-hub:dootask-user", JSON.stringify(payload));
-          window.dispatchEvent(new CustomEvent("asset-hub:user-updated", { detail: payload }));
-        }
+        const normalizedId = normalizeUserId((user as { userid?: unknown })?.userid);
+        if (normalizedId === null) return;
+
+        const payload = {
+          id: normalizedId,
+          nickname: (user as { nickname?: string })?.nickname,
+          email: (user as { email?: string })?.email,
+        };
+        sessionStorage.setItem("asset-hub:dootask-user", JSON.stringify(payload));
+        window.dispatchEvent(new CustomEvent("asset-hub:user-updated", { detail: payload }));
       } catch {
         // Ignore errors when运行在独立模式
       }
@@ -41,4 +43,3 @@ export default function DooTaskBridge() {
 
   return null;
 }
-
