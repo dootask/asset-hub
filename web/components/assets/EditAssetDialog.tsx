@@ -53,6 +53,20 @@ export default function EditAssetDialog({ asset, locale = "en", categories }: Pr
     fallbackLabel: isChinese ? category.labelEn : category.labelZh,
   }));
 
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [purchaseDateOpen, setPurchaseDateOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [formState, setFormState] = useState<CreateAssetPayload>({
+    name: asset.name,
+    category: asset.category,
+    status: asset.status,
+    owner: asset.owner,
+    location: asset.location,
+    purchaseDate: asset.purchaseDate,
+  });
+
   const currentCategory = categoryOptions.find(
     (entry) => entry.code === formState.category,
   );
@@ -68,19 +82,6 @@ export default function EditAssetDialog({ asset, locale = "en", categories }: Pr
             fallbackLabel: "",
           },
         ];
-  const router = useRouter();
-  const [open, setOpen] = useState(false);
-  const [purchaseDateOpen, setPurchaseDateOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [formState, setFormState] = useState<CreateAssetPayload>({
-    name: asset.name,
-    category: asset.category,
-    status: asset.status,
-    owner: asset.owner,
-    location: asset.location,
-    purchaseDate: asset.purchaseDate,
-  });
 
   const handleChange = <K extends keyof CreateAssetPayload>(
     field: K,

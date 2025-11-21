@@ -27,7 +27,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { X as XICon } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar as CalendarIcon, X as XICon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import type { OperationTemplate } from "@/lib/types/operation-template";
+import {
+  deriveOperationTemplateFields,
+  mapApprovalTypeToTemplateType,
+  type OperationTemplateField,
+} from "@/lib/config/operation-template-fields";
 
 type Applicant = {
   id: string;
@@ -50,12 +63,14 @@ interface Props {
   assetId: string;
   assetName: string;
   locale?: string;
+  operationTemplates?: OperationTemplate[];
 }
 
 export default function ApprovalRequestForm({
   assetId,
   assetName,
   locale,
+  operationTemplates = [],
 }: Props) {
   const router = useRouter();
   const isChinese = locale === "zh";
@@ -78,6 +93,8 @@ export default function ApprovalRequestForm({
     approverId: "",
     approverName: "",
   });
+  const [operationFieldValues, setOperationFieldValues] = useState<Record<string, string>>({});
+  const [operationDatePicker, setOperationDatePicker] = useState<string | null>(null);
   const [configs, setConfigs] = useState<ActionConfig[]>([]);
   const [loadingConfigs, setLoadingConfigs] = useState(true);
   const [configError, setConfigError] = useState<string | null>(null);
@@ -90,6 +107,34 @@ export default function ApprovalRequestForm({
     approverId: useId(),
     approverName: useId(),
   };
+
+  const operationTemplateMap = useMemo(
+    () =>
+      operationTemplates.reduce((map, template) => {
+        map.set(template.type, template);
+        return map;
+      }, new Map<OperationTemplate["type"], OperationTemplate>()),
+    [operationTemplates],
+  );
+
+  const operationTemplateType = mapApprovalTypeToTemplateType(formState.type as ApprovalType);
+  const currentOperationTemplate =
+    operationTemplateMap.get(operationTemplateType) ?? null;
+
+  const operationTemplateFields = useMemo(
+    () => deriveOperationTemplateFields(operationTemplateType, currentOperationTemplate),
+    [operationTemplateType, currentOperationTemplate],
+  );
+
+  useEffect(() => {
+    setOperationFieldValues((prev) => {
+      const next: Record<string, string> = {};
+      operationTemplateFields.forEach((field) => {
+        next[field.key] = prev[field.key] ?? "";
+      });
+      return next;
+    });
+  }, [operationTemplateFields]);
 
   useEffect(() => {
     try {
@@ -244,6 +289,7 @@ export default function ApprovalRequestForm({
       approverId: "",
       approverName: "",
     }));
+    setOperationFieldValues({});
   };
 
   const resolveSelectedApprover = async (entry: DootaskUser | null) => {
@@ -337,6 +383,56 @@ export default function ApprovalRequestForm({
     }));
   };
 
+  const handleOperationFieldChange = (key: string, value: string) => {
+    setOperationFieldValues((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const formatOperationDateLabel = (value?: string) => {
+    if (!value) {
+      return isChinese ? "选择日期" : "Pick a date";
+    }
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return value;
+    }
+    return parsed.toLocaleDateString(isChinese ? "zh-CN" : "en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const normalizeOperationFieldValue = (
+    field: OperationTemplateField,
+    raw: string,
+  ): unknown => {
+    const value = raw.trim();
+    if (!value) return undefined;
+    if (field.widget === "number") {
+      const asNumber = Number(value);
+      if (Number.isNaN(asNumber)) {
+        throw new Error(
+          isChinese
+            ? `${field.labelZh} 需输入数字`
+            : `${field.labelEn} must be a number`,
+        );
+      }
+      return asNumber;
+    }
+    if (field.widget === "attachments") {
+      return value
+        .split(/\r?\n|,/)
+        .map((entry) => entry.trim())
+        .filter(Boolean);
+    }
+    return value;
+  };
+
+  const hasOperationAttachmentValue = () =>
+    operationTemplateFields
+      .filter((field) => field.widget === "attachments")
+      .some((field) => operationFieldValues[field.key]?.trim());
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!canSubmit) return;
@@ -344,6 +440,76 @@ export default function ApprovalRequestForm({
     setError(null);
 
     try {
+      for (const field of operationTemplateFields) {
+        if (field.required && !operationFieldValues[field.key]?.trim()) {
+          throw new Error(
+            isChinese
+              ? `${field.labelZh} 为必填项`
+              : `${field.labelEn} is required`,
+          );
+        }
+      }
+
+      if (currentOperationTemplate?.requireAttachment && !hasOperationAttachmentValue()) {
+        throw new Error(
+          isChinese
+            ? "该审批类型需要至少一个附件。"
+            : "This approval requires at least one attachment.",
+        );
+      }
+
+      const operationFieldEntries: [string, unknown][] = [];
+      operationTemplateFields.forEach((field) => {
+        const raw = operationFieldValues[field.key];
+        if (!raw || !raw.trim()) return;
+        const normalized = normalizeOperationFieldValue(field, raw);
+        if (normalized !== undefined) {
+          operationFieldEntries.push([field.key, normalized]);
+        }
+      });
+
+      const fallbackTemplateLabel = APPROVAL_TYPES.find(
+        (item) => item.value === formState.type,
+      );
+      const shouldAttachTemplateMetadata =
+        operationFieldEntries.length > 0 || !!currentOperationTemplate;
+
+      const operationTemplateSnapshot = shouldAttachTemplateMetadata
+        ? {
+            ...(currentOperationTemplate
+              ? {
+                  id: currentOperationTemplate.id,
+                  type: currentOperationTemplate.type,
+                  labelZh: currentOperationTemplate.labelZh,
+                  labelEn: currentOperationTemplate.labelEn,
+                  requireAttachment: currentOperationTemplate.requireAttachment,
+                }
+              : {
+                  type: operationTemplateType,
+                  labelZh: fallbackTemplateLabel?.labelZh ?? operationTemplateType,
+                  labelEn: fallbackTemplateLabel?.labelEn ?? operationTemplateType,
+                  requireAttachment: false,
+                }),
+            fields: operationTemplateFields.map((field) => ({
+              key: field.key,
+              labelZh: field.labelZh,
+              labelEn: field.labelEn,
+              widget: field.widget,
+            })),
+          }
+        : undefined;
+
+      const operationTemplateMetadata =
+        operationTemplateSnapshot !== undefined
+          ? {
+              snapshot: operationTemplateSnapshot,
+              values:
+                operationFieldEntries.length > 0
+                  ? Object.fromEntries(operationFieldEntries)
+                  : undefined,
+            }
+          : undefined;
+
       const configSnapshot = currentConfig
         ? {
             id: currentConfig.id,
@@ -352,6 +518,19 @@ export default function ApprovalRequestForm({
             defaultApproverType: currentConfig.defaultApproverType,
           }
         : undefined;
+
+      const metadataBase: Record<string, unknown> = {
+        initiatedFrom: "asset-detail",
+        ...(configSnapshot ? { configSnapshot } : {}),
+      };
+
+      const metadataPayload =
+        operationTemplateMetadata !== undefined
+          ? {
+              ...metadataBase,
+              operationTemplate: operationTemplateMetadata,
+            }
+          : metadataBase;
       const searchSuffix = (() => {
         if (typeof window === "undefined") return "";
         if (window.location.search) {
@@ -379,10 +558,7 @@ export default function ApprovalRequestForm({
                   name: formState.approverName || undefined,
                 }
               : undefined,
-          metadata: {
-            initiatedFrom: "asset-detail",
-            ...(configSnapshot ? { configSnapshot } : {}),
-          },
+          metadata: metadataPayload,
         }),
       });
 
@@ -409,6 +585,7 @@ export default function ApprovalRequestForm({
         approverId: "",
         approverName: "",
       });
+      setOperationFieldValues({});
       router.refresh();
     } catch (err) {
       setError(
@@ -421,6 +598,106 @@ export default function ApprovalRequestForm({
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const renderOperationField = (field: OperationTemplateField) => {
+    const value = operationFieldValues[field.key] ?? "";
+    const label = isChinese ? field.labelZh : field.labelEn;
+    const placeholder = isChinese
+      ? field.placeholderZh ?? field.placeholderEn
+      : field.placeholderEn ?? field.placeholderZh;
+    const helper = isChinese
+      ? field.helperZh ?? field.helperEn
+      : field.helperEn ?? field.helperZh;
+
+    if (field.widget === "date") {
+      return (
+        <div key={field.key} className="space-y-1.5">
+          <Label className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+            {label}
+            {field.required && <span className="text-destructive">*</span>}
+          </Label>
+          <Popover
+            open={operationDatePicker === field.key}
+            onOpenChange={(open) =>
+              setOperationDatePicker(open ? field.key : null)
+            }
+          >
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !value && "text-muted-foreground",
+                )}
+              >
+                <CalendarIcon className="mr-1 h-4 w-4" />
+                <div className="truncate">
+                  {formatOperationDateLabel(value)}
+                </div>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={value ? new Date(value) : undefined}
+                initialFocus
+                onSelect={(date) => {
+                  if (!date) return;
+                  handleOperationFieldChange(
+                    field.key,
+                    date.toISOString().slice(0, 10),
+                  );
+                  setOperationDatePicker(null);
+                }}
+              />
+            </PopoverContent>
+          </Popover>
+          {helper && <p className="text-xs text-muted-foreground">{helper}</p>}
+        </div>
+      );
+    }
+
+    if (field.widget === "textarea" || field.widget === "attachments") {
+      return (
+        <div key={field.key} className="space-y-1.5">
+          <Label className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+            {label}
+            {field.required && <span className="text-destructive">*</span>}
+          </Label>
+          <Textarea
+            rows={field.widget === "attachments" ? 4 : 3}
+            value={value}
+            placeholder={placeholder}
+            required={field.required}
+            onChange={(event) =>
+              handleOperationFieldChange(field.key, event.target.value)
+            }
+          />
+          {helper && <p className="text-xs text-muted-foreground">{helper}</p>}
+        </div>
+      );
+    }
+
+    return (
+      <div key={field.key} className="space-y-1.5">
+        <Label className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+          {label}
+          {field.required && <span className="text-destructive">*</span>}
+        </Label>
+        <Input
+          type={field.widget === "number" ? "number" : "text"}
+          value={value}
+          placeholder={placeholder}
+          required={field.required}
+          onChange={(event) =>
+            handleOperationFieldChange(field.key, event.target.value)
+          }
+        />
+        {helper && <p className="text-xs text-muted-foreground">{helper}</p>}
+      </div>
+    );
   };
 
   return (
@@ -544,6 +821,38 @@ export default function ApprovalRequestForm({
           }
         />
       </div>
+
+      {operationTemplateFields.length > 0 && (
+        <div className="space-y-3 rounded-2xl border border-dashed border-muted-foreground/40 bg-card/50 p-3">
+          <div className="space-y-0.5">
+            <p className="text-sm font-semibold">
+              {isChinese ? "操作详情" : "Operation Details"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {currentOperationTemplate
+                ? isChinese
+                  ? currentOperationTemplate.descriptionZh ??
+                    currentOperationTemplate.descriptionEn
+                  : currentOperationTemplate.descriptionEn ??
+                    currentOperationTemplate.descriptionZh
+                : isChinese
+                  ? "管理员尚未为该类型配置说明，可根据业务需要补充信息。"
+                  : "No template description yet. Provide details as needed."}
+            </p>
+            {currentOperationTemplate?.requireAttachment && (
+              <p className="text-xs font-medium text-amber-600">
+                {isChinese
+                  ? "需要至少上传或填写一个附件凭证。"
+                  : "At least one attachment entry is required."}
+              </p>
+            )}
+          </div>
+
+          <div className="grid gap-3">
+            {operationTemplateFields.map((field) => renderOperationField(field))}
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">

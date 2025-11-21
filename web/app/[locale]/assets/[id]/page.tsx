@@ -13,6 +13,7 @@ import EditAssetDialog from "@/components/assets/EditAssetDialog";
 import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
 import { getAssetStatusLabel } from "@/lib/types/asset";
 import { listAssetCategories } from "@/lib/repositories/asset-categories";
+import { listOperationTemplates } from "@/lib/repositories/operation-templates";
 
 type PageParams = { id: string; locale: string };
 type PageProps = {
@@ -44,6 +45,7 @@ export default async function AssetDetailPage({ params }: PageProps) {
   const approvals = approvalsResult.data;
   const isChinese = locale === "zh";
   const categories = listAssetCategories();
+  const operationTemplates = listOperationTemplates();
   const categoryLabel =
     categories.find((category) => category.code === asset.category)?.[
       isChinese ? "labelZh" : "labelEn"
@@ -136,7 +138,11 @@ export default async function AssetDetailPage({ params }: PageProps) {
             </div>
           </div>
           <div className="w-full lg:w-80">
-            <OperationForm assetId={asset.id} locale={locale} />
+            <OperationForm
+              assetId={asset.id}
+              locale={locale}
+              templates={operationTemplates}
+            />
           </div>
         </div>
       </section>
@@ -199,6 +205,7 @@ export default async function AssetDetailPage({ params }: PageProps) {
             assetId={asset.id}
             assetName={asset.name}
             locale={locale}
+            operationTemplates={operationTemplates}
           />
         </div>
       </section>

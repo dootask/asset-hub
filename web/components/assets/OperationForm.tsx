@@ -1,7 +1,7 @@
-"use client";
+ "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,62 +21,140 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { AssetOperationType, OPERATION_TYPES } from "@/lib/types/operation";
+import {
+  deriveOperationTemplateFields,
+  normalizeOperationTypeToTemplateType,
+  type OperationTemplateField,
+} from "@/lib/config/operation-template-fields";
+import type { OperationTemplate } from "@/lib/types/operation-template";
+import {
+  getOperationTypeLabel,
+  OPERATION_TYPES,
+  type AssetOperationType,
+} from "@/lib/types/operation";
 
-type OperationMode = "simple" | "receive" | "borrow" | "return" | "maintenance";
-
-const MODE_FORM_MAP: Record<OperationMode, { type: AssetOperationType }> = {
-  simple: { type: "other" },
-  receive: { type: "receive" },
-  borrow: { type: "borrow" },
-  return: { type: "return" },
-  maintenance: { type: "maintenance" },
-};
-
-type Props = {
+interface Props {
   assetId: string;
   locale?: string;
-};
+  templates?: OperationTemplate[];
+}
 
-export default function OperationForm({ assetId, locale = "en" }: Props) {
+export default function OperationForm({
+  assetId,
+  locale = "en",
+  templates = [],
+}: Props) {
   const router = useRouter();
   const isChinese = locale === "zh";
-  const [mode, setMode] = useState<OperationMode>("simple");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [borrowStartOpen, setBorrowStartOpen] = useState(false);
-  const [borrowEndOpen, setBorrowEndOpen] = useState(false);
+  const templateMap = useMemo(() => {
+    return templates.reduce((map, template) => {
+      map.set(template.type, template);
+      return map;
+    }, new Map<OperationTemplate["type"], OperationTemplate>());
+  }, [templates]);
+
+  const preferredDefaultType: AssetOperationType =
+    (templateMap.has("receive")
+      ? "receive"
+      : templateMap.has("borrow")
+        ? "borrow"
+        : (templates[0]?.type as AssetOperationType | undefined)) ?? "receive";
 
   const [formState, setFormState] = useState({
-    type: MODE_FORM_MAP.simple.type,
+    type: preferredDefaultType,
     actor: "",
     description: "",
-    receiver: "",
-    borrower: "",
-    returner: "",
-    vendor: "",
-    cost: "",
-    startDate: "",
-    endDate: "",
-    expectedReturnDate: "",
   });
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
+  const [openDateField, setOpenDateField] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const currentTypeOptions = useMemo(() => {
-    if (mode === "simple") {
-      return OPERATION_TYPES;
-    }
-    return OPERATION_TYPES.filter((item) => item.value === MODE_FORM_MAP[mode].type);
-  }, [mode]);
+  useEffect(() => {
+    setFormState((prev) => {
+      if (prev.type === preferredDefaultType) {
+        return prev;
+      }
+      return { ...prev, type: preferredDefaultType };
+    });
+  }, [preferredDefaultType]);
 
-  const formatDateLabel = (value?: Date) => {
+  const templateType = normalizeOperationTypeToTemplateType(
+    formState.type as AssetOperationType,
+  );
+  const currentTemplate = templateMap.get(templateType) ?? null;
+  const templateFields = useMemo(
+    () => deriveOperationTemplateFields(templateType, currentTemplate),
+    [templateType, currentTemplate],
+  );
+
+  useEffect(() => {
+    setFieldValues((prev) => {
+      const next: Record<string, string> = {};
+      templateFields.forEach((field) => {
+        next[field.key] = prev[field.key] ?? "";
+      });
+      return next;
+    });
+  }, [templateFields]);
+
+  const handleFieldChange = (key: string, value: string) => {
+    setFieldValues((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const formatDateLabel = (value?: string) => {
     if (!value) {
       return isChinese ? "选择日期" : "Pick a date";
     }
-    return value.toLocaleDateString(isChinese ? "zh-CN" : "en-US", {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+    return date.toLocaleDateString(isChinese ? "zh-CN" : "en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
     });
+  };
+
+  const normalizeFieldValue = (
+    field: OperationTemplateField,
+    raw: string,
+  ): unknown => {
+    const value = raw.trim();
+    if (!value) return undefined;
+    if (field.widget === "number") {
+      const asNumber = Number(value);
+      if (Number.isNaN(asNumber)) {
+        throw new Error(
+          isChinese
+            ? `${field.labelZh} 需输入数字`
+            : `${field.labelEn} must be a number`,
+        );
+      }
+      return asNumber;
+    }
+    if (field.widget === "attachments") {
+      return value
+        .split(/\r?\n|,/)
+        .map((entry) => entry.trim())
+        .filter(Boolean);
+    }
+    return value;
+  };
+
+  const hasAttachmentValue = () =>
+    templateFields
+      .filter((field) => field.widget === "attachments")
+      .some((field) => fieldValues[field.key]?.trim());
+
+  const resetFieldValues = () => {
+    setFieldValues(
+      templateFields.reduce<Record<string, string>>((acc, field) => {
+        acc[field.key] = "";
+        return acc;
+      }, {}),
+    );
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -85,71 +163,95 @@ export default function OperationForm({ assetId, locale = "en" }: Props) {
     setError(null);
 
     try {
-      const computedActor =
-        formState.actor.trim() ||
-        formState.receiver.trim() ||
-        formState.borrower.trim() ||
-        formState.returner.trim();
-
-      if (!computedActor) {
+      if (!formState.actor.trim()) {
         throw new Error(
-          isChinese
-            ? "请填写经办人或相关责任人。"
-            : "Please provide an actor for the operation.",
+          isChinese ? "请填写经办人。" : "Please provide an actor.",
         );
       }
 
-      const metadataSource = {
-        receiver: formState.receiver.trim() || undefined,
-        borrower: formState.borrower.trim() || undefined,
-        returner: formState.returner.trim() || undefined,
-        vendor: formState.vendor.trim() || undefined,
-        cost: formState.cost ? Number(formState.cost) : undefined,
-        startDate: formState.startDate || undefined,
-        endDate: formState.endDate || undefined,
-        expectedReturnDate: formState.expectedReturnDate || undefined,
-        mode,
-      };
+      for (const field of templateFields) {
+        if (field.required && !fieldValues[field.key]?.trim()) {
+          throw new Error(
+            isChinese
+              ? `${field.labelZh} 为必填项`
+              : `${field.labelEn} is required`,
+          );
+        }
+      }
 
-      const metadataEntries = Object.entries(metadataSource).filter(
-        ([, value]) => value !== undefined && value !== "" && value !== null,
-      );
+      if (currentTemplate?.requireAttachment && !hasAttachmentValue()) {
+        throw new Error(
+          isChinese
+            ? "该操作需要至少上传或填写一个附件。"
+            : "This operation requires at least one attachment.",
+        );
+      }
+
+      const metadataEntries: [string, unknown][] = [];
+      templateFields.forEach((field) => {
+        const raw = fieldValues[field.key];
+        if (!raw || !raw.trim()) {
+          return;
+        }
+        const normalized = normalizeFieldValue(field, raw);
+        if (normalized !== undefined) {
+          metadataEntries.push([field.key, normalized]);
+        }
+      });
+
+      const templateSnapshot = currentTemplate
+        ? {
+            id: currentTemplate.id,
+            type: currentTemplate.type,
+            labelZh: currentTemplate.labelZh,
+            labelEn: currentTemplate.labelEn,
+            requireAttachment: currentTemplate.requireAttachment,
+            fields: templateFields.map((field) => ({
+              key: field.key,
+              labelZh: field.labelZh,
+              labelEn: field.labelEn,
+              widget: field.widget,
+            })),
+          }
+        : undefined;
 
       const metadata =
-        metadataEntries.length > 0 ? Object.fromEntries(metadataEntries) : undefined;
+        metadataEntries.length || templateSnapshot
+          ? {
+              ...(metadataEntries.length
+                ? Object.fromEntries(metadataEntries)
+                : {}),
+              ...(templateSnapshot ? { templateSnapshot } : {}),
+            }
+          : undefined;
 
       const payload = {
-        type:
-          mode === "simple" ? (formState.type as AssetOperationType) : MODE_FORM_MAP[mode].type,
-        actor: computedActor,
-        description: formState.description,
+        type: formState.type as AssetOperationType,
+        actor: formState.actor.trim(),
+        description: formState.description.trim(),
         metadata,
       };
 
-      const response = await fetch(`/apps/asset-hub/api/assets/${assetId}/operations`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const response = await fetch(
+        `/apps/asset-hub/api/assets/${assetId}/operations`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
 
       if (!response.ok) {
         const payload = await response.json();
         throw new Error(payload?.message ?? "提交失败");
       }
 
-      setFormState({
-        type: MODE_FORM_MAP[mode].type,
+      setFormState((prev) => ({
+        ...prev,
         actor: "",
         description: "",
-        receiver: "",
-        borrower: "",
-        returner: "",
-        vendor: "",
-        cost: "",
-        startDate: "",
-        endDate: "",
-        expectedReturnDate: "",
-      });
+      }));
+      resetFieldValues();
       router.refresh();
     } catch (err) {
       setError(
@@ -164,226 +266,130 @@ export default function OperationForm({ assetId, locale = "en" }: Props) {
     }
   };
 
-  const renderModeFields = () => {
-    switch (mode) {
-      case "receive":
-        return (
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">
-              {isChinese ? "领用人" : "Receiver"}
-            </Label>
-            <Input
-              value={formState.receiver}
-              onChange={(event) =>
-                setFormState((prev) => ({ ...prev, receiver: event.target.value }))
-              }
-              required
-            />
-          </div>
-        );
-      case "borrow": {
-        const borrowStartValue = formState.startDate ? new Date(formState.startDate) : undefined;
-        const borrowEndValue = formState.endDate ? new Date(formState.endDate) : undefined;
+  const renderField = (field: OperationTemplateField) => {
+    const value = fieldValues[field.key] ?? "";
+    const label = isChinese ? field.labelZh : field.labelEn;
+    const placeholder = isChinese
+      ? field.placeholderZh ?? field.placeholderEn
+      : field.placeholderEn ?? field.placeholderZh;
+    const helper = isChinese
+      ? field.helperZh ?? field.helperEn
+      : field.helperEn ?? field.helperZh;
 
-        return (
-          <>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-muted-foreground">
-                {isChinese ? "借用人" : "Borrower"}
-              </Label>
-              <Input
-                value={formState.borrower}
-                onChange={(event) =>
-                  setFormState((prev) => ({ ...prev, borrower: event.target.value }))
-                }
-                required
+    if (field.widget === "date") {
+      return (
+        <div key={field.key} className="space-y-1.5">
+          <Label className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+            {label}
+            {field.required && <span className="text-destructive">*</span>}
+          </Label>
+          <Popover
+            open={openDateField === field.key}
+            onOpenChange={(open) => setOpenDateField(open ? field.key : null)}
+          >
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                type="button"
+                data-empty={!value}
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !value && "text-muted-foreground",
+                )}
+              >
+                <CalendarIcon className="mr-1 h-4 w-4" />
+                <div className="truncate">{formatDateLabel(value)}</div>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={value ? new Date(value) : undefined}
+                initialFocus
+                onSelect={(date) => {
+                  if (!date) return;
+                  handleFieldChange(field.key, date.toISOString().slice(0, 10));
+                  setOpenDateField(null);
+                }}
               />
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground">
-                  {isChinese ? "开始日期" : "Start Date"}
-                </Label>
-                <Popover open={borrowStartOpen} onOpenChange={setBorrowStartOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      type="button"
-                      data-empty={!borrowStartValue}
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !borrowStartValue && "text-muted-foreground",
-                      )}
-                    >
-                      <CalendarIcon className="mr-1 h-4 w-4" />
-                      <div className="truncate">
-                        {formatDateLabel(borrowStartValue)}
-                      </div>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={borrowStartValue}
-                      initialFocus
-                      onSelect={(date) => {
-                        if (!date) return;
-                        setFormState((prev) => ({
-                          ...prev,
-                          startDate: date.toISOString().slice(0, 10),
-                        }));
-                        setBorrowStartOpen(false);
-                      }}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground">
-                  {isChinese ? "归还日期" : "Due Date"}
-                </Label>
-                <Popover open={borrowEndOpen} onOpenChange={setBorrowEndOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      type="button"
-                      data-empty={!borrowEndValue}
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !borrowEndValue && "text-muted-foreground",
-                      )}
-                    >
-                      <CalendarIcon className="mr-1 h-4 w-4" />
-                      <div className="truncate">
-                        {formatDateLabel(borrowEndValue)}
-                      </div>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={borrowEndValue}
-                      initialFocus
-                      onSelect={(date) => {
-                        if (!date) return;
-                        setFormState((prev) => ({
-                          ...prev,
-                          endDate: date.toISOString().slice(0, 10),
-                        }));
-                        setBorrowEndOpen(false);
-                      }}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-          </>
-        );
-      }
-      case "return":
-        return (
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">
-              {isChinese ? "归还人" : "Returner"}
-            </Label>
-            <Input
-              value={formState.returner}
-              onChange={(event) =>
-                setFormState((prev) => ({ ...prev, returner: event.target.value }))
-              }
-              required
-            />
-          </div>
-        );
-      case "maintenance":
-        return (
-          <>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-muted-foreground">
-                {isChinese ? "供应商/执行人" : "Vendor"}
-              </Label>
-              <Input
-                value={formState.vendor}
-                onChange={(event) =>
-                  setFormState((prev) => ({ ...prev, vendor: event.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-muted-foreground">
-                {isChinese ? "费用（可选）" : "Cost"}
-              </Label>
-              <Input
-                type="number"
-                value={formState.cost}
-                onChange={(event) =>
-                  setFormState((prev) => ({ ...prev, cost: event.target.value }))
-                }
-              />
-            </div>
-          </>
-        );
-      default:
-        return null;
+            </PopoverContent>
+          </Popover>
+          {helper && <p className="text-xs text-muted-foreground">{helper}</p>}
+        </div>
+      );
     }
+
+    if (field.widget === "textarea" || field.widget === "attachments") {
+      return (
+        <div key={field.key} className="space-y-1.5">
+          <Label className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+            {label}
+            {field.required && <span className="text-destructive">*</span>}
+          </Label>
+          <Textarea
+            rows={field.widget === "attachments" ? 4 : 3}
+            value={value}
+            placeholder={placeholder}
+            required={field.required}
+            onChange={(event) => handleFieldChange(field.key, event.target.value)}
+          />
+          {helper && <p className="text-xs text-muted-foreground">{helper}</p>}
+        </div>
+      );
+    }
+
+    return (
+      <div key={field.key} className="space-y-1.5">
+        <Label className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+          {label}
+          {field.required && <span className="text-destructive">*</span>}
+        </Label>
+        <Input
+          type={field.widget === "number" ? "number" : "text"}
+          value={value}
+          placeholder={placeholder}
+          required={field.required}
+          onChange={(event) => handleFieldChange(field.key, event.target.value)}
+        />
+        {helper && <p className="text-xs text-muted-foreground">{helper}</p>}
+      </div>
+    );
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 rounded-2xl border bg-muted/40 p-4">
-
-      <div className="flex items-center gap-3">
-        <div className="flex-1 space-y-1.5">
-          <Label className="text-xs font-medium text-muted-foreground">
-            {isChinese ? "操作模式" : "Operation Mode"}
-          </Label>
-          <Select value={mode} onValueChange={(value) => setMode(value as OperationMode)}>
-            <SelectTrigger className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="simple">
-                {isChinese ? "自定义" : "Custom"}
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-4 rounded-2xl border bg-muted/40 p-4"
+    >
+      <div className="space-y-1.5">
+        <Label className="text-xs font-medium text-muted-foreground">
+          {isChinese ? "操作类型" : "Operation Type"}
+        </Label>
+        <Select
+          value={formState.type}
+          onValueChange={(value) =>
+            setFormState((prev) => ({
+              ...prev,
+              type: value as AssetOperationType,
+            }))
+          }
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {OPERATION_TYPES.map((type) => (
+              <SelectItem key={type.value} value={type.value}>
+                {isChinese ? type.label.zh : type.label.en}
               </SelectItem>
-              <SelectItem value="receive">
-                {isChinese ? "领用" : "Receive"}
-              </SelectItem>
-              <SelectItem value="borrow">
-                {isChinese ? "借用" : "Borrow"}
-              </SelectItem>
-              <SelectItem value="return">
-                {isChinese ? "归还" : "Return"}
-              </SelectItem>
-              <SelectItem value="maintenance">
-                {isChinese ? "维护" : "Maintenance"}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {mode === "simple" && (
-          <div className="flex-1 space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">
-              {isChinese ? "操作类型" : "Operation Type"}
-            </Label>
-            <Select
-              value={formState.type}
-              onValueChange={(value) =>
-                setFormState((prev) => ({ ...prev, type: value as AssetOperationType }))
-              }
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {currentTypeOptions.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {isChinese ? type.label.zh : type.label.en}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          {isChinese
+            ? `当前：${getOperationTypeLabel(formState.type, "zh")}`
+            : `Selected: ${getOperationTypeLabel(formState.type, "en")}`}
+        </p>
       </div>
 
       <div className="space-y-1.5">
@@ -399,7 +405,34 @@ export default function OperationForm({ assetId, locale = "en" }: Props) {
         />
       </div>
 
-      {renderModeFields()}
+      {templateFields.length > 0 && (
+        <div className="space-y-3 rounded-2xl border border-dashed bg-background/70 p-3">
+          <div className="space-y-0.5">
+            <p className="text-sm font-semibold">
+              {isChinese ? "模板字段" : "Template Fields"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {currentTemplate
+                ? isChinese
+                  ? currentTemplate.descriptionZh ?? currentTemplate.descriptionEn
+                  : currentTemplate.descriptionEn ?? currentTemplate.descriptionZh
+                : isChinese
+                  ? "管理员尚未配置说明，可根据需要填写。"
+                  : "No template description yet. Fill in the details as needed."}
+            </p>
+            {currentTemplate?.requireAttachment && (
+              <p className="text-xs font-medium text-amber-600">
+                {isChinese
+                  ? "该类型需至少包含一个附件链接或凭证。"
+                  : "At least one attachment entry is required."}
+              </p>
+            )}
+          </div>
+          <div className="grid gap-3">
+            {templateFields.map((field) => renderField(field))}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-1.5">
         <Label className="text-xs font-medium text-muted-foreground">
@@ -416,7 +449,11 @@ export default function OperationForm({ assetId, locale = "en" }: Props) {
 
       {error && <p className="text-xs text-destructive">{error}</p>}
 
-      <Button type="submit" disabled={submitting} className="rounded-2xl px-4 py-2 text-sm">
+      <Button
+        type="submit"
+        disabled={submitting}
+        className="w-full rounded-2xl px-4 py-2 text-sm"
+      >
         {submitting
           ? isChinese
             ? "提交中..."

@@ -91,6 +91,13 @@ export default function OperationTemplateList({ templates, locale = "en" }: Prop
           {error}
         </div>
       )}
+      {items.length === 0 && (
+        <div className="rounded-3xl border border-dashed border-muted-foreground/40 bg-muted/20 p-6 text-sm text-muted-foreground">
+          {isChinese
+            ? "尚未配置任何操作模板。"
+            : "No operation templates configured yet."}
+        </div>
+      )}
       {items.map((template) => (
         <div key={template.id} className="rounded-3xl border bg-card/70 p-5 shadow-sm">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
