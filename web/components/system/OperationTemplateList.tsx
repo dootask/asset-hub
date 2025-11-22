@@ -28,6 +28,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { operationTypeToActionConfigId } from "@/lib/utils/action-config";
 import {
   OPERATION_FIELD_LIBRARY,
@@ -89,13 +90,7 @@ export default function OperationTemplateList({
   const [jsonDirtyMap, setJsonDirtyMap] = useState<Record<string, boolean>>({});
   const [jsonErrors, setJsonErrors] = useState<Record<string, string | null>>({});
   const [jsonPanelOpen, setJsonPanelOpen] = useState<Record<string, boolean>>({});
-  const [librarySelections, setLibrarySelections] = useState<Record<string, string>>(
-    () =>
-      templates.reduce<Record<string, string>>((acc, template) => {
-        acc[template.type] = "";
-        return acc;
-      }, {}),
-  );
+  const [fieldPickerOpen, setFieldPickerOpen] = useState<Record<string, boolean>>({});
 
   const configMap = useMemo(() => {
     const map = new Map<string, ActionConfig>();
@@ -162,26 +157,27 @@ export default function OperationTemplateList({
     applyDraftChange(type, next);
   };
 
-  const handleAddLibraryField = (type: OperationTemplate["type"]) => {
-    const chosen = librarySelections[type];
-    if (!chosen) {
+  const handleAddLibraryField = (
+    type: OperationTemplate["type"],
+    fieldKey: string,
+  ) => {
+    if (!fieldKey) {
       return;
     }
     const drafts = fieldDrafts[type] ?? [];
-    if (drafts.some((field) => field.key === chosen)) {
+    if (drafts.some((field) => field.key === fieldKey)) {
       setError(
         isChinese ? "该字段已在列表中。" : "The selected field is already added.",
       );
       return;
     }
-    const nextField = createFieldDraftFromLibrary(chosen);
+    const nextField = createFieldDraftFromLibrary(fieldKey);
     if (!nextField) {
       setError(isChinese ? "无法加载该字段。" : "Unable to load the selected field.");
       return;
     }
     setError(null);
     applyDraftChange(type, [...drafts, nextField]);
-    setLibrarySelections((prev) => ({ ...prev, [type]: "" }));
   };
 
   const handleAddCustomField = (type: OperationTemplate["type"]) => {
@@ -316,15 +312,14 @@ export default function OperationTemplateList({
         <Accordion
           type="multiple"
           className="divide-y divide-border overflow-hidden rounded-3xl border bg-card/30"
-          defaultValue={items.length ? [items[0].id] : undefined}
         >
           {items.map((template) => {
             const drafts = fieldDrafts[template.type] ?? [];
-            const selectedLibraryKey = librarySelections[template.type] ?? "";
             const jsonDraft = jsonDrafts[template.type] ?? "";
             const isJsonDirty = jsonDirtyMap[template.type] ?? false;
             const jsonError = jsonErrors[template.type];
             const advancedOpen = jsonPanelOpen[template.type] ?? false;
+            const pickerOpen = fieldPickerOpen[template.type] ?? false;
             const config = configMap.get(
               operationTypeToActionConfigId(template.type),
             );
@@ -337,9 +332,9 @@ export default function OperationTemplateList({
               <AccordionItem
                 key={template.id}
                 value={template.id}
-                className="border-0 px-2"
+                className="px-4"
               >
-                <AccordionTrigger className="py-4">
+                <AccordionTrigger className="py-4 hover:no-underline">
                   <div className="flex w-full flex-col gap-2 text-left sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p className="text-xs uppercase tracking-wide text-muted-foreground">
@@ -384,32 +379,8 @@ export default function OperationTemplateList({
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="px-2">
-                  <div className="rounded-3xl border bg-card/70 p-5 shadow-sm">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                      <div>
-                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                          {template.type}
-                        </p>
-                        <h2 className="text-lg font-semibold">
-                          {isChinese ? template.labelZh : template.labelEn}
-                        </h2>
-                      </div>
-                      <Button
-                        type="button"
-                        className="rounded-2xl px-4 py-2 text-sm"
-                        disabled={isPending && pendingId === template.type}
-                        onClick={() => handleSave(template)}
-                      >
-                        {isPending && pendingId === template.type
-                          ? isChinese
-                            ? "保存中..."
-                            : "Saving..."
-                          : isChinese
-                            ? "保存配置"
-                            : "Save"}
-                      </Button>
-                    </div>
-                    <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                  <>
+                    <div className="grid gap-4 lg:grid-cols-2">
                       <div className="space-y-1.5">
                         <Label className="text-xs text-muted-foreground">
                           {isChinese ? "说明（中文）" : "Description (ZH)"}
@@ -518,7 +489,7 @@ export default function OperationTemplateList({
                         />
                       </div>
                     </div>
-                    <div className="mt-6 space-y-4">
+                    <div className="mt-4 space-y-4">
                       <div className="space-y-3 rounded-3xl border bg-muted/30 p-4">
                         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                           <div>
@@ -531,67 +502,92 @@ export default function OperationTemplateList({
                                 : "Pick fields from the library or create custom ones for the OperationForm."}
                             </p>
                           </div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Select
-                              value={selectedLibraryKey || undefined}
-                              onValueChange={(value) =>
-                                setLibrarySelections((prev) => ({ ...prev, [template.type]: value }))
-                              }
-                            >
-                              <SelectTrigger className="w-[220px]">
-                                <SelectValue
-                                  placeholder={
-                                    isChinese ? "选择内置字段" : "Select a library field"
-                                  }
-                                />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {FIELD_LIBRARY_OPTIONS.map((field) => {
-                                  const disabled = drafts.some(
-                                    (entry) => entry.key === field.key,
-                                  );
-                                  return (
-                                    <SelectItem
-                                      key={field.key}
-                                      value={field.key}
-                                      disabled={disabled}
-                                    >
-                                      {(isChinese ? field.labelZh : field.labelEn) ?? field.key}
-                                      {" · "}
-                                      {field.key}
-                                    </SelectItem>
-                                  );
-                                })}
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              type="button"
-                              size="sm"
-                              className="rounded-2xl"
-                              onClick={() => handleAddLibraryField(template.type)}
-                              disabled={!selectedLibraryKey}
-                            >
-                              <Plus className="mr-1 h-3.5 w-3.5" />
-                              {isChinese ? "添加字段" : "Add field"}
-                            </Button>
+                          <div className="flex flex-wrap items-center gap-3">
                             <Button
                               type="button"
                               variant="outline"
-                              size="sm"
-                              className="rounded-2xl"
-                              onClick={() => handleAddCustomField(template.type)}
-                            >
-                              {isChinese ? "新增自定义" : "Add custom"}
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
                               size="sm"
                               className="rounded-2xl"
                               onClick={() => handleUseRecommended(template.type)}
                             >
                               {isChinese ? "使用推荐字段" : "Use recommended"}
                             </Button>
+                            <Popover
+                              open={pickerOpen}
+                              onOpenChange={(nextOpen) =>
+                                setFieldPickerOpen((prev) => ({
+                                  ...prev,
+                                  [template.type]: nextOpen,
+                                }))
+                              }
+                            >
+                              <PopoverTrigger asChild>
+                                <Button type="button" size="sm" className="rounded-2xl">
+                                  <Plus className="mr-1 h-3.5 w-3.5" />
+                                  {isChinese ? "添加字段" : "Add field"}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent
+                                align="end"
+                                className="w-72 space-y-2 p-3"
+                              >
+                                <div className="text-xs font-medium text-muted-foreground">
+                                  {isChinese ? "选择内置字段" : "Select from library"}
+                                </div>
+                                <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
+                                  {FIELD_LIBRARY_OPTIONS.map((field) => {
+                                    const disabled = drafts.some(
+                                      (entry) => entry.key === field.key,
+                                    );
+                                    return (
+                                      <button
+                                        key={field.key}
+                                        type="button"
+                                        disabled={disabled}
+                                        onClick={() => {
+                                          handleAddLibraryField(template.type, field.key);
+                                          setFieldPickerOpen((prev) => ({
+                                            ...prev,
+                                            [template.type]: false,
+                                          }));
+                                        }}
+                                        className="flex w-full items-start justify-between rounded-xl border border-transparent bg-muted/40 px-3 py-2 text-left text-sm transition hover:border-primary hover:bg-background disabled:cursor-not-allowed disabled:opacity-60"
+                                      >
+                                        <span>
+                                          {(isChinese ? field.labelZh : field.labelEn) ??
+                                            field.key}
+                                          <span className="ml-1 text-[11px] text-muted-foreground">
+                                            {"·"} {field.key}
+                                          </span>
+                                        </span>
+                                        {disabled && (
+                                          <span className="text-[11px] text-muted-foreground">
+                                            {isChinese ? "已添加" : "Added"}
+                                          </span>
+                                        )}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                                <div className="border-t pt-2">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-full rounded-2xl"
+                                    onClick={() => {
+                                      handleAddCustomField(template.type);
+                                      setFieldPickerOpen((prev) => ({
+                                        ...prev,
+                                        [template.type]: false,
+                                      }));
+                                    }}
+                                  >
+                                    {isChinese ? "新增自定义字段" : "Add custom field"}
+                                  </Button>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
                           </div>
                         </div>
                 {drafts.length === 0 ? (
@@ -603,18 +599,13 @@ export default function OperationTemplateList({
                     </p>
                   </div>
                 ) : (
-                  <Accordion
-                    type="multiple"
-                    className="divide-y divide-muted-foreground/30 rounded-2xl border"
-                    defaultValue={drafts.length ? [`${template.id}-${drafts[0].key}-0`] : undefined}
-                  >
+                  <Accordion type="multiple">
                     {drafts.map((field, index) => (
                       <AccordionItem
                         key={`${template.id}-${field.key}-${index}`}
                         value={`${template.id}-${field.key}-${index}`}
-                        className="border-0 px-2"
                       >
-                        <AccordionTrigger className="py-3">
+                        <AccordionTrigger className="py-3 hover:no-underline">
                           <FieldSummary field={field} isChinese={isChinese} />
                         </AccordionTrigger>
                         <AccordionContent className="px-1">
@@ -747,7 +738,23 @@ export default function OperationTemplateList({
                         )}
                       </div>
                     </div>
-                  </div>
+                    <div className="mt-4 flex justify-end">
+                      <Button
+                        type="button"
+                        className="rounded-2xl px-4 py-2 text-sm"
+                        disabled={isPending && pendingId === template.type}
+                        onClick={() => handleSave(template)}
+                      >
+                        {isPending && pendingId === template.type
+                          ? isChinese
+                            ? "保存中..."
+                            : "Saving..."
+                          : isChinese
+                            ? "保存配置"
+                            : "Save"}
+                      </Button>
+                    </div>
+                  </>
                 </AccordionContent>
               </AccordionItem>
             );
@@ -772,7 +779,25 @@ function FieldSummary({ field, isChinese }: FieldSummaryProps) {
 
   return (
     <div className="w-full text-left">
-      <p className="text-sm font-semibold">{displayName}</p>
+      <div className="flex items-center gap-2 justify-between">
+        <div className="text-sm font-semibold">{displayName}</div>
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="secondary">
+            {isLibrary
+              ? isChinese
+                ? "内置字段"
+                : "Library field"
+              : isChinese
+                ? "自定义字段"
+                : "Custom field"}
+          </Badge>
+          {hasOverride && (
+            <Badge variant="outline">
+              {isChinese ? "已修改" : "Overridden"}
+            </Badge>
+          )}
+        </div>
+      </div>
       <p className="text-xs text-muted-foreground">
         {field.key} · {isChinese ? widgetLabel.zh : widgetLabel.en}
         {field.required
@@ -781,22 +806,6 @@ function FieldSummary({ field, isChinese }: FieldSummaryProps) {
             : " · Required"
           : ""}
       </p>
-      <div className="mt-1 flex flex-wrap gap-2">
-        <Badge variant="secondary">
-          {isLibrary
-            ? isChinese
-              ? "内置字段"
-              : "Library field"
-            : isChinese
-              ? "自定义字段"
-              : "Custom field"}
-        </Badge>
-        {hasOverride && (
-          <Badge variant="outline">
-            {isChinese ? "已修改" : "Overridden"}
-          </Badge>
-        )}
-      </div>
     </div>
   );
 }
@@ -851,7 +860,7 @@ function FieldForm({ field, isChinese, onChange }: FieldFormProps) {
             onChange({ widget: value as OperationTemplateFieldWidget })
           }
         >
-          <SelectTrigger>
+          <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -863,14 +872,19 @@ function FieldForm({ field, isChinese, onChange }: FieldFormProps) {
           </SelectContent>
         </Select>
       </div>
-      <div className="flex items-center justify-between rounded-2xl border bg-muted/10 px-4 py-2">
-        <span className="text-xs text-muted-foreground">
-          {isChinese ? "必填" : "Required"}
-        </span>
-        <Switch
-          checked={Boolean(field.required)}
-          onCheckedChange={(checked) => onChange({ required: checked })}
-        />
+      <div className="space-y-1.5">
+        <Label className="text-xs text-muted-foreground">
+          {isChinese ? "是否必填" : "Is required"}
+        </Label>
+        <div className="flex items-center justify-between rounded-md border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 px-4 py-2">
+          <span className="text-xs text-muted-foreground">
+            {isChinese ? "必填" : "Required"}
+          </span>
+          <Switch
+            checked={Boolean(field.required)}
+            onCheckedChange={(checked) => onChange({ required: checked })}
+          />
+        </div>
       </div>
       <div className="space-y-1.5">
         <Label className="text-xs text-muted-foreground">
