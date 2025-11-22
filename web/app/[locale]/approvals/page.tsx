@@ -4,7 +4,7 @@ import ApprovalFilters from "@/components/approvals/ApprovalFilters";
 import ApprovalRoleTabs from "@/components/approvals/ApprovalRoleTabs";
 import ApprovalStatusBadge from "@/components/approvals/ApprovalStatusBadge";
 import ListPagination from "@/components/layout/ListPagination";
-import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
+import PageHeader from "@/components/layout/PageHeader";
 import {
   Table,
   TableBody,
@@ -180,42 +180,29 @@ export default async function ApprovalsPage({ params, searchParams }: PageProps)
 
   return (
     <div className="space-y-6">
-      <header>
-        <PageBreadcrumb
-          locale={locale}
-          items={[
-            {
-              href: `/${locale}`,
-              labelZh: "首页",
-              labelEn: "Dashboard",
-            },
-            {
-              labelZh: "审批中心",
-              labelEn: "Approvals",
-            },
-          ]}
-        />
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-              {isChinese ? "审批列表" : "Approvals"}
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {isChinese
-                ? "跟踪所有资产审批的发起与进度。"
-                : "Track all approval requests and their progress."}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <a
-              href={exportHref}
-              className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-            >
-              {isChinese ? "导出 CSV" : "Export CSV"}
-            </a>
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        locale={locale}
+        items={[
+          {
+            labelZh: "审批中心",
+            labelEn: "Approvals",
+          },
+        ]}
+        title={isChinese ? "审批列表" : "Approvals"}
+        description={
+          isChinese
+            ? "跟踪所有资产审批的发起与进度。"
+            : "Track all approval requests and their progress."
+        }
+        actions={
+          <a
+            href={exportHref}
+            className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+          >
+            {isChinese ? "导出 CSV" : "Export CSV"}
+          </a>
+        }
+      />
 
       <ApprovalRoleTabs locale={locale} />
 

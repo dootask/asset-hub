@@ -6,7 +6,7 @@ import { getAssetById } from "@/lib/repositories/assets";
 import { getAssetOperationById } from "@/lib/repositories/asset-operations";
 import ApprovalStatusBadge from "@/components/approvals/ApprovalStatusBadge";
 import ApprovalActionForm from "@/components/approvals/ApprovalActionForm";
-import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
+import PageHeader from "@/components/layout/PageHeader";
 import OperationTemplateView from "@/components/operations/OperationTemplateView";
 import { extractOperationTemplateMetadata } from "@/lib/utils/operation-template";
 import { appConfig } from "@/lib/config";
@@ -90,29 +90,23 @@ export default async function ApprovalDetailPage({ params }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <header>
-        <PageBreadcrumb
-          locale={locale}
-          items={[
-            {
-              href: `/${locale}/approvals`,
-              labelZh: "审批中心",
-              labelEn: "Approvals",
-            },
-            {
-              labelZh: `审批详情`,
-              labelEn: `Approval Detail`,
-            },
-          ]}
-        />
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="mt-2 text-2xl font-semibold">{approval.title}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">#{approval.id}</p>
-          </div>
-          <ApprovalStatusBadge status={approval.status} locale={locale} />
-        </div>
-      </header>
+      <PageHeader
+        locale={locale}
+        items={[
+          {
+            href: `/${locale}/approvals`,
+            labelZh: "审批中心",
+            labelEn: "Approvals",
+          },
+          {
+            labelZh: "审批详情",
+            labelEn: "Approval Detail",
+          },
+        ]}
+        title={approval.title}
+        description={`#${approval.id}`}
+        actions={<ApprovalStatusBadge status={approval.status} locale={locale} />}
+      />
 
       {approval.externalTodoId && (
         <section className="rounded-2xl border bg-card/70 p-4 text-sm text-muted-foreground">

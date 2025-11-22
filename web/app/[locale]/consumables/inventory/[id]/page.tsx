@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
+import PageHeader from "@/components/layout/PageHeader";
 import ConsumableInventoryEntriesTable from "@/components/consumables/ConsumableInventoryEntriesTable";
 import ConsumableInventoryStatusControls from "@/components/consumables/ConsumableInventoryStatusControls";
 import { getConsumableInventoryTask } from "@/lib/repositories/consumable-inventory";
@@ -36,7 +36,7 @@ export default async function ConsumableInventoryDetailPage({
 
   return (
     <div className="space-y-6">
-      <PageBreadcrumb
+      <PageHeader
         locale={locale}
         items={[
           {
@@ -54,24 +54,29 @@ export default async function ConsumableInventoryDetailPage({
             labelEn: task.name,
           },
         ]}
-      />
-
-      <section className="rounded-2xl border bg-card/70 p-4">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-xs text-muted-foreground">{task.id}</p>
-            <h1 className="text-2xl font-semibold">{task.name}</h1>
-            {task.description && (
-              <p className="text-sm text-muted-foreground">{task.description}</p>
-            )}
-          </div>
+        title={task.name}
+        description={
+          <>
+            <span className="font-mono">{task.id}</span>
+            {task.description ? (
+              <>
+                <span className="mx-2 text-muted-foreground/60">·</span>
+                {task.description}
+              </>
+            ) : null}
+          </>
+        }
+        actions={
           <ConsumableInventoryStatusControls
             taskId={task.id}
             status={task.status}
             locale={locale}
           />
-        </div>
-        <dl className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        }
+      />
+
+      <section className="rounded-2xl border bg-card/70 p-4">
+        <dl className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div>
             <dt className="text-xs font-medium uppercase text-muted-foreground">
               {isChinese ? "状态" : "Status"}

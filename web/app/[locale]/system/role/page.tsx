@@ -1,6 +1,4 @@
-import RoleForm from "@/components/system/RoleForm";
-import RoleTable from "@/components/system/RoleTable";
-import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
+import RoleManagementClient from "./RoleManagementClient";
 import type { Role } from "@/lib/types/system";
 import { getRequestBaseUrl } from "@/lib/utils/server-url";
 
@@ -24,52 +22,19 @@ async function fetchRoles() {
 
 export default async function RolePage({
   params,
-  searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams?: Promise<SearchParams>;
 }) {
-  const [{ locale }, resolvedSearchParams] = await Promise.all([
-    params,
-    searchParams ?? Promise.resolve({}),
-  ]);
+  const { locale } = await params;
   const result = await fetchRoles();
-  const editId = normalizeParam(resolvedSearchParams.edit);
-  const roleToEdit = result.data.find((role) => role.id === editId);
-  const isChinese = locale === "zh";
+  const baseUrl = await getRequestBaseUrl();
 
   return (
-    <div className="space-y-6">
-      <header>
-        <PageBreadcrumb
-          locale={locale}
-          items={[
-            {
-              href: `/${locale}/system`,
-              labelZh: "系统管理",
-              labelEn: "System",
-            },
-            {
-              labelZh: "角色管理",
-              labelEn: "Role Management",
-            },
-          ]}
-        />
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-          {isChinese ? "角色管理" : "Role Management"}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {isChinese
-            ? "配置不同业务角色与作用域，为审批流程提供依据。"
-            : "Configure role scopes to drive approvals and permissions."}
-        </p>
-      </header>
-
-      <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
-        <RoleTable roles={result.data} locale={locale} />
-        <RoleForm role={roleToEdit} locale={locale} />
-      </div>
-    </div>
+    <RoleManagementClient
+      locale={locale}
+      initialRoles={result.data}
+      baseUrl={baseUrl}
+    />
   );
 }
 

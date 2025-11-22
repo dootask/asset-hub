@@ -10,7 +10,7 @@ import ApprovalStatusBadge from "@/components/approvals/ApprovalStatusBadge";
 import { listApprovalRequests } from "@/lib/repositories/approvals";
 import DisposeAssetButton from "@/components/assets/DisposeAssetButton";
 import EditAssetDialog from "@/components/assets/EditAssetDialog";
-import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
+import PageHeader from "@/components/layout/PageHeader";
 import { getAssetStatusLabel } from "@/lib/types/asset";
 import { listAssetCategories } from "@/lib/repositories/asset-categories";
 import { listOperationTemplates } from "@/lib/repositories/operation-templates";
@@ -53,31 +53,23 @@ export default async function AssetDetailPage({ params }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <header>
-        <PageBreadcrumb
-          locale={locale}
-          items={[
-            {
-              href: `/${locale}/assets/list`,
-              labelZh: "资产列表",
-              labelEn: "Assets",
-            },
-            {
-              labelZh: `资产详情`,
-              labelEn: `Asset Detail`,
-            },
-          ]}
-        />
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="mt-2 text-2xl font-semibold">{asset.name}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">{asset.id}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <DisposeAssetButton assetId={asset.id} locale={locale} />
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        locale={locale}
+        items={[
+          {
+            href: `/${locale}/assets/list`,
+            labelZh: "资产列表",
+            labelEn: "Assets",
+          },
+          {
+            labelZh: "资产详情",
+            labelEn: "Asset Detail",
+          },
+        ]}
+        title={asset.name}
+        description={asset.id}
+        actions={<DisposeAssetButton assetId={asset.id} locale={locale} />}
+      />
 
       <section className="rounded-2xl border bg-muted/30 p-6">
         <div className="flex items-center justify-between gap-3">

@@ -178,19 +178,6 @@ const ConsumableCategoryTable = forwardRef<ConsumableCategoryTableHandle, Props>
         </div>
       )}
       <section className="overflow-hidden rounded-2xl border bg-card">
-        <div className="flex items-center justify-between border-b px-4 py-3">
-          <div>
-            <h2 className="text-lg font-semibold">
-              {isChinese ? "耗材类别" : "Consumable Categories"}
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              {isChinese ? "用于定义耗材类型与单位。" : "Define consumable categories and measurement units."}
-            </p>
-          </div>
-          <Button onClick={openCreateDialog} className="rounded-2xl px-4 py-2 text-sm">
-            {isChinese ? "新增类别" : "New Category"}
-          </Button>
-        </div>
         <Table className="text-sm">
           <TableHeader className="bg-muted/30">
             <TableRow className="text-xs uppercase tracking-wide text-muted-foreground">

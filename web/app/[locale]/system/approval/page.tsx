@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { getRequestBaseUrl } from "@/lib/utils/server-url";
 import type { ActionConfig } from "@/lib/types/action-config";
 import ActionConfigTable from "@/components/system/ActionConfigTable";
-import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
+import PageHeader from "@/components/layout/PageHeader";
 
 export const metadata: Metadata = {
   title: "审批配置 - Asset Hub",
@@ -32,30 +32,26 @@ export default async function ApprovalConfigPage({
 
   return (
     <div className="space-y-6">
-      <header>
-        <PageBreadcrumb
-          locale={locale}
-          items={[
-            {
-              href: `/${locale}/system`,
-              labelZh: "系统管理",
-              labelEn: "System",
-            },
-            {
-              labelZh: "审批配置",
-              labelEn: "Approval Config",
-            },
-          ]}
-        />
-        <h1 className="mt-2 text-2xl font-semibold">
-          {isChinese ? "审批配置" : "Approval Configuration"}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {isChinese
+      <PageHeader
+        locale={locale}
+        items={[
+          {
+            href: `/${locale}/system`,
+            labelZh: "系统管理",
+            labelEn: "System",
+          },
+          {
+            labelZh: "审批配置",
+            labelEn: "Approval Config",
+          },
+        ]}
+        title={isChinese ? "审批配置" : "Approval Configuration"}
+        description={
+          isChinese
             ? "为不同操作类型设置是否需要审批、默认审批人以及是否允许发起人更改。"
-            : "Configure which actions require approval, default approvers, and override permissions."}
-        </p>
-      </header>
+            : "Configure which actions require approval, default approvers, and override permissions."
+        }
+      />
       <ActionConfigTable initialConfigs={configs} locale={locale} />
     </div>
   );

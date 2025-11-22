@@ -56,8 +56,8 @@ export default function ConsumableFilters({ locale, categories }: Props) {
   };
 
   return (
-    <div className="grid gap-3 rounded-2xl border bg-muted/20 p-4 md:grid-cols-3">
-      <div className="space-y-1.5">
+    <div className="flex flex-col gap-4 md:flex-row md:items-end rounded-2xl border bg-muted/20 p-4">
+      <div className="flex flex-1 flex-col gap-1.5">
         <p className="text-xs font-medium text-muted-foreground">
           {isChinese ? "关键词" : "Keyword"}
         </p>
@@ -75,7 +75,7 @@ export default function ConsumableFilters({ locale, categories }: Props) {
           />
         </form>
       </div>
-      <div className="space-y-1.5">
+      <div className="flex flex-1 flex-col gap-1.5">
         <p className="text-xs font-medium text-muted-foreground">
           {isChinese ? "状态" : "Status"}
         </p>
@@ -102,7 +102,7 @@ export default function ConsumableFilters({ locale, categories }: Props) {
           </SelectContent>
         </Select>
       </div>
-      <div className="space-y-1.5">
+      <div className="flex flex-1 flex-col gap-1.5">
         <p className="text-xs font-medium text-muted-foreground">
           {isChinese ? "类别" : "Category"}
         </p>
@@ -129,7 +129,7 @@ export default function ConsumableFilters({ locale, categories }: Props) {
           </SelectContent>
         </Select>
       </div>
-      <div className="md:col-span-3">
+      <div className="flex items-center gap-2">
         <Button
           variant="outline"
           size="sm"

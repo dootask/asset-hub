@@ -1,7 +1,7 @@
 import Link from "next/link";
 import AssetFilters from "@/components/assets/AssetFilters";
 import ListPagination from "@/components/layout/ListPagination";
-import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
+import PageHeader from "@/components/layout/PageHeader";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { type Asset, getAssetStatusLabel } from "@/lib/types/asset";
 import { getRequestBaseUrl } from "@/lib/utils/server-url";
@@ -108,54 +108,43 @@ export default async function AssetListPage({
 
   return (
     <div className="space-y-6">
-      <header>
-        <PageBreadcrumb
-          locale={locale}
-          items={[
-            {
-              href: `/${locale}`,
-              labelZh: "首页",
-              labelEn: "Dashboard",
-            },
-            {
-              labelZh: "资产列表",
-              labelEn: "Assets",
-            },
-          ]}
-        />
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-              {isChinese ? "资产列表" : "Asset List"}
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {isChinese
-                ? "支持关键词、状态与类别筛选，可随时新增资产记录。"
-                : "Filter by keyword, status, or category and create new assets anytime."}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
+      <PageHeader
+        locale={locale}
+        items={[
+          {
+            labelZh: "资产列表",
+            labelEn: "Assets",
+          },
+        ]}
+        title={isChinese ? "资产列表" : "Asset List"}
+        description={
+          isChinese
+            ? "支持关键词、状态与类别筛选，可随时新增资产记录。"
+            : "Filter by keyword, status, or category and create new assets anytime."
+        }
+        actions={
+          <>
             <Link
               href={withLocale("/assets/new")}
-              className="inline-flex items-center justify-center rounded-2xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow whitespace-nowrap"
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-2xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow"
             >
               {isChinese ? "新增资产" : "New Asset"}
             </Link>
             <Link
               href={withLocale("/assets/categories")}
-              className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground whitespace-nowrap"
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
             >
               {isChinese ? "分类管理" : "Manage Categories"}
             </Link>
             <Link
               href={withLocale("/assets/import-export")}
-              className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground whitespace-nowrap"
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
             >
               {isChinese ? "导入 / 导出" : "Import / Export"}
             </Link>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <AssetFilters
         locale={locale}

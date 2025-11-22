@@ -1,6 +1,13 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +46,10 @@ interface Props {
   baseUrl: string;
 }
 
+export type CompanyTableHandle = {
+  openCreateDialog: () => void;
+};
+
 type FormState = {
   name: string;
   code: string;
@@ -51,11 +62,10 @@ const DEFAULT_FORM: FormState = {
   description: "",
 };
 
-export default function CompanyTable({
-  initialCompanies,
-  locale,
-  baseUrl,
-}: Props) {
+const CompanyTable = forwardRef<CompanyTableHandle, Props>(function CompanyTable(
+  { initialCompanies, locale, baseUrl }: Props,
+  ref,
+) {
   const isChinese = locale === "zh";
   const [companies, setCompanies] = useState(initialCompanies);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -80,12 +90,20 @@ export default function CompanyTable({
       );
   }, [companies, search]);
 
-  const openCreateDialog = () => {
+  const openCreateDialog = useCallback(() => {
     setEditingId(null);
     setFormState(DEFAULT_FORM);
     setError(null);
     setDialogOpen(true);
-  };
+  }, []);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      openCreateDialog,
+    }),
+    [openCreateDialog],
+  );
 
   const openEditDialog = (company: Company) => {
     setEditingId(company.id);
@@ -179,23 +197,14 @@ export default function CompanyTable({
               ? `共 ${companies.length} 个公司`
               : `${companies.length} companies`}
           </p>
-          <div className="flex flex-col gap-2 md:flex-row md:items-center">
-            <Input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder={
-                isChinese ? "搜索名称或编码" : "Search by name or code"
-              }
-              className="md:w-64"
-            />
-            <Button
-              type="button"
-              className="rounded-2xl px-4 py-2 text-sm"
-              onClick={openCreateDialog}
-            >
-              {isChinese ? "新增公司" : "New Company"}
-            </Button>
-          </div>
+          <Input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder={
+              isChinese ? "搜索名称或编码" : "Search by name or code"
+            }
+            className="md:w-64"
+          />
         </div>
       </div>
 
@@ -422,6 +431,8 @@ export default function CompanyTable({
       </Dialog>
     </>
   );
-}
+});
+
+export default CompanyTable;
 
 

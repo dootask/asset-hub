@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
+import PageHeader from "@/components/layout/PageHeader";
 import { getSystemVersionInfo } from "@/lib/repositories/system-version";
 
 type PageParams = { locale: string };
@@ -37,27 +37,22 @@ export default async function SystemUpgradePage({
 
   return (
     <div className="space-y-6">
-      <header>
-        <PageBreadcrumb
-          locale={locale}
-          items={[
-            { href: `/${locale}`, labelZh: "首页", labelEn: "Dashboard" },
-            { href: `/${locale}/system`, labelZh: "系统管理", labelEn: "System" },
-            {
-              labelZh: "升级与版本",
-              labelEn: "Upgrade & Version",
-            },
-          ]}
-        />
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-          {isChinese ? "升级与版本" : "Upgrade & Version"}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {isChinese
+      <PageHeader
+        locale={locale}
+        items={[
+          { href: `/${locale}/system`, labelZh: "系统管理", labelEn: "System" },
+          {
+            labelZh: "升级与版本",
+            labelEn: "Upgrade & Version",
+          },
+        ]}
+        title={isChinese ? "升级与版本" : "Upgrade & Version"}
+        description={
+          isChinese
             ? "了解当前安装的 Asset Hub 版本、授权信息，并查看升级渠道。"
-            : "Review the installed Asset Hub version, license status, and available upgrade paths."}
-        </p>
-      </header>
+            : "Review the installed Asset Hub version, license status, and available upgrade paths."
+        }
+      />
 
       <section className="rounded-3xl border bg-gradient-to-br from-primary/5 via-background to-background p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">

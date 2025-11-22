@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
+import FilterDatePicker from "@/components/filters/FilterDatePicker";
+import PageHeader from "@/components/layout/PageHeader";
 import ListPagination from "@/components/layout/ListPagination";
 import {
   Table,
@@ -12,6 +13,8 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import {
   queryConsumableOperations,
 } from "@/lib/repositories/consumable-operations";
@@ -24,6 +27,7 @@ import {
   CONSUMABLE_OPERATION_TYPE_LABELS,
   CONSUMABLE_OPERATION_TYPES,
 } from "@/lib/types/consumable-operation";
+import type { ConsumableOperationStatus } from "@/lib/types/consumable-operation";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -122,42 +126,34 @@ export default async function ConsumableOperationsPage({
 
   return (
     <div className="space-y-6">
-      <header className="space-y-3">
-        <PageBreadcrumb
-          locale={locale}
-          items={[
-            {
-              href: `/${locale}/consumables`,
-              labelZh: "耗材管理",
-              labelEn: "Consumables",
-            },
-            {
-              labelZh: "操作审计",
-              labelEn: "Operation Audit",
-            },
-          ]}
-        />
-        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              {isChinese ? "耗材操作审计" : "Consumable Operation Audit"}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {isChinese
-                ? "追踪采购、入库、出库、预留等操作，可按条件筛选并导出 CSV 报表。"
-                : "Track purchase, inbound, outbound, and reservation logs with filters and CSV export."}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <a
-              href={exportHref}
-              className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-            >
-              {isChinese ? "导出 CSV" : "Export CSV"}
-            </a>
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        locale={locale}
+        items={[
+          {
+            href: `/${locale}/consumables`,
+            labelZh: "耗材管理",
+            labelEn: "Consumables",
+          },
+          {
+            labelZh: "操作审计",
+            labelEn: "Operation Audit",
+          },
+        ]}
+        title={isChinese ? "耗材操作审计" : "Consumable Operation Audit"}
+        description={
+          isChinese
+            ? "追踪采购、入库、出库、预留等操作，可按条件筛选并导出 CSV 报表。"
+            : "Track purchase, inbound, outbound, and reservation logs with filters and CSV export."
+        }
+        actions={
+          <a
+            href={exportHref}
+            className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+          >
+            {isChinese ? "导出 CSV" : "Export CSV"}
+          </a>
+        }
+      />
 
       <section className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
         {summaryCards.map((card) => (
@@ -181,69 +177,59 @@ export default async function ConsumableOperationsPage({
             <span className="text-muted-foreground">
               {isChinese ? "关键字" : "Keyword"}
             </span>
-            <input
+            <Input
               type="text"
               name="keyword"
               defaultValue={query.keyword ?? ""}
               placeholder={
                 isChinese ? "按耗材/描述/操作编号" : "Consumable / description / ID"
               }
-              className="rounded-2xl border bg-background px-3 py-2 text-sm"
+              className="rounded-2xl bg-background text-sm"
             />
           </label>
           <label className="flex flex-col gap-2 text-sm">
             <span className="text-muted-foreground">
               {isChinese ? "保管人" : "Keeper"}
             </span>
-            <input
+            <Input
               type="text"
               name="keeper"
               defaultValue={query.keeper ?? ""}
-              className="rounded-2xl border bg-background px-3 py-2 text-sm"
+              className="rounded-2xl bg-background text-sm"
             />
           </label>
           <label className="flex flex-col gap-2 text-sm">
             <span className="text-muted-foreground">
               {isChinese ? "操作人" : "Actor"}
             </span>
-            <input
+            <Input
               type="text"
               name="actor"
               defaultValue={query.actor ?? ""}
-              className="rounded-2xl border bg-background px-3 py-2 text-sm"
+              className="rounded-2xl bg-background text-sm"
             />
           </label>
-          <label className="flex flex-col gap-2 text-sm">
-            <span className="text-muted-foreground">
-              {isChinese ? "开始日期" : "Start Date"}
-            </span>
-            <input
-              type="date"
-              name="dateFrom"
-              defaultValue={query.dateFrom ?? ""}
-              className="rounded-2xl border bg-background px-3 py-2 text-sm"
-            />
-          </label>
-          <label className="flex flex-col gap-2 text-sm">
-            <span className="text-muted-foreground">
-              {isChinese ? "结束日期" : "End Date"}
-            </span>
-            <input
-              type="date"
-              name="dateTo"
-              defaultValue={query.dateTo ?? ""}
-              className="rounded-2xl border bg-background px-3 py-2 text-sm"
-            />
-          </label>
+          <FilterDatePicker
+            name="dateFrom"
+            label={isChinese ? "开始日期" : "Start Date"}
+            locale={locale}
+            defaultValue={query.dateFrom}
+          />
+          <FilterDatePicker
+            name="dateTo"
+            label={isChinese ? "结束日期" : "End Date"}
+            locale={locale}
+            defaultValue={query.dateTo}
+          />
           <label className="flex flex-col gap-2 text-sm">
             <span className="text-muted-foreground">
               {isChinese ? "耗材编号" : "Consumable ID"}
             </span>
-            <input
+            <Input
               type="text"
               name="consumableId"
               defaultValue={query.consumableId ?? ""}
-              className="rounded-2xl border bg-background px-3 py-2 text-sm"
+              className="rounded-2xl bg-background text-sm"
             />
           </label>
         </div>
@@ -254,21 +240,25 @@ export default async function ConsumableOperationsPage({
               {isChinese ? "操作类型" : "Operation Types"}
             </p>
             <div className="mt-3 flex flex-wrap gap-3">
-              {CONSUMABLE_OPERATION_TYPES.map((type) => (
-                <label
-                  key={type.value}
-                  className="flex items-center gap-2 text-sm text-muted-foreground"
-                >
-                  <input
-                    type="checkbox"
-                    name="type"
-                    value={type.value}
-                    defaultChecked={selectedTypes.includes(type.value)}
-                    className="rounded border-muted-foreground"
-                  />
-                  {isChinese ? type.label.zh : type.label.en}
-                </label>
-              ))}
+              {CONSUMABLE_OPERATION_TYPES.map((type) => {
+                const checkboxId = `operation-type-${type.value}`;
+                return (
+                  <label
+                    key={type.value}
+                    htmlFor={checkboxId}
+                    className="flex items-center gap-2 text-sm text-muted-foreground"
+                  >
+                    <Checkbox
+                      id={checkboxId}
+                      name="type"
+                      value={type.value}
+                      defaultChecked={selectedTypes.includes(type.value)}
+                      className="border-muted-foreground"
+                    />
+                    {isChinese ? type.label.zh : type.label.en}
+                  </label>
+                );
+              })}
             </div>
           </div>
           <div>
@@ -276,21 +266,25 @@ export default async function ConsumableOperationsPage({
               {isChinese ? "状态" : "Status"}
             </p>
             <div className="mt-3 flex flex-wrap gap-3">
-              {Object.entries(STATUS_LABELS).map(([status, label]) => (
-                <label
-                  key={status}
-                  className="flex items-center gap-2 text-sm text-muted-foreground"
-                >
-                  <input
-                    type="checkbox"
-                    name="status"
-                    value={status}
-                    defaultChecked={selectedStatuses.includes(status)}
-                    className="rounded border-muted-foreground"
-                  />
-                  {isChinese ? label.zh : label.en}
-                </label>
-              ))}
+              {Object.entries(STATUS_LABELS).map(([status, label]) => {
+                const checkboxId = `operation-status-${status}`;
+                return (
+                  <label
+                    key={status}
+                    htmlFor={checkboxId}
+                    className="flex items-center gap-2 text-sm text-muted-foreground"
+                  >
+                    <Checkbox
+                      id={checkboxId}
+                      name="status"
+                      value={status}
+                      defaultChecked={selectedStatuses.includes(status as ConsumableOperationStatus)}
+                      className="border-muted-foreground"
+                    />
+                    {isChinese ? label.zh : label.en}
+                  </label>
+                );
+              })}
             </div>
           </div>
         </div>

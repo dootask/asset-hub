@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
+import PageHeader from "@/components/layout/PageHeader";
 import ConsumableOperationForm from "@/components/consumables/ConsumableOperationForm";
 import ConsumableOperationTimeline from "@/components/consumables/ConsumableOperationTimeline";
 import { getConsumableById } from "@/lib/repositories/consumables";
@@ -32,24 +32,22 @@ export default async function ConsumableDetailPage({ params }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <header>
-        <PageBreadcrumb
-          locale={locale}
-          items={[
-            {
-              href: `/${locale}/consumables/list`,
-              labelZh: "耗材列表",
-              labelEn: "Consumables",
-            },
-            {
-              labelZh: consumable.name,
-              labelEn: consumable.name,
-            },
-          ]}
-        />
-        <h1 className="mt-2 text-2xl font-semibold">{consumable.name}</h1>
-        <p className="text-sm text-muted-foreground">{consumable.id}</p>
-      </header>
+      <PageHeader
+        locale={locale}
+        items={[
+          {
+            href: `/${locale}/consumables/list`,
+            labelZh: "耗材列表",
+            labelEn: "Consumables",
+          },
+          {
+            labelZh: consumable.name,
+            labelEn: consumable.name,
+          },
+        ]}
+        title={consumable.name}
+        description={consumable.id}
+      />
       <section className="rounded-2xl border bg-card/70 p-4 text-sm">
         <dl className="grid gap-4 md:grid-cols-2">
           <div>

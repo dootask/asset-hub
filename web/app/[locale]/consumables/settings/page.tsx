@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
-import ConsumableCategoryTable from "@/components/consumables/ConsumableCategoryTable";
+import ConsumableCategoriesClient from "./ConsumableCategoriesClient";
 import { listConsumableCategories } from "@/lib/repositories/consumable-categories";
 import { getRequestBaseUrl } from "@/lib/utils/server-url";
 
@@ -16,40 +15,12 @@ export default async function ConsumableSettingsPage({
   const { locale } = await params;
   const categories = listConsumableCategories();
   const baseUrl = await getRequestBaseUrl();
-  const isChinese = locale === "zh";
-
   return (
-    <div className="space-y-6">
-      <header>
-        <PageBreadcrumb
-          locale={locale}
-          items={[
-            {
-              href: `/${locale}/consumables`,
-              labelZh: "耗材管理",
-              labelEn: "Consumables",
-            },
-            {
-              labelZh: "耗材类别",
-              labelEn: "Categories",
-            },
-          ]}
-        />
-        <h1 className="mt-2 text-2xl font-semibold">
-          {isChinese ? "耗材类别管理" : "Consumable Categories"}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {isChinese
-            ? "定义耗材类别与默认单位，便于录入与报表统计。"
-            : "Define categories and default units for consumables."}
-        </p>
-      </header>
-      <ConsumableCategoryTable
-        initialCategories={categories}
-        locale={locale}
-        baseUrl={baseUrl}
-      />
-    </div>
+    <ConsumableCategoriesClient
+      locale={locale}
+      initialCategories={categories}
+      baseUrl={baseUrl}
+    />
   );
 }
 

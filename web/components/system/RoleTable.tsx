@@ -1,8 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { forwardRef, useImperativeHandle, useMemo, useState, useTransition } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,148 +11,330 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import type { Role } from "@/lib/types/system";
 
 interface Props {
-  roles: Role[];
-  locale?: string;
+  initialRoles: Role[];
+  locale: string;
+  baseUrl: string;
 }
 
-export default function RoleTable({ roles, locale = "en" }: Props) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const pathname = usePathname();
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [dialogRole, setDialogRole] = useState<Role | null>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [dialogError, setDialogError] = useState<string | null>(null);
+export type RoleTableHandle = {
+  openCreateDialog: () => void;
+};
+
+type FormState = {
+  name: string;
+  scope: string;
+  description: string;
+};
+
+const DEFAULT_FORM: FormState = {
+  name: "",
+  scope: "system",
+  description: "",
+};
+
+const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
+  { initialRoles, locale, baseUrl },
+  ref,
+) {
   const isChinese = locale === "zh";
+  const [roles, setRoles] = useState(initialRoles);
+  const [search, setSearch] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<Role | null>(null);
+  const [formState, setFormState] = useState<FormState>(DEFAULT_FORM);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [dialogRole, setDialogRole] = useState<Role | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const editParam = searchParams.get("edit");
-
-  const buildEditLink = useMemo(() => {
-    const baseSearch = searchParams.toString();
-    return (id: string) => {
-      const params = new URLSearchParams(baseSearch);
-      params.set("edit", id);
-      return `${pathname}?${params.toString()}`;
-    };
-  }, [pathname, searchParams]);
-
-  const baseLink = useMemo(() => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete("edit");
-    const query = params.toString();
-    return query ? `${pathname}?${query}` : pathname;
-  }, [pathname, searchParams]);
-
-  const closeDialog = () => {
-    setDeleteDialogOpen(false);
-    setDialogRole(null);
-    setDialogError(null);
-  };
-
-  const handleDelete = async () => {
-    if (!dialogRole) return;
-    setDeletingId(dialogRole.id);
-    setDialogError(null);
-    try {
-      const response = await fetch(
-        `/apps/asset-hub/api/system/roles/${dialogRole.id}`,
-        { method: "DELETE" },
-      );
-      if (!response.ok) {
-        const payload = await response.json();
-        throw new Error(payload?.message ?? "删除失败");
-      }
-      closeDialog();
-      router.replace(baseLink);
-      router.refresh();
-    } catch (error) {
-      setDialogError(
-        error instanceof Error
-          ? error.message
-          : isChinese
-            ? "删除失败"
-            : "Delete failed",
-      );
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
-  if (roles.length === 0) {
-    return (
-      <div className="rounded-2xl border bg-muted/20 p-8 text-center text-sm text-muted-foreground">
-        {isChinese ? "暂无角色数据。" : "No roles yet."}
-      </div>
+  const filteredRoles = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return roles;
+    return roles.filter((role) =>
+      `${role.name} ${role.scope} ${role.description ?? ""}`.toLowerCase().includes(query),
     );
-  }
+  }, [roles, search]);
+
+  const openCreateDialog = () => {
+    setEditing(null);
+    setFormState(DEFAULT_FORM);
+    setError(null);
+    setDialogOpen(true);
+  };
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      openCreateDialog,
+    }),
+    [],
+  );
+
+  const openEditDialog = (role: Role) => {
+    setEditing(role);
+    setFormState({
+      name: role.name,
+      scope: role.scope,
+      description: role.description ?? "",
+    });
+    setError(null);
+    setDialogOpen(true);
+  };
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    startTransition(async () => {
+      try {
+        const payload = {
+          name: formState.name.trim(),
+          scope: formState.scope,
+          description: formState.description.trim() || undefined,
+        };
+        const url = editing
+          ? `${baseUrl}/apps/asset-hub/api/system/roles/${editing.id}`
+          : `${baseUrl}/apps/asset-hub/api/system/roles`;
+        const response = await fetch(url, {
+          method: editing ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!response.ok) {
+          const message = await response.json().catch(() => null);
+          throw new Error(message?.message ?? "保存失败");
+        }
+        const { data } = (await response.json()) as { data: Role };
+        setRoles((prev) =>
+          editing ? prev.map((role) => (role.id === data.id ? data : role)) : [data, ...prev],
+        );
+        setDialogOpen(false);
+        setEditing(null);
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : isChinese
+              ? "保存失败，请稍后再试。"
+              : "Save failed, please try again.",
+        );
+      }
+    });
+  };
+
+  const openDeleteDialog = (role: Role) => {
+    setDialogRole(role);
+    setDeleteError(null);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDelete = () => {
+    if (!dialogRole) return;
+    startTransition(async () => {
+      try {
+        const response = await fetch(
+          `${baseUrl}/apps/asset-hub/api/system/roles/${dialogRole.id}`,
+          {
+            method: "DELETE",
+          },
+        );
+        if (!response.ok) {
+          const message = await response.json().catch(() => null);
+          throw new Error(message?.message ?? "删除失败");
+        }
+        setRoles((prev) => prev.filter((role) => role.id !== dialogRole.id));
+        setDeleteDialogOpen(false);
+        setDialogRole(null);
+      } catch (err) {
+        setDeleteError(
+          err instanceof Error
+            ? err.message
+            : isChinese
+              ? "删除失败，请稍后再试。"
+              : "Failed to delete role.",
+        );
+      }
+    });
+  };
 
   return (
-    <div className="overflow-hidden rounded-2xl border">
-      <Table className="text-sm">
-        <TableHeader className="bg-muted/50">
-          <TableRow className="text-left text-xs uppercase tracking-wide text-muted-foreground hover:bg-transparent">
-            <TableHead className="px-4 py-3">{isChinese ? "角色名称" : "Role"}</TableHead>
-            <TableHead className="px-4 py-3">{isChinese ? "作用域" : "Scope"}</TableHead>
-            <TableHead className="px-4 py-3">{isChinese ? "描述" : "Description"}</TableHead>
-            <TableHead className="px-4 py-3 text-right">{isChinese ? "操作" : "Actions"}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {roles.map((role) => (
-            <TableRow key={role.id}>
-              <TableCell className="px-4 py-3 whitespace-normal">
-                <div className="font-medium">{role.name}</div>
-                <p className="text-xs text-muted-foreground">{role.id}</p>
-              </TableCell>
-              <TableCell className="px-4 py-3">{role.scope}</TableCell>
-              <TableCell className="px-4 py-3 whitespace-normal">
-                {role.description ?? "-"}
-              </TableCell>
-              <TableCell className="px-4 py-3 text-right text-xs">
-                <Link
-                  href={buildEditLink(role.id)}
-                  className="rounded-full border px-3 py-1 font-medium text-muted-foreground hover:text-foreground"
-                >
-                  {editParam === role.id
-                    ? isChinese
-                      ? "编辑中"
-                      : "Editing"
-                    : isChinese
-                      ? "编辑"
-                      : "Edit"}
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDialogRole(role);
-                    setDeleteDialogOpen(true);
-                    setDialogError(null);
-                  }}
-                  disabled={deletingId === role.id}
-                  className="ml-2 rounded-full border border-destructive/40 px-3 py-1 font-medium text-destructive/80 hover:text-destructive disabled:opacity-50"
-                >
-                  {isChinese ? "删除" : "Delete"}
-                </button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+    <>
+      <div className="space-y-2 rounded-2xl border bg-muted/20 p-4 text-sm text-muted-foreground">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <p>
+            {isChinese
+              ? `共 ${roles.length} 个角色`
+              : `${roles.length} roles`}
+          </p>
+          <Input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder={isChinese ? "搜索名称或描述" : "Search by name or description"}
+            className="md:w-64"
+          />
+        </div>
+      </div>
 
-      <AlertDialog
-        open={deleteDialogOpen}
-        onOpenChange={(open) => {
-          if (!open) {
-            closeDialog();
-          } else {
-            setDeleteDialogOpen(true);
-          }
-        }}
-      >
+      <div className="overflow-hidden rounded-2xl border">
+        {filteredRoles.length === 0 ? (
+          <div className="p-8 text-center text-sm text-muted-foreground">
+            {isChinese ? "暂无匹配的角色。" : "No roles match the current filters."}
+          </div>
+        ) : (
+          <Table className="text-sm">
+            <TableHeader className="bg-muted/50">
+              <TableRow className="text-left text-xs uppercase tracking-wide text-muted-foreground hover:bg-transparent">
+                <TableHead className="px-4 py-3">{isChinese ? "角色名称" : "Role"}</TableHead>
+                <TableHead className="px-4 py-3">{isChinese ? "作用域" : "Scope"}</TableHead>
+                <TableHead className="px-4 py-3">{isChinese ? "描述" : "Description"}</TableHead>
+                <TableHead className="px-4 py-3 text-right">{isChinese ? "操作" : "Actions"}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredRoles.map((role) => (
+                <TableRow key={role.id}>
+                  <TableCell className="px-4 py-3 whitespace-normal">
+                    <div className="font-medium">{role.name}</div>
+                    <p className="text-xs text-muted-foreground">{role.id}</p>
+                  </TableCell>
+                  <TableCell className="px-4 py-3">{role.scope}</TableCell>
+                  <TableCell className="px-4 py-3 whitespace-normal">
+                    {role.description ?? "-"}
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-right text-xs">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full px-3"
+                      onClick={() => openEditDialog(role)}
+                    >
+                      {isChinese ? "编辑" : "Edit"}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="ml-2 rounded-full px-3 text-destructive hover:text-destructive"
+                      onClick={() => openDeleteDialog(role)}
+                    >
+                      {isChinese ? "删除" : "Delete"}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {editing
+                ? isChinese
+                  ? "编辑角色"
+                  : "Edit Role"
+                : isChinese
+                  ? "新增角色"
+                  : "New Role"}
+            </DialogTitle>
+          </DialogHeader>
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            <div className="space-y-1.5">
+              <Label htmlFor="role-name">
+                {isChinese ? "角色名称" : "Role Name"}
+              </Label>
+              <Input
+                id="role-name"
+                value={formState.name}
+                onChange={(event) =>
+                  setFormState((prev) => ({ ...prev, name: event.target.value }))
+                }
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="role-scope">
+                {isChinese ? "角色作用域" : "Role Scope"}
+              </Label>
+              <Select
+                value={formState.scope}
+                onValueChange={(value) => setFormState((prev) => ({ ...prev, scope: value }))}
+              >
+                <SelectTrigger id="role-scope" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="system">
+                    {isChinese ? "系统" : "System"}
+                  </SelectItem>
+                  <SelectItem value="asset">
+                    {isChinese ? "资产" : "Asset"}
+                  </SelectItem>
+                  <SelectItem value="consumable">
+                    {isChinese ? "耗材" : "Consumable"}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="role-description">
+                {isChinese ? "描述（可选）" : "Description (optional)"}
+              </Label>
+              <Textarea
+                id="role-description"
+                rows={3}
+                value={formState.description}
+                onChange={(event) =>
+                  setFormState((prev) => ({ ...prev, description: event.target.value }))
+                }
+              />
+            </div>
+            {error && (
+              <div className="rounded-2xl border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm text-destructive">
+                {error}
+              </div>
+            )}
+            <DialogFooter className="gap-2">
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                {isChinese ? "取消" : "Cancel"}
+              </Button>
+              <Button type="submit" disabled={pending}>
+                {pending
+                  ? isChinese
+                    ? "保存中..."
+                    : "Saving..."
+                  : isChinese
+                    ? "保存"
+                    : "Save"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
@@ -166,26 +346,27 @@ export default function RoleTable({ roles, locale = "en" }: Props) {
                 : `Are you sure you want to delete ${dialogRole?.name ?? ""}?`}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          {dialogError && (
-            <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-              {dialogError}
+          {deleteError && (
+            <div className="rounded-2xl border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm text-destructive">
+              {deleteError}
             </div>
           )}
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deletingId === dialogRole?.id}>
+            <AlertDialogCancel>
               {isChinese ? "取消" : "Cancel"}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              disabled={deletingId === dialogRole?.id}
-              className="bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/30 dark:text-white"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isChinese ? "确认删除" : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
-}
+});
+
+export default RoleTable;
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
+import PageHeader from "@/components/layout/PageHeader";
 import ConsumableInventoryCreateDialog from "@/components/consumables/ConsumableInventoryCreateDialog";
 import { listConsumableCategories } from "@/lib/repositories/consumable-categories";
 import { listConsumableInventoryTasks } from "@/lib/repositories/consumable-inventory";
@@ -37,32 +37,26 @@ export default async function ConsumableInventoryPage({
 
   return (
     <div className="space-y-6">
-      <header className="space-y-4">
-        <PageBreadcrumb
-          locale={locale}
-          items={[
-            {
-              href: `/${locale}/consumables`,
-              labelZh: "耗材管理",
-              labelEn: "Consumables",
-            },
-            {
-              labelZh: "盘点",
-              labelEn: "Inventory",
-            },
-          ]}
-        />
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="mt-2 text-2xl font-semibold">
-              {isChinese ? "耗材盘点任务" : "Consumable Inventory Tasks"}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {isChinese
-                ? "创建盘点任务、跟踪执行进度并导出差异记录。"
-                : "Create tasks, track progress, and export discrepancies."}
-            </p>
-          </div>
+      <PageHeader
+        locale={locale}
+        items={[
+          {
+            href: `/${locale}/consumables`,
+            labelZh: "耗材管理",
+            labelEn: "Consumables",
+          },
+          {
+            labelZh: "盘点",
+            labelEn: "Inventory",
+          },
+        ]}
+        title={isChinese ? "耗材盘点任务" : "Consumable Inventory Tasks"}
+        description={
+          isChinese
+            ? "创建盘点任务、跟踪执行进度并导出差异记录。"
+            : "Create tasks, track progress, and export discrepancies."
+        }
+        actions={
           <ConsumableInventoryCreateDialog
             locale={locale}
             categories={categories.map((category) => ({
@@ -70,8 +64,8 @@ export default async function ConsumableInventoryPage({
               label: locale === "zh" ? category.labelZh : category.labelEn,
             }))}
           />
-        </div>
-      </header>
+        }
+      />
 
       {tasks.length === 0 ? (
         <div className="rounded-2xl border border-dashed bg-muted/30 p-10 text-center text-sm text-muted-foreground">

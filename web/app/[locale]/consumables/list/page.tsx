@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import ConsumableFilters from "@/components/consumables/ConsumableFilters";
 import ConsumableTable from "@/components/consumables/ConsumableTable";
-import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
+import PageHeader from "@/components/layout/PageHeader";
 import { listConsumableCategories } from "@/lib/repositories/consumable-categories";
 import {
   getConsumableStockStats,
@@ -84,33 +84,27 @@ export default async function ConsumableListPage({
 
   return (
     <div className="space-y-6">
-      <header>
-        <PageBreadcrumb
-          locale={locale}
-          items={[
-            {
-              href: `/${locale}/consumables`,
-              labelZh: "耗材管理",
-              labelEn: "Consumables",
-            },
-            {
-              labelZh: "耗材列表",
-              labelEn: "Consumable List",
-            },
-          ]}
-        />
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-              {isChinese ? "耗材列表" : "Consumable List"}
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {isChinese
-                ? "查看耗材库存、状态与安全库存情况。"
-                : "Monitor consumable stock levels and status."}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
+      <PageHeader
+        locale={locale}
+        items={[
+          {
+            href: `/${locale}/consumables`,
+            labelZh: "耗材管理",
+            labelEn: "Consumables",
+          },
+          {
+            labelZh: "耗材列表",
+            labelEn: "Consumable List",
+          },
+        ]}
+        title={isChinese ? "耗材列表" : "Consumable List"}
+        description={
+          isChinese
+            ? "查看耗材库存、状态与安全库存情况。"
+            : "Monitor consumable stock levels and status."
+        }
+        actions={
+          <>
             <Link
               href={withLocale("/consumables/import-export")}
               className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
@@ -123,9 +117,9 @@ export default async function ConsumableListPage({
             >
               {isChinese ? "类别管理" : "Categories"}
             </Link>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <ConsumableFilters locale={locale} categories={categories} />
 

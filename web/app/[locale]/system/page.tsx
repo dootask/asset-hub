@@ -1,5 +1,5 @@
 import Link from "next/link";
-import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
+import PageHeader from "@/components/layout/PageHeader";
 
 type PageParams = {
   locale: string;
@@ -81,30 +81,18 @@ export default async function SystemOverviewPage({ params }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <header>
-        <PageBreadcrumb
-          locale={locale}
-          items={[
-            {
-              href: `/${locale}`,
-              labelZh: "首页",
-              labelEn: "Dashboard",
-            },
-            {
-              labelZh: "系统管理",
-              labelEn: "System",
-            },
-          ]}
-        />
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-          {isChinese ? "系统管理总览" : "System Console"}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {isChinese
+      <PageHeader
+        locale={locale}
+        items={[
+          { labelZh: "系统管理", labelEn: "System" },
+        ]}
+        title={isChinese ? "系统管理总览" : "System Console"}
+        description={
+          isChinese
             ? "集中管理基础数据、角色与审批策略，保障资产业务闭环。"
-            : "Manage master data, roles, and approval policies from a single place."}
-        </p>
-      </header>
+            : "Manage master data, roles, and approval policies from a single place."
+        }
+      />
 
       <section className="grid gap-4 md:grid-cols-2">
         {CARDS.map((card) => (

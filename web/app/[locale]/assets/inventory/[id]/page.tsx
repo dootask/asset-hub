@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
+import PageHeader from "@/components/layout/PageHeader";
 import { getInventoryTaskById } from "@/lib/repositories/inventory-tasks";
 
 type PageParams = {
@@ -36,24 +36,22 @@ export default async function InventoryDetailPage({ params }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <header>
-        <PageBreadcrumb
-          locale={locale}
-          items={[
-            {
-              href: `/${locale}/assets/inventory`,
-              labelZh: "盘点任务",
-              labelEn: "Inventory",
-            },
-            {
-              labelZh: task.name,
-              labelEn: task.name,
-            },
-          ]}
-        />
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">{task.name}</h1>
-        <p className="text-sm text-muted-foreground">{task.id}</p>
-      </header>
+      <PageHeader
+        locale={locale}
+        items={[
+          {
+            href: `/${locale}/assets/inventory`,
+            labelZh: "盘点任务",
+            labelEn: "Inventory",
+          },
+          {
+            labelZh: task.name,
+            labelEn: task.name,
+          },
+        ]}
+        title={task.name}
+        description={task.id}
+      />
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="rounded-2xl border bg-card/70 p-4">

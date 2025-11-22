@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -172,30 +173,34 @@ export default function AssetImportExportClient({ locale, categories }: Props) {
             {isChinese ? "资产状态" : "Status"}
           </Label>
           <div className="flex flex-wrap gap-2 text-sm md:grid-cols-3">
-            {ASSET_STATUSES.map((status) => (
-              <label
-                key={status}
-                className="flex items-center gap-2 rounded-xl border bg-muted/30 px-3 py-2"
-              >
-                <input
-                  type="checkbox"
-                  className="size-4 rounded border-muted-foreground/40"
-                  checked={selectedStatuses.has(status)}
-                  onChange={() => handleStatusToggle(status)}
-                />
-                <span>
-                  {isChinese
-                    ? status === "in-use"
-                      ? "使用中"
-                      : status === "idle"
-                        ? "闲置"
-                        : status === "maintenance"
-                          ? "维护中"
-                          : "已退役"
-                    : status}
-                </span>
-              </label>
-            ))}
+            {ASSET_STATUSES.map((status) => {
+              const checkboxId = `asset-status-${status}`;
+              return (
+                <label
+                  key={status}
+                  htmlFor={checkboxId}
+                  className="flex items-center gap-2 rounded-xl border bg-muted/30 px-3 py-2"
+                >
+                  <Checkbox
+                    id={checkboxId}
+                    className="border-muted-foreground/40"
+                    checked={selectedStatuses.has(status)}
+                    onCheckedChange={() => handleStatusToggle(status)}
+                  />
+                  <span>
+                    {isChinese
+                      ? status === "in-use"
+                        ? "使用中"
+                        : status === "idle"
+                          ? "闲置"
+                          : status === "maintenance"
+                            ? "维护中"
+                            : "已退役"
+                      : status}
+                  </span>
+                </label>
+              );
+            })}
           </div>
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-3">

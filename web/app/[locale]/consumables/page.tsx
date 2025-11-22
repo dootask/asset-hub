@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import PageBreadcrumb from "@/components/layout/PageBreadcrumb";
+import PageHeader from "@/components/layout/PageHeader";
 
 export const metadata: Metadata = {
   title: "耗材管理 - Asset Hub",
@@ -53,30 +53,21 @@ export default async function ConsumablesOverviewPage({
 
   return (
     <div className="space-y-6">
-      <header>
-        <PageBreadcrumb
-          locale={locale}
-          items={[
-            {
-              href: `/${locale}`,
-              labelZh: "首页",
-              labelEn: "Dashboard",
-            },
-            {
-              labelZh: "耗材管理",
-              labelEn: "Consumables",
-            },
-          ]}
-        />
-        <h1 className="mt-2 text-2xl font-semibold">
-          {isChinese ? "耗材管理" : "Consumables"}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {isChinese
+      <PageHeader
+        locale={locale}
+        items={[
+          {
+            labelZh: "耗材管理",
+            labelEn: "Consumables",
+          },
+        ]}
+        title={isChinese ? "耗材管理" : "Consumables"}
+        description={
+          isChinese
             ? "管理耗材库存、盘点任务、告警通知以及操作审计报表。"
-            : "Manage consumable stock, inventory tasks, alerts, and audit reports."}
-        </p>
-      </header>
+            : "Manage consumable stock, inventory tasks, alerts, and audit reports."
+        }
+      />
       <section className="grid gap-4 md:grid-cols-2">
         {sections.map((section) => (
           <Link
