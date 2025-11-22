@@ -29,7 +29,7 @@ pnpm dev
 
 ### 重要页面
 
-- `/apps/asset-hub/{locale}`：首页（待补仪表盘）。
+- `/apps/asset-hub/{locale}`：首页。
 - `/apps/asset-hub/{locale}/assets/list`：资产列表。
 - `/apps/asset-hub/{locale}/assets/[id]`：资产详情，支持基础信息弹窗编辑、操作时间线、审批入口。
 - `/apps/asset-hub/{locale}/system`：系统管理总览 → 公司 / 角色 / 审批配置。
