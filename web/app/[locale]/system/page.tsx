@@ -111,16 +111,11 @@ export default async function SystemOverviewPage({ params }: PageProps) {
           <Link
             key={card.id}
             href={`/${locale}/system/${card.href}`}
-            className="group rounded-2xl border bg-muted/20 p-5 transition hover:border-primary hover:bg-primary/5"
+            className="group rounded-2xl border p-5 transition hover:border-primary hover:bg-primary/5"
           >
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold">
-                {isChinese ? card.titleZh : card.titleEn}
-              </h2>
-              <span className="text-sm text-primary transition-transform duration-200 group-hover:translate-x-0.5 group-hover:underline">
-                {isChinese ? "进入" : "Open"}
-              </span>
-            </div>
+            <h2 className="text-lg font-semibold">
+              {isChinese ? card.titleZh : card.titleEn}
+            </h2>
             <p className="mt-2 text-sm text-muted-foreground">
               {isChinese ? card.descriptionZh : card.descriptionEn}
             </p>
