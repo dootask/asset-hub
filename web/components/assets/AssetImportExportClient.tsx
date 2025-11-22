@@ -4,7 +4,14 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { AssetCategory } from "@/lib/repositories/asset-categories";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { AssetCategory } from "@/lib/types/asset-category";
 import { ASSET_STATUSES, type AssetStatus } from "@/lib/types/asset";
 
 interface Props {
@@ -17,6 +24,8 @@ type ImportResult = {
   skipped: number;
   errors: string[];
 };
+
+const ALL_CATEGORIES_VALUE = "__all__";
 
 export default function AssetImportExportClient({ locale, categories }: Props) {
   const isChinese = locale === "zh";
@@ -119,70 +128,74 @@ export default function AssetImportExportClient({ locale, categories }: Props) {
               : "Filter the dataset and download a CSV for backup or bulk editing."}
           </p>
         </div>
-        <div className="mt-4 grid gap-4 lg:grid-cols-2">
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">
-                {isChinese ? "关键词搜索" : "Keyword"}
-              </Label>
-              <Input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder={
-                  isChinese ? "资产名称、编号、位置..." : "Name, ID, location..."
-                }
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">
-                {isChinese ? "资产类别" : "Category"}
-              </Label>
-              <select
-                className="w-full rounded-2xl border bg-background px-3 py-2 text-sm"
-                value={category}
-                onChange={(event) => setCategory(event.target.value)}
-              >
-                <option value="">
-                  {isChinese ? "全部类别" : "All categories"}
-                </option>
-                {categories.map((entry) => (
-                  <option key={entry.id} value={entry.code}>
-                    {isChinese ? entry.labelZh : entry.labelEn}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className="space-y-2">
+        <div className="mt-4 flex flex-col gap-3">
+          <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">
-              {isChinese ? "资产状态" : "Status"}
+              {isChinese ? "关键词搜索" : "Keyword"}
             </Label>
-            <div className="grid grid-cols-2 gap-2 text-sm md:grid-cols-3">
-              {ASSET_STATUSES.map((status) => (
-                <label
-                  key={status}
-                  className="flex items-center gap-2 rounded-xl border bg-muted/30 px-3 py-2"
-                >
-                  <input
-                    type="checkbox"
-                    className="size-4 rounded border-muted-foreground/40"
-                    checked={selectedStatuses.has(status)}
-                    onChange={() => handleStatusToggle(status)}
-                  />
-                  <span>
-                    {isChinese
-                      ? status === "in-use"
-                        ? "使用中"
-                        : status === "idle"
-                          ? "闲置"
-                          : status === "maintenance"
-                            ? "维护中"
-                            : "已退役"
-                      : status}
-                  </span>
-                </label>
-              ))}
-            </div>
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder={
+                isChinese ? "资产名称、编号、位置..." : "Name, ID, location..."
+              }
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">
+              {isChinese ? "资产类别" : "Category"}
+            </Label>
+            <Select
+              value={category === "" ? ALL_CATEGORIES_VALUE : category}
+              onValueChange={(value) =>
+                setCategory(value === ALL_CATEGORIES_VALUE ? "" : value)
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue
+                  placeholder={isChinese ? "全部类别" : "All categories"}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_CATEGORIES_VALUE}>
+                  {isChinese ? "全部类别" : "All categories"}
+                </SelectItem>
+                {categories.map((entry) => (
+                  <SelectItem key={entry.id} value={entry.code}>
+                    {isChinese ? entry.labelZh : entry.labelEn}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Label className="text-xs text-muted-foreground">
+            {isChinese ? "资产状态" : "Status"}
+          </Label>
+          <div className="flex flex-wrap gap-2 text-sm md:grid-cols-3">
+            {ASSET_STATUSES.map((status) => (
+              <label
+                key={status}
+                className="flex items-center gap-2 rounded-xl border bg-muted/30 px-3 py-2"
+              >
+                <input
+                  type="checkbox"
+                  className="size-4 rounded border-muted-foreground/40"
+                  checked={selectedStatuses.has(status)}
+                  onChange={() => handleStatusToggle(status)}
+                />
+                <span>
+                  {isChinese
+                    ? status === "in-use"
+                      ? "使用中"
+                      : status === "idle"
+                        ? "闲置"
+                        : status === "maintenance"
+                          ? "维护中"
+                          : "已退役"
+                    : status}
+                </span>
+              </label>
+            ))}
           </div>
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-3">
