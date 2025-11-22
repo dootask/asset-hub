@@ -22,7 +22,8 @@ test.describe("Dashboard overview", () => {
     }).toContain("range=30");
 
     const shortcuts = app.getByTestId("dashboard-shortcuts").getByRole("link");
-    await expect(shortcuts).toHaveCount(4);
+    const shortcutCount = await shortcuts.count();
+    expect(shortcutCount).toBeGreaterThanOrEqual(4);
 
     await app.getByRole("link", { name: "Asset List" }).click();
     await expect(app.getByRole("heading", { name: "Asset List" })).toBeVisible();

@@ -124,7 +124,7 @@ export default async function LocaleDashboard({
 
   const withLocale = (path: string) => `/${locale}${path}`;
 
-  const statsCards = [
+  const highlightStats = [
     {
       key: "assets-total",
       label: isChinese ? "资产总数" : "Total Assets",
@@ -133,13 +133,9 @@ export default async function LocaleDashboard({
     },
     {
       key: "assets-in-use",
-      label: isChinese ? "使用中" : "In Use",
+      label: isChinese ? "使用中资产" : "Assets In Use",
       value: overview.stats.inUse,
-    },
-    {
-      key: "assets-idle",
-      label: isChinese ? "闲置" : "Idle",
-      value: overview.stats.idle,
+      href: "/assets/list?status=in-use",
     },
     {
       key: "pending-approvals",
@@ -148,16 +144,25 @@ export default async function LocaleDashboard({
       href: "/approvals?role=my-tasks",
     },
     {
-      key: "operations-range",
-      label: isChinese
-        ? `${range} 天操作`
-        : `Ops (${range}d)`,
-      value: recentOperations,
-      href: "/system/operation",
+      key: "low-stock-consumables",
+      label: isChinese ? "低库存耗材" : "Low-stock Consumables",
+      value: summary.lowStockConsumables ?? 0,
+      href: "/consumables/alerts",
     },
   ];
 
-  const secondaryStats = [
+  const supportingStats = [
+    {
+      key: "assets-idle",
+      label: isChinese ? "闲置资产" : "Idle Assets",
+      value: overview.stats.idle,
+    },
+    {
+      key: "operations-range",
+      label: isChinese ? `${range} 天操作` : `Ops (${range}d)`,
+      value: recentOperations,
+      href: "/system/operation",
+    },
     {
       key: "companies",
       label: isChinese ? "公司数量" : "Companies",
@@ -175,12 +180,6 @@ export default async function LocaleDashboard({
       label: isChinese ? "耗材记录" : "Consumables",
       value: summary.consumables ?? 0,
       href: "/consumables/list",
-    },
-    {
-      key: "consumables-low-stock",
-      label: isChinese ? "低库存耗材" : "Low-stock",
-      value: summary.lowStockConsumables ?? 0,
-      href: "/consumables/alerts",
     },
     {
       key: "inventory-tasks",
@@ -307,8 +306,8 @@ export default async function LocaleDashboard({
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
               {isChinese
-                ? "查看关键指标、快速进入常用模块。"
-                : "Review key metrics and jump into frequent actions."}
+                ? "优先关注资产核心指标与审批待办。"
+                : "Focus on the most important KPIs and approvals first."}
             </p>
           </div>
           <RangeFilter locale={locale} value={range} />
@@ -317,43 +316,93 @@ export default async function LocaleDashboard({
           className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
           data-testid="dashboard-stats"
         >
-          {statsCards.map((card) => {
+          {highlightStats.map((card) => {
             const content = (
               <>
                 <p className="text-sm text-muted-foreground">{card.label}</p>
-                <p className="text-2xl font-semibold">{card.value}</p>
+                <p className="text-3xl font-semibold">{card.value}</p>
               </>
             );
-            if (card.href) {
-              return (
-                <Link
-                  key={card.key}
-                  href={withLocale(card.href)}
-                  className="rounded-2xl border bg-muted/30 px-4 py-5 text-center transition hover:border-primary/30"
-                >
-                  {content}
-                </Link>
-              );
-            }
             return (
-              <div
+              <Link
                 key={card.key}
-                className="rounded-2xl border bg-muted/30 px-4 py-5 text-center"
+                href={withLocale(card.href)}
+                className="rounded-3xl border border-primary/10 bg-muted/40 px-4 py-6 text-center transition hover:border-primary/40"
               >
                 {content}
-              </div>
+              </Link>
             );
           })}
         </div>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          {secondaryStats.map((card) => (
+        <div className="mt-8 rounded-3xl border bg-muted/10 p-4">
+          <div className="flex flex-col gap-1 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
+                {isChinese ? "系统概览" : "System Snapshot"}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {isChinese
+                  ? "辅助指标帮助你快速判断后续需要处理的模块。"
+                  : "Secondary indicators hint at the next module to visit."}
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {supportingStats.map((card) => {
+              const content = (
+                <>
+                  <p className="text-xs uppercase text-muted-foreground">
+                    {card.label}
+                  </p>
+                  <p className="text-xl font-semibold">{card.value}</p>
+                </>
+              );
+              if (card.href) {
+                return (
+                  <Link
+                    key={card.key}
+                    href={withLocale(card.href)}
+                    className="rounded-2xl border bg-background/70 px-4 py-3 text-left text-sm transition hover:border-primary/40"
+                  >
+                    {content}
+                  </Link>
+                );
+              }
+              return (
+                <div
+                  key={card.key}
+                  className="rounded-2xl border bg-background/50 px-4 py-3 text-left text-sm"
+                >
+                  {content}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section
+        className="rounded-3xl border bg-card p-6 shadow-sm"
+        data-testid="dashboard-shortcuts"
+      >
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">
+              {isChinese ? "快捷入口" : "Shortcuts"}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {isChinese ? "一步直达高频功能。" : "Jump straight into frequent flows."}
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-3">
+          {shortcuts.map((item) => (
             <Link
-              key={card.key}
-              href={withLocale(card.href)}
-              className="rounded-2xl border bg-muted/20 px-4 py-4 text-center transition hover:border-primary/30"
+              key={item.href}
+              href={withLocale(item.href)}
+              className="rounded-full border px-4 py-2 text-sm text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
             >
-              <p className="text-sm text-muted-foreground">{card.label}</p>
-              <p className="text-xl font-semibold">{card.value}</p>
+              {item.label}
             </Link>
           ))}
         </div>
@@ -387,132 +436,125 @@ export default async function LocaleDashboard({
       </section>
 
       <section className="rounded-3xl border bg-card p-6 shadow-sm">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h2 className="text-lg font-semibold">
-              {isChinese ? "审批洞察" : "Approval Insights"}
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {isChinese
-                ? `近 ${range} 天的审批状态与趋势。`
-                : `Status and trend in the last ${range} days.`}
-            </p>
-          </div>
-          <Link
-            href={withLocale("/approvals")}
-            className="rounded-full border px-4 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
-          >
-            {isChinese ? "查看全部审批" : "View approvals"}
-          </Link>
+        <div className="flex flex-col gap-2">
+          <h2 className="text-lg font-semibold">
+            {isChinese ? "运营洞察" : "Operational Insights"}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {isChinese
+              ? `结合审批与操作趋势，了解近 ${range} 天的资产流转。`
+              : `Review approvals and operations from the last ${range} days.`}
+          </p>
         </div>
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
-          <div>
-            <h3 className="text-sm font-medium text-muted-foreground">
-              {isChinese ? "状态概览" : "Status Overview"}
-            </h3>
-            {overview.approvalsByStatus.length === 0 ? (
-              <p className="mt-3 text-sm text-muted-foreground">
-                {isChinese ? "暂无审批记录" : "No approvals yet"}
+          <div className="space-y-4 rounded-2xl border bg-muted/15 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-base font-semibold">
+                  {isChinese ? "审批中心" : "Approvals"}
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {isChinese ? "状态与趋势" : "Status & trend"}
+                </p>
+              </div>
+              <Link
+                href={withLocale("/approvals")}
+                className="rounded-full border px-3 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+              >
+                {isChinese ? "查看" : "Open"}
+              </Link>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-muted-foreground">
+                {isChinese ? "状态概览" : "Status Overview"}
               </p>
-            ) : (
-              <ul className="mt-3 space-y-3">
-                {overview.approvalsByStatus.map((item) => {
-                  const status = item.label as ApprovalStatus;
-                  return (
-                    <li
-                      key={item.label}
-                      className="flex items-center justify-between rounded-2xl border bg-muted/20 px-3 py-2 text-sm"
-                    >
-                      <ApprovalStatusBadge status={status} locale={locale} />
-                      <span className="text-muted-foreground">{item.count}</span>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-          <div>
-            <h3 className="text-sm font-medium text-muted-foreground">
-              {isChinese ? "趋势" : "Trend"}
-            </h3>
-            <div className="mt-3">
-              {renderTrend(
-                overview.approvalsTrend,
-                isChinese ? "暂无审批记录" : "No approvals yet",
+              {overview.approvalsByStatus.length === 0 ? (
+                <p className="mt-3 text-sm text-muted-foreground">
+                  {isChinese ? "暂无审批记录" : "No approvals yet"}
+                </p>
+              ) : (
+                <ul className="mt-3 space-y-3">
+                  {overview.approvalsByStatus.map((item) => {
+                    const status = item.label as ApprovalStatus;
+                    return (
+                      <li
+                        key={item.label}
+                        className="flex items-center justify-between rounded-2xl border bg-card/70 px-3 py-2 text-sm"
+                      >
+                        <ApprovalStatusBadge status={status} locale={locale} />
+                        <span className="text-muted-foreground">{item.count}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
               )}
             </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="rounded-3xl border bg-card p-6 shadow-sm">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h2 className="text-lg font-semibold">
-              {isChinese ? "操作统计" : "Ops Summary"}
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {isChinese
-                ? `近 ${range} 天各操作类型的数量。`
-                : `Operations by type in the last ${range} days.`}
-            </p>
-          </div>
-          <Link
-            href={withLocale("/assets/list")}
-            className="rounded-full border px-4 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
-          >
-            {isChinese ? "查看资产列表" : "View assets"}
-          </Link>
-        </div>
-        {operationsByType.length === 0 ? (
-          <p className="mt-4 text-sm text-muted-foreground">
-            {isChinese ? "暂无操作记录" : "No operations recorded"}
-          </p>
-        ) : (
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {operationsByType.map((item) => (
-              <div
-                key={item.label}
-                className="rounded-2xl border bg-muted/30 p-4 text-center"
-              >
-                <p className="text-xs uppercase text-muted-foreground">
-                  {item.label}
-                </p>
-                <p className="mt-2 text-2xl font-semibold">{item.count}</p>
+            <div>
+              <p className="text-xs uppercase text-muted-foreground">
+                {isChinese ? "趋势" : "Trend"}
+              </p>
+              <div className="mt-3">
+                {renderTrend(
+                  overview.approvalsTrend,
+                  isChinese ? "暂无审批记录" : "No approvals yet",
+                )}
               </div>
-            ))}
+            </div>
           </div>
-        )}
-        <div className="mt-6">
-          <h3 className="text-sm font-medium text-muted-foreground">
-            {isChinese ? "操作趋势" : "Operation Trend"}
-          </h3>
-          <div className="mt-3">
-            {renderTrend(
-              overview.operationsTrend,
-              isChinese ? "暂无操作记录" : "No operations yet",
-            )}
-          </div>
-        </div>
-      </section>
 
-      <section
-        className="rounded-3xl border bg-card p-6 shadow-sm"
-        data-testid="dashboard-shortcuts"
-      >
-        <h2 className="text-lg font-semibold">
-          {isChinese ? "快捷入口" : "Shortcuts"}
-        </h2>
-        <div className="mt-4 flex flex-wrap gap-3">
-          {shortcuts.map((item) => (
-            <Link
-              key={item.href}
-              href={withLocale(item.href)}
-              className="rounded-full border px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
-            >
-              {item.label}
-            </Link>
-          ))}
+          <div className="space-y-4 rounded-2xl border bg-muted/15 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-base font-semibold">
+                  {isChinese ? "操作动态" : "Operations"}
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {isChinese ? "类型与趋势" : "Types & trend"}
+                </p>
+              </div>
+              <Link
+                href={withLocale("/assets/list")}
+                className="rounded-full border px-3 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+              >
+                {isChinese ? "资产列表" : "Assets"}
+              </Link>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-muted-foreground">
+                {isChinese ? "按类型" : "By Type"}
+              </p>
+              {operationsByType.length === 0 ? (
+                <p className="mt-3 text-sm text-muted-foreground">
+                  {isChinese ? "暂无操作记录" : "No operations recorded"}
+                </p>
+              ) : (
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  {operationsByType.map((item) => (
+                    <div
+                      key={item.label}
+                      className="rounded-2xl border bg-card/70 p-3 text-center"
+                    >
+                      <p className="text-xs uppercase text-muted-foreground">
+                        {item.label}
+                      </p>
+                      <p className="mt-2 text-2xl font-semibold">{item.count}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div>
+              <p className="text-xs uppercase text-muted-foreground">
+                {isChinese ? "趋势" : "Trend"}
+              </p>
+              <div className="mt-3">
+                {renderTrend(
+                  overview.operationsTrend,
+                  isChinese ? "暂无操作记录" : "No operations yet",
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </section>
     </div>
