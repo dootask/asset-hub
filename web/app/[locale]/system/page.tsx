@@ -38,6 +38,15 @@ const CARDS = [
       "Define approval policies per operation type, including default approvers.",
   },
   {
+    id: "alerts",
+    href: "alerts",
+    titleZh: "告警配置",
+    titleEn: "Alert Settings",
+    descriptionZh: "控制耗材低库存告警及 DooTask 推送开关。",
+    descriptionEn:
+      "Toggle consumable low-stock alerts and DooTask push integration.",
+  },
+  {
     id: "reports",
     href: "data/reports",
     titleZh: "数据报表",

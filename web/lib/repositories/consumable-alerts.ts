@@ -10,6 +10,7 @@ import {
   createConsumableAlertTodo,
   resolveConsumableAlertTodo,
 } from "@/lib/integrations/dootask-todos";
+import { getSystemBooleanSetting } from "@/lib/repositories/system-settings";
 
 type AlertRow = {
   id: string;
@@ -198,6 +199,13 @@ export function listConsumableAlerts(filters?: {
 export function syncConsumableAlertSnapshot(
   snapshot: AlertSnapshot,
 ): ConsumableAlertSyncResult | null {
+  const alertsEnabled = getSystemBooleanSetting(
+    "consumableAlertsEnabled",
+    true,
+  );
+  if (!alertsEnabled) {
+    return null;
+  }
   const level: ConsumableAlertLevel | null =
     snapshot.status === "low-stock"
       ? "low-stock"
@@ -260,9 +268,15 @@ export async function propagateConsumableAlertResult(
 ) {
   if (!result) return;
   if (result.created) {
-    const todoId = await createConsumableAlertTodo(result.created);
-    if (todoId) {
-      setConsumableAlertExternalTodo(result.created.id, todoId);
+    const pushEnabled = getSystemBooleanSetting(
+      "consumableAlertsPushEnabled",
+      true,
+    );
+    if (pushEnabled) {
+      const todoId = await createConsumableAlertTodo(result.created);
+      if (todoId) {
+        setConsumableAlertExternalTodo(result.created.id, todoId);
+      }
     }
   }
 

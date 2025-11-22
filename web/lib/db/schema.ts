@@ -166,6 +166,32 @@ export const CREATE_TABLES = {
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `,
+  borrowRecords: `
+    CREATE TABLE IF NOT EXISTS asset_borrow_records (
+      id TEXT PRIMARY KEY,
+      asset_id TEXT NOT NULL,
+      borrow_operation_id TEXT NOT NULL UNIQUE,
+      borrower TEXT,
+      planned_return_date TEXT,
+      status TEXT NOT NULL DEFAULT ('active'),
+      return_operation_id TEXT,
+      return_operation_date TEXT,
+      overdue_notified_at TEXT,
+      external_todo_id TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY(asset_id) REFERENCES assets(id) ON DELETE CASCADE,
+      FOREIGN KEY(borrow_operation_id) REFERENCES asset_operations(id) ON DELETE CASCADE,
+      FOREIGN KEY(return_operation_id) REFERENCES asset_operations(id) ON DELETE SET NULL
+    );
+  `,
+  systemSettings: `
+    CREATE TABLE IF NOT EXISTS system_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `,
   reportViews: `
     CREATE TABLE IF NOT EXISTS report_views (
       id TEXT PRIMARY KEY,
@@ -579,7 +605,7 @@ export const seedOperationTemplates = [
     description_en: "Borrowing requires borrower details and deposit proof.",
     require_attachment: 0,
     metadata: JSON.stringify({
-      fields: ["borrower", "duration", "depositAttachment"],
+      fields: ["borrower", "duration", "returnPlan", "depositAttachment"],
     }),
   },
   {
@@ -631,6 +657,11 @@ export const seedOperationTemplates = [
     }),
   },
 ];
+
+export const DEFAULT_SYSTEM_SETTINGS = {
+  consumableAlertsEnabled: "true",
+  consumableAlertsPushEnabled: "true",
+};
 
 export const seedConsumableCategories = [
   {

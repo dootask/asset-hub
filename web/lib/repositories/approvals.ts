@@ -30,6 +30,10 @@ import {
   inferAssetStatusFromAction,
   resolveTemplateMetadataFromSources,
 } from "@/lib/utils/asset-state";
+import {
+  handleBorrowOperationCreated,
+  handleReturnOperationCreated,
+} from "@/lib/services/borrow-tracking";
 
 type ApprovalRow = {
   id: string;
@@ -439,6 +443,12 @@ function ensureOperationRecordForApproval(
     status: "done",
     metadata: metadataPayload,
   });
+
+  if (operation.type === "borrow") {
+    handleBorrowOperationCreated(approval.assetId, operation);
+  } else if (operation.type === "return") {
+    handleReturnOperationCreated(approval.assetId, operation);
+  }
 
   linkApprovalToAssetOperation(approval.id, operation.id);
   return getApprovalRequestById(approval.id)!;

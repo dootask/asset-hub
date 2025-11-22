@@ -33,6 +33,8 @@ pnpm dev
 - `/apps/asset-hub/{locale}/assets/list`：资产列表。
 - `/apps/asset-hub/{locale}/assets/[id]`：资产详情，支持基础信息弹窗编辑、操作时间线、审批入口。
 - `/apps/asset-hub/{locale}/system`：系统管理总览 → 公司 / 角色 / 审批配置。
+- `/apps/asset-hub/{locale}/system/alerts`：告警配置页，可启用/停用耗材低库存告警与 DooTask 待办推送。
+- `/apps/asset-hub/api/assets/borrows/overdue`：列出已超过计划归还日期但尚未归还的借用记录，供提醒或自动化任务使用。
 
 ## 测试与校验
 

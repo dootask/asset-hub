@@ -1,8 +1,5 @@
 import { NextResponse } from "next/server";
-import {
-  createAssetOperation,
-  listOperationsForAsset,
-} from "@/lib/repositories/asset-operations";
+import { createAssetOperation, listOperationsForAsset } from "@/lib/repositories/asset-operations";
 import { getAssetById, updateAsset } from "@/lib/repositories/assets";
 import {
   OPERATION_TYPES,
@@ -14,6 +11,10 @@ import {
   extractOwnerFromOperationMetadata,
   inferAssetStatusFromAction,
 } from "@/lib/utils/asset-state";
+import {
+  handleBorrowOperationCreated,
+  handleReturnOperationCreated,
+} from "@/lib/services/borrow-tracking";
 
 const VALID_OPERATION_TYPES = OPERATION_TYPES.map((item) => item.value);
 
@@ -93,6 +94,11 @@ export async function POST(request: Request, { params }: RouteContext) {
 
     const operation = createAssetOperation(id, payload);
     applyOperationSideEffects(asset, operation);
+    if (operation.type === "borrow") {
+      handleBorrowOperationCreated(asset.id, operation);
+    } else if (operation.type === "return") {
+      handleReturnOperationCreated(asset.id, operation);
+    }
     return NextResponse.json({ data: operation }, { status: 201 });
   } catch (error) {
     return NextResponse.json(

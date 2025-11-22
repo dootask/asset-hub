@@ -3,6 +3,7 @@ import Database from "better-sqlite3";
 import { getDataDirectory, getDbFilePath } from "@/lib/config";
 import {
   CREATE_TABLES,
+  DEFAULT_SYSTEM_SETTINGS,
   seedActionConfigs,
   seedApprovalRequests,
   seedAssetCategories,
@@ -62,6 +63,26 @@ function ensureSchemaUpgrades() {
   );
 }
 
+function ensureSystemSetting(key: string, value: string) {
+  const existing = db
+    .prepare(`SELECT value FROM system_settings WHERE key = ? LIMIT 1`)
+    .get(key) as { value: string | null } | undefined;
+  if (existing && existing.value !== null && existing.value !== undefined) {
+    return;
+  }
+  db.prepare(
+    `INSERT INTO system_settings (key, value, updated_at)
+     VALUES (@key, @value, datetime('now'))
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`,
+  ).run({ key, value });
+}
+
+function ensureDefaultSystemSettings() {
+  Object.entries(DEFAULT_SYSTEM_SETTINGS).forEach(([key, value]) => {
+    ensureSystemSetting(key, value);
+  });
+}
+
 function seedTable({
   table,
   rows,
@@ -94,6 +115,7 @@ function seedTable({
 function run() {
   createTables();
   ensureSchemaUpgrades();
+  ensureDefaultSystemSettings();
 
   seedTable({
     table: "companies",

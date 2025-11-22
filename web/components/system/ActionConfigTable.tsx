@@ -19,16 +19,20 @@ const APPROVER_TYPE_OPTIONS = [
   { value: "role", labelZh: "指定角色", labelEn: "Role" },
 ];
 
-const LABELS: Record<ActionConfigId, { zh: string; en: string }> = {
-  purchase: { zh: "采购", en: "Purchase" },
-  inbound: { zh: "入库", en: "Inbound" },
-  receive: { zh: "领用", en: "Receive" },
-  borrow: { zh: "借用", en: "Borrow" },
-  return: { zh: "归还", en: "Return" },
-  maintenance: { zh: "维护", en: "Maintenance" },
-  dispose: { zh: "报废", en: "Dispose" },
-  other: { zh: "其他", en: "Other" },
-};
+const CONFIG_ORDER: ActionConfigId[] = [
+  "purchase",
+  "inbound",
+  "receive",
+  "borrow",
+  "return",
+  "maintenance",
+  "dispose",
+  "outbound",
+  "reserve",
+  "release",
+  "adjust",
+  "other",
+];
 
 export default function ActionConfigTable({ initialConfigs, locale }: Props) {
   const [configs, setConfigs] = useState(initialConfigs);
@@ -39,10 +43,9 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
 
   const sortedConfigs = useMemo(
     () =>
-      [...configs].sort((a, b) => {
-        const order = Object.keys(LABELS) as ActionConfigId[];
-        return order.indexOf(a.id) - order.indexOf(b.id);
-      }),
+      [...configs].sort(
+        (a, b) => CONFIG_ORDER.indexOf(a.id) - CONFIG_ORDER.indexOf(b.id),
+      ),
     [configs],
   );
 
@@ -117,7 +120,9 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
                   {config.id}
                 </p>
                 <h2 className="text-lg font-semibold">
-                  {isChinese ? LABELS[config.id].zh : LABELS[config.id].en}
+                  {isChinese
+                    ? config.labelZh ?? config.id
+                    : config.labelEn ?? config.id}
                 </h2>
               </div>
               <Button
