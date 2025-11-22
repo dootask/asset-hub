@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { getAssetById } from "@/lib/repositories/assets";
 import { listOperationsForAsset } from "@/lib/repositories/asset-operations";
 import OperationTimeline from "@/components/assets/OperationTimeline";
-import OperationForm from "@/components/assets/OperationForm";
+import OperationFormDialog from "@/components/assets/OperationFormDialog";
 import ApprovalRequestForm from "@/components/approvals/ApprovalRequestForm";
 import ApprovalStatusBadge from "@/components/approvals/ApprovalStatusBadge";
 import { listApprovalRequests } from "@/lib/repositories/approvals";
@@ -115,26 +115,28 @@ export default async function AssetDetailPage({ params }: PageProps) {
       </section>
 
       <section className="rounded-2xl border bg-muted/30 p-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-8">
-          <div className="flex-1">
-            <h2 className="text-lg font-semibold">
-              {isChinese ? "操作记录" : "Operations"}
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {isChinese
-                ? "展示资产的关键操作，方便追溯来源与责任人。"
-                : "Track every operation for audit and accountability."}
-            </p>
-            <div className="mt-4">
-              <OperationTimeline operations={operations} locale={locale} />
+        <div className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">
+                {isChinese ? "操作记录" : "Operations"}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {isChinese
+                  ? "展示资产的关键操作，方便追溯来源与责任人。"
+                  : "Track every operation for audit and accountability."}
+              </p>
+            </div>
+            <div className="w-full sm:w-auto">
+              <OperationFormDialog
+                assetId={asset.id}
+                locale={locale}
+                templates={operationTemplates}
+              />
             </div>
           </div>
-          <div className="w-full lg:w-80">
-            <OperationForm
-              assetId={asset.id}
-              locale={locale}
-              templates={operationTemplates}
-            />
+          <div className="mt-2">
+            <OperationTimeline operations={operations} locale={locale} />
           </div>
         </div>
       </section>

@@ -44,12 +44,14 @@ interface Props {
   assetId: string;
   locale?: string;
   templates?: OperationTemplate[];
+  onSuccess?: () => void;
 }
 
 export default function OperationForm({
   assetId,
   locale = "en",
   templates = [],
+  onSuccess,
 }: Props) {
   const router = useRouter();
   const isChinese = locale === "zh";
@@ -339,6 +341,7 @@ export default function OperationForm({
       }));
       resetFieldValues();
       router.refresh();
+      onSuccess?.();
     } catch (err) {
       setError(
         err instanceof Error
