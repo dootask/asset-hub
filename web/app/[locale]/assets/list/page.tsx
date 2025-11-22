@@ -104,12 +104,6 @@ export default async function AssetListPage({
     return `?${params.toString()}`;
   };
 
-  const exportHref = (() => {
-    const params = buildQueryParams();
-    const query = params.toString();
-    return `/apps/asset-hub/api/assets/export${query ? `?${query}` : ""}`;
-  })();
-
   const withLocale = (path: string) => `/${locale}${path}`;
 
   return (
@@ -143,28 +137,22 @@ export default async function AssetListPage({
           <div className="flex items-center gap-2">
             <Link
               href={withLocale("/assets/new")}
-              className="inline-flex items-center justify-center rounded-2xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow"
+              className="inline-flex items-center justify-center rounded-2xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow whitespace-nowrap"
             >
               {isChinese ? "新增资产" : "New Asset"}
             </Link>
             <Link
               href={withLocale("/assets/categories")}
-              className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+              className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground whitespace-nowrap"
             >
               {isChinese ? "分类管理" : "Manage Categories"}
             </Link>
             <Link
               href={withLocale("/assets/import-export")}
-              className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+              className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground whitespace-nowrap"
             >
               {isChinese ? "导入 / 导出" : "Import / Export"}
             </Link>
-            <a
-              href={exportHref}
-              className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-            >
-              {isChinese ? "导出 CSV" : "Export CSV"}
-            </a>
           </div>
         </div>
       </header>
