@@ -45,6 +45,11 @@ interface Props {
   locale?: string;
   templates?: OperationTemplate[];
   onSuccess?: () => void;
+  formId?: string;
+  onSubmitStateChange?: (state: {
+    submitting: boolean;
+    operationLocked: boolean;
+  }) => void;
 }
 
 export default function OperationForm({
@@ -52,6 +57,8 @@ export default function OperationForm({
   locale = "en",
   templates = [],
   onSuccess,
+  formId,
+  onSubmitStateChange,
 }: Props) {
   const router = useRouter();
   const isChinese = locale === "zh";
@@ -116,6 +123,10 @@ export default function OperationForm({
     !loadingConfigs &&
     currentActionConfig?.requiresApproval === false;
   const operationLocked = isInboundType && !inboundUnlocked;
+
+  useEffect(() => {
+    onSubmitStateChange?.({ submitting, operationLocked });
+  }, [submitting, operationLocked, onSubmitStateChange]);
 
   useEffect(() => {
     setFieldValues((prev) => {
@@ -447,8 +458,9 @@ export default function OperationForm({
 
   return (
     <form
+      id={formId}
       onSubmit={handleSubmit}
-      className="space-y-4 rounded-2xl border bg-muted/40 p-4"
+      className="space-y-4"
     >
       {configError && (
         <p className="rounded-2xl border border-destructive/40 bg-destructive/5 p-3 text-xs text-destructive">
@@ -558,19 +570,6 @@ export default function OperationForm({
 
       {error && <p className="text-xs text-destructive">{error}</p>}
 
-      <Button
-        type="submit"
-        disabled={submitting || operationLocked}
-        className="w-full rounded-2xl px-4 py-2 text-sm"
-      >
-        {submitting
-          ? isChinese
-            ? "提交中..."
-            : "Submitting..."
-          : isChinese
-            ? "记录操作"
-            : "Log Operation"}
-      </Button>
     </form>
   );
 }

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -421,7 +422,7 @@ export default function CustomReportsClient({
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>
               {formState.id
@@ -433,150 +434,153 @@ export default function CustomReportsClient({
                   : "New Report View"}
             </DialogTitle>
           </DialogHeader>
-          <form className="space-y-4" onSubmit={handleSubmit}>
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label>{isChinese ? "名称" : "Name"}</Label>
-                <Input
-                  value={formState.name}
-                  onChange={(event) =>
-                    setFormState((prev) => ({ ...prev, name: event.target.value }))
-                  }
-                  required
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>{isChinese ? "数据源" : "Data Source"}</Label>
-                <Select
-                  value={formState.dataSource}
-                  onValueChange={(value) =>
-                    setFormState((prev) => ({
-                      ...prev,
-                      dataSource: value as FormState["dataSource"],
-                      fields:
-                        value === "assets"
-                          ? ["id", "name", "category", "status"]
-                          : ["id", "title", "status", "updatedAt"],
-                      filters: {},
-                    }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="assets">
-                      {isChinese ? "资产" : "Assets"}
-                    </SelectItem>
-                    <SelectItem value="approvals">
-                      {isChinese ? "审批" : "Approvals"}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>{isChinese ? "字段" : "Fields"}</Label>
-              <div className="grid gap-2 md:grid-cols-2">
-                {fieldsForSource.map((field) => (
-                  <label
-                    key={field.key}
-                    className="flex items-center gap-2 rounded-xl border bg-muted/30 px-3 py-2 text-sm"
+          <DialogBody>
+            <form id="custom-report-form" className="space-y-4" onSubmit={handleSubmit}>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label>{isChinese ? "名称" : "Name"}</Label>
+                  <Input
+                    value={formState.name}
+                    onChange={(event) =>
+                      setFormState((prev) => ({ ...prev, name: event.target.value }))
+                    }
+                    required
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{isChinese ? "数据源" : "Data Source"}</Label>
+                  <Select
+                    value={formState.dataSource}
+                    onValueChange={(value) =>
+                      setFormState((prev) => ({
+                        ...prev,
+                        dataSource: value as FormState["dataSource"],
+                        fields:
+                          value === "assets"
+                            ? ["id", "name", "category", "status"]
+                            : ["id", "title", "status", "updatedAt"],
+                        filters: {},
+                      }))
+                    }
                   >
-                    <Checkbox
-                      checked={formState.fields.includes(field.key)}
-                      onCheckedChange={() => handleFieldToggle(field.key)}
-                    />
-                    <span>{isChinese ? field.labelZh : field.labelEn}</span>
-                  </label>
-                ))}
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="assets">
+                        {isChinese ? "资产" : "Assets"}
+                      </SelectItem>
+                      <SelectItem value="approvals">
+                        {isChinese ? "审批" : "Approvals"}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label>{isChinese ? "筛选条件" : "Filters"}</Label>
-              <div className="grid gap-3 md:grid-cols-2">{filterControls}</div>
-            </div>
-
-            {error && (
-              <div className="rounded-2xl border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm text-destructive">
-                {error}
+              <div className="space-y-2">
+                <Label>{isChinese ? "字段" : "Fields"}</Label>
+                <div className="grid gap-2 md:grid-cols-2">
+                  {fieldsForSource.map((field) => (
+                    <label
+                      key={field.key}
+                      className="flex items-center gap-2 rounded-xl border bg-muted/30 px-3 py-2 text-sm"
+                    >
+                      <Checkbox
+                        checked={formState.fields.includes(field.key)}
+                        onCheckedChange={() => handleFieldToggle(field.key)}
+                      />
+                      <span>{isChinese ? field.labelZh : field.labelEn}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
-            )}
 
-            <DialogFooter className="gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setDialogOpen(false);
-                  setFormState(DEFAULT_FORM);
-                  setError(null);
-                }}
-              >
-                {isChinese ? "取消" : "Cancel"}
-              </Button>
-              <Button type="submit" disabled={pending} className="rounded-2xl px-4 py-2">
-                {pending
+              <div className="space-y-2">
+                <Label>{isChinese ? "筛选条件" : "Filters"}</Label>
+                <div className="grid gap-3 md:grid-cols-2">{filterControls}</div>
+              </div>
+
+              {error && (
+                <div className="rounded-2xl border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm text-destructive">
+                  {error}
+                </div>
+              )}
+            </form>
+          </DialogBody>
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setDialogOpen(false);
+                setFormState(DEFAULT_FORM);
+                setError(null);
+              }}
+            >
+              {isChinese ? "取消" : "Cancel"}
+            </Button>
+            <Button type="submit" form="custom-report-form" disabled={pending}>
+              {pending
+                ? isChinese
+                  ? "保存中..."
+                  : "Saving..."
+                : formState.id
                   ? isChinese
-                    ? "保存中..."
-                    : "Saving..."
-                  : formState.id
-                    ? isChinese
-                      ? "保存变更"
-                      : "Save"
-                    : isChinese
-                      ? "创建报表"
-                      : "Create"}
-              </Button>
-            </DialogFooter>
-          </form>
+                    ? "保存变更"
+                    : "Save"
+                  : isChinese
+                    ? "创建报表"
+                    : "Create"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {previewName && (
         <Dialog open={!!previewName} onOpenChange={(open) => !open && setPreviewName(null)}>
-          <DialogContent className="max-w-4xl">
+          <DialogContent className="sm:max-w-4xl">
             <DialogHeader>
               <DialogTitle>
                 {isChinese ? "报表预览：" : "Preview:"} {previewName}
               </DialogTitle>
             </DialogHeader>
-            {previewLoading && (
-              <p className="text-sm text-muted-foreground">
-                {isChinese ? "正在生成预览..." : "Generating preview..."}
-              </p>
-            )}
-            {previewError && (
-              <p className="text-sm text-destructive">{previewError}</p>
-            )}
-            {previewResult && !previewLoading && (
-              <ScrollArea className="max-h-[420px]">
-                <Table className="text-sm">
-                  <TableHeader className="bg-muted/30">
-                    <TableRow>
-                      {previewResult.columns.map((column) => (
-                        <TableHead key={column} className="px-3 py-2">
-                          {column}
-                        </TableHead>
-                      ))}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {previewResult.rows.map((row, index) => (
-                      <TableRow key={`${previewName}-${index}`}>
+            <DialogBody className="space-y-3">
+              {previewLoading && (
+                <p className="text-sm text-muted-foreground">
+                  {isChinese ? "正在生成预览..." : "Generating preview..."}
+                </p>
+              )}
+              {previewError && (
+                <p className="text-sm text-destructive">{previewError}</p>
+              )}
+              {previewResult && !previewLoading && (
+                <ScrollArea className="max-h-[420px]">
+                  <Table className="text-sm">
+                    <TableHeader className="bg-muted/30">
+                      <TableRow>
                         {previewResult.columns.map((column) => (
-                          <TableCell key={`${column}-${index}`} className="px-3 py-2">
-                            {String(row[column] ?? "-")}
-                          </TableCell>
+                          <TableHead key={column} className="px-3 py-2">
+                            {column}
+                          </TableHead>
                         ))}
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </ScrollArea>
-            )}
+                    </TableHeader>
+                    <TableBody>
+                      {previewResult.rows.map((row, index) => (
+                        <TableRow key={`${previewName}-${index}`}>
+                          {previewResult.columns.map((column) => (
+                            <TableCell key={`${column}-${index}`} className="px-3 py-2">
+                              {String(row[column] ?? "-")}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              )}
+            </DialogBody>
             <DialogFooter>
               <Button onClick={() => setPreviewName(null)}>
                 {isChinese ? "关闭" : "Close"}

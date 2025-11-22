@@ -25,6 +25,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -248,7 +249,7 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
               {editing
@@ -260,77 +261,79 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
                   : "New Role"}
             </DialogTitle>
           </DialogHeader>
-          <form className="space-y-4" onSubmit={handleSubmit}>
-            <div className="space-y-1.5">
-              <Label htmlFor="role-name">
-                {isChinese ? "角色名称" : "Role Name"}
-              </Label>
-              <Input
-                id="role-name"
-                value={formState.name}
-                onChange={(event) =>
-                  setFormState((prev) => ({ ...prev, name: event.target.value }))
-                }
-                required
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="role-scope">
-                {isChinese ? "角色作用域" : "Role Scope"}
-              </Label>
-              <Select
-                value={formState.scope}
-                onValueChange={(value) => setFormState((prev) => ({ ...prev, scope: value }))}
-              >
-                <SelectTrigger id="role-scope" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="system">
-                    {isChinese ? "系统" : "System"}
-                  </SelectItem>
-                  <SelectItem value="asset">
-                    {isChinese ? "资产" : "Asset"}
-                  </SelectItem>
-                  <SelectItem value="consumable">
-                    {isChinese ? "耗材" : "Consumable"}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="role-description">
-                {isChinese ? "描述（可选）" : "Description (optional)"}
-              </Label>
-              <Textarea
-                id="role-description"
-                rows={3}
-                value={formState.description}
-                onChange={(event) =>
-                  setFormState((prev) => ({ ...prev, description: event.target.value }))
-                }
-              />
-            </div>
-            {error && (
-              <div className="rounded-2xl border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm text-destructive">
-                {error}
+          <DialogBody>
+            <form id="role-form" className="space-y-4" onSubmit={handleSubmit}>
+              <div className="space-y-1.5">
+                <Label htmlFor="role-name">
+                  {isChinese ? "角色名称" : "Role Name"}
+                </Label>
+                <Input
+                  id="role-name"
+                  value={formState.name}
+                  onChange={(event) =>
+                    setFormState((prev) => ({ ...prev, name: event.target.value }))
+                  }
+                  required
+                />
               </div>
-            )}
-            <DialogFooter className="gap-2">
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                {isChinese ? "取消" : "Cancel"}
-              </Button>
-              <Button type="submit" disabled={pending}>
-                {pending
-                  ? isChinese
-                    ? "保存中..."
-                    : "Saving..."
-                  : isChinese
-                    ? "保存"
-                    : "Save"}
-              </Button>
-            </DialogFooter>
-          </form>
+              <div className="space-y-1.5">
+                <Label htmlFor="role-scope">
+                  {isChinese ? "角色作用域" : "Role Scope"}
+                </Label>
+                <Select
+                  value={formState.scope}
+                  onValueChange={(value) => setFormState((prev) => ({ ...prev, scope: value }))}
+                >
+                  <SelectTrigger id="role-scope" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="system">
+                      {isChinese ? "系统" : "System"}
+                    </SelectItem>
+                    <SelectItem value="asset">
+                      {isChinese ? "资产" : "Asset"}
+                    </SelectItem>
+                    <SelectItem value="consumable">
+                      {isChinese ? "耗材" : "Consumable"}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="role-description">
+                  {isChinese ? "描述（可选）" : "Description (optional)"}
+                </Label>
+                <Textarea
+                  id="role-description"
+                  rows={3}
+                  value={formState.description}
+                  onChange={(event) =>
+                    setFormState((prev) => ({ ...prev, description: event.target.value }))
+                  }
+                />
+              </div>
+              {error && (
+                <div className="rounded-2xl border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm text-destructive">
+                  {error}
+                </div>
+              )}
+            </form>
+          </DialogBody>
+          <DialogFooter className="gap-2">
+            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+              {isChinese ? "取消" : "Cancel"}
+            </Button>
+            <Button type="submit" form="role-form" disabled={pending}>
+              {pending
+                ? isChinese
+                  ? "保存中..."
+                  : "Saving..."
+                : isChinese
+                  ? "保存"
+                  : "Save"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

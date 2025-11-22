@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -106,119 +107,121 @@ export default function ConsumableInventoryCreateDialog({
         {isChinese ? "新建盘点任务" : "New Inventory Task"}
       </Button>
       <Dialog open={open} onOpenChange={(value) => !pending && setOpen(value)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
               {isChinese ? "新建耗材盘点任务" : "Create consumable inventory task"}
             </DialogTitle>
           </DialogHeader>
-          <form className="space-y-4" onSubmit={handleSubmit}>
-            <div className="space-y-1.5">
-              <Label htmlFor="inventory-name">
-                {isChinese ? "任务名称" : "Task name"}
-              </Label>
-              <Input
-                id="inventory-name"
-                value={formState.name}
-                onChange={(event) =>
-                  setFormState((prev) => ({ ...prev, name: event.target.value }))
-                }
-                placeholder={
-                  isChinese ? "例如：Q2 仓库盘点" : "e.g. Q2 Warehouse Audit"
-                }
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="inventory-owner">
-                {isChinese ? "负责人（可选）" : "Owner (optional)"}
-              </Label>
-              <Input
-                id="inventory-owner"
-                value={formState.owner}
-                onChange={(event) =>
-                  setFormState((prev) => ({ ...prev, owner: event.target.value }))
-                }
-                placeholder={isChinese ? "张三" : "Owner name"}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="inventory-description">
-                {isChinese ? "描述" : "Description"}
-              </Label>
-              <Textarea
-                id="inventory-description"
-                rows={3}
-                value={formState.description}
-                onChange={(event) =>
-                  setFormState((prev) => ({
-                    ...prev,
-                    description: event.target.value,
-                  }))
-                }
-                placeholder={
-                  isChinese
-                    ? "例如：针对办公区耗材进行取样盘点。"
-                    : "Optional notes about scope or instructions."
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>{isChinese ? "盘点范围" : "Scope filters"}</Label>
-              <div className="rounded-2xl border bg-muted/40 p-3">
-                {categories.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">
-                    {isChinese
-                      ? "暂无耗材类别，可在“耗材设置”中新增。"
-                      : "No categories yet. Add some in Consumable Settings."}
-                  </p>
-                ) : (
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {categories.map((category) => (
-                      <label
-                        key={category.code}
-                        className="flex items-center gap-2 rounded-xl border border-transparent px-2 py-1 text-sm hover:border-border"
-                      >
-                        <Checkbox
-                          checked={formState.categories.includes(category.code)}
-                          onCheckedChange={() => toggleCategory(category.code)}
-                        />
-                        <span>{category.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {isChinese
-                    ? "若不选择类别则默认盘点全部耗材。"
-                    : "Leave empty to include all consumables."}
-                </p>
+          <DialogBody>
+            <form id="consumable-inventory-form" className="space-y-4" onSubmit={handleSubmit}>
+              <div className="space-y-1.5">
+                <Label htmlFor="inventory-name">
+                  {isChinese ? "任务名称" : "Task name"}
+                </Label>
+                <Input
+                  id="inventory-name"
+                  value={formState.name}
+                  onChange={(event) =>
+                    setFormState((prev) => ({ ...prev, name: event.target.value }))
+                  }
+                  placeholder={
+                    isChinese ? "例如：Q2 仓库盘点" : "e.g. Q2 Warehouse Audit"
+                  }
+                />
               </div>
-            </div>
-            {error && (
-              <p className="text-sm text-destructive" role="alert">
-                {error}
-              </p>
-            )}
-            <DialogFooter className="gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setOpen(false)}
-                disabled={pending}
-              >
-                {isChinese ? "取消" : "Cancel"}
-              </Button>
-              <Button type="submit" disabled={pending}>
-                {pending
-                  ? isChinese
-                    ? "创建中..."
-                    : "Creating..."
-                  : isChinese
-                    ? "创建任务"
-                    : "Create task"}
-              </Button>
-            </DialogFooter>
-          </form>
+              <div className="space-y-1.5">
+                <Label htmlFor="inventory-owner">
+                  {isChinese ? "负责人（可选）" : "Owner (optional)"}
+                </Label>
+                <Input
+                  id="inventory-owner"
+                  value={formState.owner}
+                  onChange={(event) =>
+                    setFormState((prev) => ({ ...prev, owner: event.target.value }))
+                  }
+                  placeholder={isChinese ? "张三" : "Owner name"}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="inventory-description">
+                  {isChinese ? "描述" : "Description"}
+                </Label>
+                <Textarea
+                  id="inventory-description"
+                  rows={3}
+                  value={formState.description}
+                  onChange={(event) =>
+                    setFormState((prev) => ({
+                      ...prev,
+                      description: event.target.value,
+                    }))
+                  }
+                  placeholder={
+                    isChinese
+                      ? "例如：针对办公区耗材进行取样盘点。"
+                      : "Optional notes about scope or instructions."
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{isChinese ? "盘点范围" : "Scope filters"}</Label>
+                <div className="rounded-2xl border bg-muted/40 p-3">
+                  {categories.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      {isChinese
+                        ? "暂无耗材类别，可在“耗材设置”中新增。"
+                        : "No categories yet. Add some in Consumable Settings."}
+                    </p>
+                  ) : (
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {categories.map((category) => (
+                        <label
+                          key={category.code}
+                          className="flex items-center gap-2 rounded-xl border border-transparent px-2 py-1 text-sm hover:border-border"
+                        >
+                          <Checkbox
+                            checked={formState.categories.includes(category.code)}
+                            onCheckedChange={() => toggleCategory(category.code)}
+                          />
+                          <span>{category.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {isChinese
+                      ? "若不选择类别则默认盘点全部耗材。"
+                      : "Leave empty to include all consumables."}
+                  </p>
+                </div>
+              </div>
+              {error && (
+                <p className="text-sm text-destructive" role="alert">
+                  {error}
+                </p>
+              )}
+            </form>
+          </DialogBody>
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={pending}
+            >
+              {isChinese ? "取消" : "Cancel"}
+            </Button>
+            <Button type="submit" form="consumable-inventory-form" disabled={pending}>
+              {pending
+                ? isChinese
+                  ? "创建中..."
+                  : "Creating..."
+                : isChinese
+                  ? "创建任务"
+                  : "Create task"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

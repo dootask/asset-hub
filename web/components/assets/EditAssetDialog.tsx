@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -136,7 +137,7 @@ export default function EditAssetDialog({ asset, locale = "en", categories }: Pr
           {isChinese ? "编辑信息" : "Edit Info"}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{isChinese ? "编辑资产信息" : "Edit Asset"}</DialogTitle>
           <DialogDescription>
@@ -146,157 +147,159 @@ export default function EditAssetDialog({ asset, locale = "en", categories }: Pr
           </DialogDescription>
         </DialogHeader>
 
-        <form id="edit-asset-form" className="space-y-4" onSubmit={handleSubmit}>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-asset-name">
-                {isChinese ? "资产名称" : "Asset Name"}
-              </Label>
-              <Input
-                id="edit-asset-name"
-                required
-                value={formState.name}
-                onChange={(event) => handleChange("name", event.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-asset-category">
-                {isChinese ? "资产类别" : "Category"}
-              </Label>
-              <Select
-                value={formState.category}
-                onValueChange={(value) => handleChange("category", value)}
-                disabled={selectOptions.length === 0}
-              >
-                <SelectTrigger id="edit-asset-category" className="w-full">
-                  <SelectValue
-                    placeholder={
-                      selectOptions.length === 0
-                        ? isChinese
-                          ? "暂无类别"
-                          : "No categories"
-                        : undefined
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {selectOptions.length === 0 ? (
-                    <SelectItem value="" disabled>
-                      {isChinese ? "无可用类别" : "No categories available"}
-                    </SelectItem>
-                  ) : (
-                    selectOptions.map((category) => (
-                      <SelectItem key={category.id} value={category.code}>
-                        <span className="font-medium">{category.label}</span>
-                        {category.fallbackLabel && (
-                          <span className="ml-1 text-xs text-muted-foreground">
-                            {category.fallbackLabel}
-                          </span>
-                        )}
+        <DialogBody>
+          <form id="edit-asset-form" className="space-y-4" onSubmit={handleSubmit}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-asset-name">
+                  {isChinese ? "资产名称" : "Asset Name"}
+                </Label>
+                <Input
+                  id="edit-asset-name"
+                  required
+                  value={formState.name}
+                  onChange={(event) => handleChange("name", event.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-asset-category">
+                  {isChinese ? "资产类别" : "Category"}
+                </Label>
+                <Select
+                  value={formState.category}
+                  onValueChange={(value) => handleChange("category", value)}
+                  disabled={selectOptions.length === 0}
+                >
+                  <SelectTrigger id="edit-asset-category" className="w-full">
+                    <SelectValue
+                      placeholder={
+                        selectOptions.length === 0
+                          ? isChinese
+                            ? "暂无类别"
+                            : "No categories"
+                          : undefined
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {selectOptions.length === 0 ? (
+                      <SelectItem value="" disabled>
+                        {isChinese ? "无可用类别" : "No categories available"}
                       </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-asset-status">
-                {isChinese ? "资产状态" : "Status"}
-              </Label>
-              <Select
-                value={formState.status}
-                onValueChange={(value) => handleChange("status", value as AssetStatus)}
-              >
-                <SelectTrigger id="edit-asset-status" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ASSET_STATUSES.map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {getAssetStatusLabel(status, locale)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-asset-owner">
-                {isChinese ? "使用人 / 部门" : "Owner / Dept"}
-              </Label>
-              <Input
-                id="edit-asset-owner"
-                required
-                value={formState.owner}
-                onChange={(event) => handleChange("owner", event.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-asset-location">
-                {isChinese ? "存放位置" : "Location"}
-              </Label>
-              <Input
-                id="edit-asset-location"
-                required
-                value={formState.location}
-                onChange={(event) => handleChange("location", event.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-asset-purchase-date">
-                {isChinese ? "购入日期" : "Purchase Date"}
-              </Label>
-              <Popover
-                open={purchaseDateOpen}
-                onOpenChange={setPurchaseDateOpen}
-              >
-                <PopoverTrigger asChild>
-                  <Button
-                    id="edit-asset-purchase-date"
-                    variant="outline"
-                    type="button"
-                    data-empty={!purchaseDateValue}
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !purchaseDateValue && "text-muted-foreground",
+                    ) : (
+                      selectOptions.map((category) => (
+                        <SelectItem key={category.id} value={category.code}>
+                          <span className="font-medium">{category.label}</span>
+                          {category.fallbackLabel && (
+                            <span className="ml-1 text-xs text-muted-foreground">
+                              {category.fallbackLabel}
+                            </span>
+                          )}
+                        </SelectItem>
+                      ))
                     )}
-                  >
-                    <CalendarIcon className="mr-1 h-4 w-4" />
-                    {purchaseDateValue
-                      ? purchaseDateValue.toLocaleDateString(
-                          isChinese ? "zh-CN" : "en-US",
-                          {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                          },
-                        )
-                      : isChinese
-                        ? "选择日期"
-                        : "Pick a date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={purchaseDateValue}
-                    initialFocus
-                    onSelect={(date: Date | undefined) => {
-                      if (!date) return;
-                      handleChange("purchaseDate", date.toISOString().slice(0, 10));
-                      setPurchaseDateOpen(false);
-                    }}
-                  />
-                </PopoverContent>
-              </Popover>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-asset-status">
+                  {isChinese ? "资产状态" : "Status"}
+                </Label>
+                <Select
+                  value={formState.status}
+                  onValueChange={(value) => handleChange("status", value as AssetStatus)}
+                >
+                  <SelectTrigger id="edit-asset-status" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ASSET_STATUSES.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {getAssetStatusLabel(status, locale)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-asset-owner">
+                  {isChinese ? "使用人 / 部门" : "Owner / Dept"}
+                </Label>
+                <Input
+                  id="edit-asset-owner"
+                  required
+                  value={formState.owner}
+                  onChange={(event) => handleChange("owner", event.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-asset-location">
+                  {isChinese ? "存放位置" : "Location"}
+                </Label>
+                <Input
+                  id="edit-asset-location"
+                  required
+                  value={formState.location}
+                  onChange={(event) => handleChange("location", event.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-asset-purchase-date">
+                  {isChinese ? "购入日期" : "Purchase Date"}
+                </Label>
+                <Popover
+                  open={purchaseDateOpen}
+                  onOpenChange={setPurchaseDateOpen}
+                >
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="edit-asset-purchase-date"
+                      variant="outline"
+                      type="button"
+                      data-empty={!purchaseDateValue}
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !purchaseDateValue && "text-muted-foreground",
+                      )}
+                    >
+                      <CalendarIcon className="mr-1 h-4 w-4" />
+                      {purchaseDateValue
+                        ? purchaseDateValue.toLocaleDateString(
+                            isChinese ? "zh-CN" : "en-US",
+                            {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            },
+                          )
+                        : isChinese
+                          ? "选择日期"
+                          : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={purchaseDateValue}
+                      initialFocus
+                      onSelect={(date: Date | undefined) => {
+                        if (!date) return;
+                        handleChange("purchaseDate", date.toISOString().slice(0, 10));
+                        setPurchaseDateOpen(false);
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
-          </div>
 
-          {error && (
-            <div className="rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm text-destructive">
-              {error}
-            </div>
-          )}
-        </form>
+            {error && (
+              <div className="rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm text-destructive">
+                {error}
+              </div>
+            )}
+          </form>
+        </DialogBody>
 
         <DialogFooter className="pt-2">
           <Button
@@ -311,7 +314,6 @@ export default function EditAssetDialog({ asset, locale = "en", categories }: Pr
             type="submit"
             form="edit-asset-form"
             disabled={submitting}
-            className="rounded-2xl"
           >
             {submitting
               ? isChinese

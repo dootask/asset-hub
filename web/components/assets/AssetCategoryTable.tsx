@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -333,7 +334,7 @@ const AssetCategoryTable = forwardRef<AssetCategoryTableHandle, Props>(function 
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
               {editing
@@ -345,134 +346,131 @@ const AssetCategoryTable = forwardRef<AssetCategoryTableHandle, Props>(function 
                   : "New Category"}
             </DialogTitle>
           </DialogHeader>
-          <form className="space-y-4" onSubmit={handleSubmit}>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="category-label-zh">
-                  {isChinese ? "中文名称" : "Chinese Label"}
-                </Label>
-                <Input
-                  id="category-label-zh"
-                  value={formState.labelZh}
-                  onChange={(event) =>
-                    setFormState((prev) => ({
-                      ...prev,
-                      labelZh: event.target.value,
-                    }))
-                  }
-                  required
-                  placeholder="笔记本电脑"
-                />
+          <DialogBody>
+            <form id="asset-category-form" className="space-y-4" onSubmit={handleSubmit}>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="category-label-zh">
+                    {isChinese ? "中文名称" : "Chinese Label"}
+                  </Label>
+                  <Input
+                    id="category-label-zh"
+                    value={formState.labelZh}
+                    onChange={(event) =>
+                      setFormState((prev) => ({
+                        ...prev,
+                        labelZh: event.target.value,
+                      }))
+                    }
+                    required
+                    placeholder="笔记本电脑"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="category-label-en">
+                    {isChinese ? "英文名称" : "English Label"}
+                  </Label>
+                  <Input
+                    id="category-label-en"
+                    value={formState.labelEn}
+                    onChange={(event) =>
+                      setFormState((prev) => ({
+                        ...prev,
+                        labelEn: event.target.value,
+                      }))
+                    }
+                    required
+                    placeholder="Laptop"
+                  />
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="category-label-en">
-                  {isChinese ? "英文名称" : "English Label"}
-                </Label>
-                <Input
-                  id="category-label-en"
-                  value={formState.labelEn}
-                  onChange={(event) =>
-                    setFormState((prev) => ({
-                      ...prev,
-                      labelEn: event.target.value,
-                    }))
-                  }
-                  required
-                  placeholder="Laptop"
-                />
-              </div>
-            </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="category-code">
-                {isChinese ? "类别编码" : "Category Code"}
-              </Label>
-              <Input
-                id="category-code"
-                value={formState.code}
-                onChange={(event) =>
-                  setFormState((prev) => ({ ...prev, code: event.target.value }))
-                }
-                placeholder={isChinese ? "留空则自动生成" : "Leave empty to auto-generate"}
-                disabled={!!editing}
-              />
-              {editing && (
-                <p className="text-xs text-muted-foreground">
-                  {isChinese
-                    ? "类别编码用于资产记录引用，不可修改。"
-                    : "Code is referenced by assets and cannot be changed."}
-                </p>
+              <div className="space-y-1.5">
+                <Label htmlFor="category-code">
+                  {isChinese ? "类别编码" : "Category Code"}
+                </Label>
+                <Input
+                  id="category-code"
+                  value={formState.code}
+                  onChange={(event) =>
+                    setFormState((prev) => ({ ...prev, code: event.target.value }))
+                  }
+                  placeholder={isChinese ? "留空则自动生成" : "Leave empty to auto-generate"}
+                  disabled={!!editing}
+                />
+                {editing && (
+                  <p className="text-xs text-muted-foreground">
+                    {isChinese
+                      ? "类别编码用于资产记录引用，不可修改。"
+                      : "Code is referenced by assets and cannot be changed."}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="category-description">
+                  {isChinese ? "描述" : "Description"}
+                </Label>
+                <Textarea
+                  id="category-description"
+                  rows={3}
+                  value={formState.description}
+                  onChange={(event) =>
+                    setFormState((prev) => ({
+                      ...prev,
+                      description: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="category-color">
+                  {isChinese ? "颜色（可选）" : "Color (optional)"}
+                </Label>
+                <Input
+                  id="category-color"
+                  type="text"
+                  placeholder="#2563eb"
+                  value={formState.color}
+                  onChange={(event) =>
+                    setFormState((prev) => ({ ...prev, color: event.target.value }))
+                  }
+                />
+              </div>
+
+              {error && (
+                <div className="rounded-2xl border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm text-destructive">
+                  {error}
+                </div>
               )}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="category-description">
-                {isChinese ? "描述" : "Description"}
-              </Label>
-              <Textarea
-                id="category-description"
-                rows={3}
-                value={formState.description}
-                onChange={(event) =>
-                  setFormState((prev) => ({
-                    ...prev,
-                    description: event.target.value,
-                  }))
-                }
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="category-color">
-                {isChinese ? "颜色（可选）" : "Color (optional)"}
-              </Label>
-              <Input
-                id="category-color"
-                type="text"
-                placeholder="#2563eb"
-                value={formState.color}
-                onChange={(event) =>
-                  setFormState((prev) => ({ ...prev, color: event.target.value }))
-                }
-              />
-            </div>
-
-            {error && (
-              <div className="rounded-2xl border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm text-destructive">
-                {error}
-              </div>
-            )}
-
-            <DialogFooter className="gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setDialogOpen(false);
-                  setEditing(null);
-                }}
-              >
-                {isChinese ? "取消" : "Cancel"}
-              </Button>
-              <Button
-                type="submit"
-                disabled={pending}
-                className="rounded-2xl px-4 py-2"
-              >
-                {pending
+            </form>
+          </DialogBody>
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setDialogOpen(false);
+                setEditing(null);
+              }}
+            >
+              {isChinese ? "取消" : "Cancel"}
+            </Button>
+            <Button type="submit" form="asset-category-form" disabled={pending}>
+              {pending
+                ? isChinese
+                  ? "保存中..."
+                  : "Saving..."
+                : editing
                   ? isChinese
-                    ? "保存中..."
-                    : "Saving..."
-                  : editing
-                    ? isChinese
-                      ? "保存变更"
-                      : "Save"
-                    : isChinese
-                      ? "创建类别"
-                      : "Create"}
-              </Button>
-            </DialogFooter>
-          </form>
+                    ? "保存变更"
+                    : "Save"
+                  : isChinese
+                    ? "创建类别"
+                    : "Create"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

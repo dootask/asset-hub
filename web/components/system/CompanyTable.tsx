@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -327,7 +328,7 @@ const CompanyTable = forwardRef<CompanyTableHandle, Props>(function CompanyTable
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
               {editingId
@@ -339,94 +340,92 @@ const CompanyTable = forwardRef<CompanyTableHandle, Props>(function CompanyTable
                   : "New Company"}
             </DialogTitle>
           </DialogHeader>
-          <form className="space-y-4" onSubmit={handleSubmit}>
-            <div className="space-y-1.5">
-              <Label htmlFor="company-name">
-                {isChinese ? "公司名称" : "Company Name"}
-              </Label>
-              <Input
-                id="company-name"
-                value={formState.name}
-                onChange={(event) =>
-                  setFormState((prev) => ({ ...prev, name: event.target.value }))
-                }
-                required
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="company-code">
-                {isChinese ? "公司编码" : "Company Code"}
-              </Label>
-              <Input
-                id="company-code"
-                value={formState.code}
-                onChange={(event) =>
-                  setFormState((prev) => ({ ...prev, code: event.target.value }))
-                }
-                placeholder={isChinese ? "例如：NEBULA" : "e.g. NEBULA"}
-                required
-                disabled={!!editingId}
-              />
-              {editingId && (
-                <p className="text-xs text-muted-foreground">
-                  {isChinese
-                    ? "公司编码用于引用，不可修改。"
-                    : "Code is referenced elsewhere and cannot be changed."}
-                </p>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="company-description">
-                {isChinese ? "描述（可选）" : "Description (optional)"}
-              </Label>
-              <Textarea
-                id="company-description"
-                rows={3}
-                value={formState.description}
-                onChange={(event) =>
-                  setFormState((prev) => ({
-                    ...prev,
-                    description: event.target.value,
-                  }))
-                }
-              />
-            </div>
-            {error && (
-              <div className="rounded-2xl border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm text-destructive">
-                {error}
+          <DialogBody>
+            <form id="company-form" className="space-y-4" onSubmit={handleSubmit}>
+              <div className="space-y-1.5">
+                <Label htmlFor="company-name">
+                  {isChinese ? "公司名称" : "Company Name"}
+                </Label>
+                <Input
+                  id="company-name"
+                  value={formState.name}
+                  onChange={(event) =>
+                    setFormState((prev) => ({ ...prev, name: event.target.value }))
+                  }
+                  required
+                />
               </div>
-            )}
-            <DialogFooter className="gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setDialogOpen(false);
-                  setEditingId(null);
-                  setFormState(DEFAULT_FORM);
-                }}
-              >
-                {isChinese ? "取消" : "Cancel"}
-              </Button>
-              <Button
-                type="submit"
-                disabled={pending}
-                className="rounded-2xl px-4 py-2"
-              >
-                {pending
+              <div className="space-y-1.5">
+                <Label htmlFor="company-code">
+                  {isChinese ? "公司编码" : "Company Code"}
+                </Label>
+                <Input
+                  id="company-code"
+                  value={formState.code}
+                  onChange={(event) =>
+                    setFormState((prev) => ({ ...prev, code: event.target.value }))
+                  }
+                  placeholder={isChinese ? "例如：NEBULA" : "e.g. NEBULA"}
+                  required
+                  disabled={!!editingId}
+                />
+                {editingId && (
+                  <p className="text-xs text-muted-foreground">
+                    {isChinese
+                      ? "公司编码用于引用，不可修改。"
+                      : "Code is referenced elsewhere and cannot be changed."}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="company-description">
+                  {isChinese ? "描述（可选）" : "Description (optional)"}
+                </Label>
+                <Textarea
+                  id="company-description"
+                  rows={3}
+                  value={formState.description}
+                  onChange={(event) =>
+                    setFormState((prev) => ({
+                      ...prev,
+                      description: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+              {error && (
+                <div className="rounded-2xl border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm text-destructive">
+                  {error}
+                </div>
+              )}
+            </form>
+          </DialogBody>
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setDialogOpen(false);
+                setEditingId(null);
+                setFormState(DEFAULT_FORM);
+              }}
+            >
+              {isChinese ? "取消" : "Cancel"}
+            </Button>
+            <Button type="submit" form="company-form" disabled={pending}>
+              {pending
+                ? isChinese
+                  ? "保存中..."
+                  : "Saving..."
+                : editingId
                   ? isChinese
-                    ? "保存中..."
-                    : "Saving..."
-                  : editingId
-                    ? isChinese
-                      ? "保存变更"
-                      : "Save"
-                    : isChinese
-                      ? "创建公司"
-                      : "Create"}
-              </Button>
-            </DialogFooter>
-          </form>
+                    ? "保存变更"
+                    : "Save"
+                  : isChinese
+                    ? "创建公司"
+                    : "Create"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

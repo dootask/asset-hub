@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -28,6 +30,9 @@ export default function OperationFormDialog({
   trigger,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [operationLocked, setOperationLocked] = useState(false);
+  const formId = useId();
   const isChinese = locale === "zh";
 
   const triggerNode =
@@ -42,7 +47,7 @@ export default function OperationFormDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{triggerNode}</DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>
             {isChinese ? "新建资产操作" : "Create Asset Operation"}
@@ -53,12 +58,37 @@ export default function OperationFormDialog({
               : "Provide the operation details and submit to refresh the timeline."}
           </DialogDescription>
         </DialogHeader>
-        <OperationForm
-          assetId={assetId}
-          locale={locale}
-          templates={templates}
-          onSuccess={() => setOpen(false)}
-        />
+        <DialogBody>
+          <OperationForm
+            assetId={assetId}
+            locale={locale}
+            templates={templates}
+            onSuccess={() => setOpen(false)}
+            formId={formId}
+            onSubmitStateChange={({ submitting, operationLocked }) => {
+              setSubmitting(submitting);
+              setOperationLocked(operationLocked);
+            }}
+          />
+        </DialogBody>
+        <DialogFooter className="gap-2">
+          <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={submitting}>
+            {isChinese ? "取消" : "Cancel"}
+          </Button>
+          <Button
+            type="submit"
+            form={formId}
+            disabled={submitting || operationLocked}
+          >
+            {submitting
+              ? isChinese
+                ? "提交中..."
+                : "Submitting..."
+              : isChinese
+                ? "记录操作"
+                : "Log Operation"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

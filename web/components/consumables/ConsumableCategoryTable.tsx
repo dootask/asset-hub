@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -266,7 +267,7 @@ const ConsumableCategoryTable = forwardRef<ConsumableCategoryTableHandle, Props>
       </section>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
               {editing
@@ -278,112 +279,114 @@ const ConsumableCategoryTable = forwardRef<ConsumableCategoryTableHandle, Props>
                   : "New Category"}
             </DialogTitle>
           </DialogHeader>
-          <form className="space-y-4" onSubmit={handleSubmit}>
-            <div className="grid gap-4 sm:grid-cols-2">
+          <DialogBody>
+            <form id="consumable-category-form" className="space-y-4" onSubmit={handleSubmit}>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="consumable-category-label-zh">
+                    {isChinese ? "中文名称" : "Chinese label"}
+                  </Label>
+                  <Input
+                    id="consumable-category-label-zh"
+                    value={formState.labelZh}
+                    onChange={(event) =>
+                      setFormState((prev) => ({ ...prev, labelZh: event.target.value }))
+                    }
+                    required
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="consumable-category-label-en">
+                    {isChinese ? "英文名称" : "English label"}
+                  </Label>
+                  <Input
+                    id="consumable-category-label-en"
+                    value={formState.labelEn}
+                    onChange={(event) =>
+                      setFormState((prev) => ({ ...prev, labelEn: event.target.value }))
+                    }
+                    required
+                  />
+                </div>
+              </div>
               <div className="space-y-1.5">
-                <Label htmlFor="consumable-category-label-zh">
-                  {isChinese ? "中文名称" : "Chinese label"}
+                <Label htmlFor="consumable-category-code">
+                  {isChinese ? "类别编码" : "Category code"}
                 </Label>
                 <Input
-                  id="consumable-category-label-zh"
-                  value={formState.labelZh}
+                  id="consumable-category-code"
+                  value={formState.code}
                   onChange={(event) =>
-                    setFormState((prev) => ({ ...prev, labelZh: event.target.value }))
+                    setFormState((prev) => ({ ...prev, code: event.target.value }))
                   }
+                  placeholder={isChinese ? "例如：PrinterSupplies" : "e.g. PrinterSupplies"}
                   required
+                  disabled={!!editing}
+                />
+                {editing && (
+                  <p className="text-xs text-muted-foreground">
+                    {isChinese ? "类别编码不可修改。" : "Code cannot be changed."}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="consumable-category-unit">
+                  {isChinese ? "默认计量单位" : "Default unit"}
+                </Label>
+                <Input
+                  id="consumable-category-unit"
+                  value={formState.unit}
+                  onChange={(event) =>
+                    setFormState((prev) => ({ ...prev, unit: event.target.value }))
+                  }
+                  placeholder={isChinese ? "例如：个/箱" : "e.g. pcs / box"}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="consumable-category-label-en">
-                  {isChinese ? "英文名称" : "English label"}
+                <Label htmlFor="consumable-category-description">
+                  {isChinese ? "描述（可选）" : "Description (optional)"}
                 </Label>
-                <Input
-                  id="consumable-category-label-en"
-                  value={formState.labelEn}
+                <Textarea
+                  id="consumable-category-description"
+                  rows={3}
+                  value={formState.description}
                   onChange={(event) =>
-                    setFormState((prev) => ({ ...prev, labelEn: event.target.value }))
+                    setFormState((prev) => ({ ...prev, description: event.target.value }))
                   }
-                  required
                 />
               </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="consumable-category-code">
-                {isChinese ? "类别编码" : "Category code"}
-              </Label>
-              <Input
-                id="consumable-category-code"
-                value={formState.code}
-                onChange={(event) =>
-                  setFormState((prev) => ({ ...prev, code: event.target.value }))
-                }
-                placeholder={isChinese ? "例如：PrinterSupplies" : "e.g. PrinterSupplies"}
-                required
-                disabled={!!editing}
-              />
-              {editing && (
-                <p className="text-xs text-muted-foreground">
-                  {isChinese ? "类别编码不可修改。" : "Code cannot be changed."}
-                </p>
+              {error && (
+                <div className="rounded-2xl border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm text-destructive">
+                  {error}
+                </div>
               )}
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="consumable-category-unit">
-                {isChinese ? "默认计量单位" : "Default unit"}
-              </Label>
-              <Input
-                id="consumable-category-unit"
-                value={formState.unit}
-                onChange={(event) =>
-                  setFormState((prev) => ({ ...prev, unit: event.target.value }))
-                }
-                placeholder={isChinese ? "例如：个/箱" : "e.g. pcs / box"}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="consumable-category-description">
-                {isChinese ? "描述（可选）" : "Description (optional)"}
-              </Label>
-              <Textarea
-                id="consumable-category-description"
-                rows={3}
-                value={formState.description}
-                onChange={(event) =>
-                  setFormState((prev) => ({ ...prev, description: event.target.value }))
-                }
-              />
-            </div>
-            {error && (
-              <div className="rounded-2xl border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm text-destructive">
-                {error}
-              </div>
-            )}
-            <DialogFooter className="gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setDialogOpen(false);
-                  setEditing(null);
-                }}
-              >
-                {isChinese ? "取消" : "Cancel"}
-              </Button>
-              <Button type="submit" disabled={pending} className="rounded-2xl px-4 py-2">
-                {pending
+            </form>
+          </DialogBody>
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setDialogOpen(false);
+                setEditing(null);
+              }}
+            >
+              {isChinese ? "取消" : "Cancel"}
+            </Button>
+            <Button type="submit" form="consumable-category-form" disabled={pending}>
+              {pending
+                ? isChinese
+                  ? "保存中..."
+                  : "Saving..."
+                : editing
                   ? isChinese
-                    ? "保存中..."
-                    : "Saving..."
-                  : editing
-                    ? isChinese
-                      ? "保存变更"
-                      : "Save"
-                    : isChinese
-                      ? "创建类别"
-                      : "Create"}
-              </Button>
-            </DialogFooter>
-          </form>
+                    ? "保存变更"
+                    : "Save"
+                  : isChinese
+                    ? "创建类别"
+                    : "Create"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

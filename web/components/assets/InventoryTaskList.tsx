@@ -3,7 +3,14 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -255,146 +262,148 @@ export default function InventoryTaskList({ locale, baseUrl, initialTasks }: Pro
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>
               {isChinese ? "新建盘点任务" : "New Inventory Task"}
             </DialogTitle>
           </DialogHeader>
-          <form className="space-y-4" onSubmit={handleSubmit}>
-            <div className="space-y-1.5">
-              <Label>{isChinese ? "任务名称" : "Task Name"}</Label>
-              <Input
-                value={formState.name}
-                onChange={(event) =>
-                  setFormState((prev) => ({ ...prev, name: event.target.value }))
-                }
-                required
-              />
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
+          <DialogBody>
+            <form id="asset-inventory-form" className="space-y-4" onSubmit={handleSubmit}>
               <div className="space-y-1.5">
-                <Label>{isChinese ? "范围说明" : "Scope Summary"}</Label>
+                <Label>{isChinese ? "任务名称" : "Task Name"}</Label>
                 <Input
-                  value={formState.scope}
+                  value={formState.name}
                   onChange={(event) =>
-                    setFormState((prev) => ({ ...prev, scope: event.target.value }))
+                    setFormState((prev) => ({ ...prev, name: event.target.value }))
                   }
-                  placeholder={isChinese ? "例如：上海办公室资产" : "e.g. Shanghai office assets"}
+                  required
                 />
               </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label>{isChinese ? "范围说明" : "Scope Summary"}</Label>
+                  <Input
+                    value={formState.scope}
+                    onChange={(event) =>
+                      setFormState((prev) => ({ ...prev, scope: event.target.value }))
+                    }
+                    placeholder={isChinese ? "例如：上海办公室资产" : "e.g. Shanghai office assets"}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{isChinese ? "负责人" : "Owner"}</Label>
+                  <Input
+                    value={formState.owner}
+                    onChange={(event) =>
+                      setFormState((prev) => ({ ...prev, owner: event.target.value }))
+                    }
+                    placeholder={isChinese ? "填写负责人姓名或部门" : "Responsible person or team"}
+                  />
+                </div>
+              </div>
               <div className="space-y-1.5">
-                <Label>{isChinese ? "负责人" : "Owner"}</Label>
-                <Input
-                  value={formState.owner}
+                <Label>{isChinese ? "描述（可选）" : "Description (optional)"}</Label>
+                <Textarea
+                  rows={3}
+                  value={formState.description}
                   onChange={(event) =>
-                    setFormState((prev) => ({ ...prev, owner: event.target.value }))
+                    setFormState((prev) => ({ ...prev, description: event.target.value }))
                   }
-                  placeholder={isChinese ? "填写负责人姓名或部门" : "Responsible person or team"}
                 />
               </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label>{isChinese ? "描述（可选）" : "Description (optional)"}</Label>
-              <Textarea
-                rows={3}
-                value={formState.description}
-                onChange={(event) =>
-                  setFormState((prev) => ({ ...prev, description: event.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>{isChinese ? "过滤条件" : "Filters"}</Label>
-              <div className="grid gap-3 md:grid-cols-2">
-                <div className="rounded-2xl border bg-muted/30 p-3">
-                  <p className="text-xs text-muted-foreground">
-                    {isChinese ? "按状态筛选" : "Filter by status"}
-                  </p>
-                  <div className="mt-2 space-y-1 text-sm">
-                    {ASSET_STATUSES.map((status) => (
-                      <label key={status} className="flex items-center gap-2">
-                        <Checkbox
-                          checked={
-                            Array.isArray(formState.filters.status)
-                              ? (formState.filters.status as string[]).includes(status)
-                              : false
-                          }
-                          onCheckedChange={() => handleFilterToggle(status)}
-                        />
-                        <span>
-                          {isChinese
-                            ? status === "in-use"
-                              ? "使用中"
-                              : status === "idle"
-                                ? "闲置"
-                                : status === "maintenance"
-                                  ? "维护中"
-                                  : "已退役"
-                            : status}
-                        </span>
-                      </label>
-                    ))}
+              <div className="space-y-2">
+                <Label>{isChinese ? "过滤条件" : "Filters"}</Label>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="rounded-2xl border bg-muted/30 p-3">
+                    <p className="text-xs text-muted-foreground">
+                      {isChinese ? "按状态筛选" : "Filter by status"}
+                    </p>
+                    <div className="mt-2 space-y-1 text-sm">
+                      {ASSET_STATUSES.map((status) => (
+                        <label key={status} className="flex items-center gap-2">
+                          <Checkbox
+                            checked={
+                              Array.isArray(formState.filters.status)
+                                ? (formState.filters.status as string[]).includes(status)
+                                : false
+                            }
+                            onCheckedChange={() => handleFilterToggle(status)}
+                          />
+                          <span>
+                            {isChinese
+                              ? status === "in-use"
+                                ? "使用中"
+                                : status === "idle"
+                                  ? "闲置"
+                                  : status === "maintenance"
+                                    ? "维护中"
+                                    : "已退役"
+                              : status}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="space-y-1.5">
-                    <Label>{isChinese ? "类别关键词" : "Category"}</Label>
-                    <Input
-                      value={(formState.filters.category as string) ?? ""}
-                      onChange={(event) =>
-                        setFormState((prev) => ({
-                          ...prev,
-                          filters: {
-                            ...prev.filters,
-                            category: event.target.value,
-                          },
-                        }))
-                      }
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>{isChinese ? "关键词" : "Keyword"}</Label>
-                    <Input
-                      value={(formState.filters.search as string) ?? ""}
-                      onChange={(event) =>
-                        setFormState((prev) => ({
-                          ...prev,
-                          filters: {
-                            ...prev.filters,
-                            search: event.target.value,
-                          },
-                        }))
-                      }
-                      placeholder={isChinese ? "支持名称、位置等模糊搜索" : "Supports name, location, etc."}
-                    />
+                  <div className="space-y-2">
+                    <div className="space-y-1.5">
+                      <Label>{isChinese ? "类别关键词" : "Category"}</Label>
+                      <Input
+                        value={(formState.filters.category as string) ?? ""}
+                        onChange={(event) =>
+                          setFormState((prev) => ({
+                            ...prev,
+                            filters: {
+                              ...prev.filters,
+                              category: event.target.value,
+                            },
+                          }))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>{isChinese ? "关键词" : "Keyword"}</Label>
+                      <Input
+                        value={(formState.filters.search as string) ?? ""}
+                        onChange={(event) =>
+                          setFormState((prev) => ({
+                            ...prev,
+                            filters: {
+                              ...prev.filters,
+                              search: event.target.value,
+                            },
+                          }))
+                        }
+                        placeholder={isChinese ? "支持名称、位置等模糊搜索" : "Supports name, location, etc."}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-            <DialogFooter className="gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setDialogOpen(false);
-                  setFormState(DEFAULT_FORM);
-                  setError(null);
-                }}
-              >
-                {isChinese ? "取消" : "Cancel"}
-              </Button>
-              <Button type="submit" disabled={pending} className="rounded-2xl px-4 py-2">
-                {pending
-                  ? isChinese
-                    ? "创建中..."
-                    : "Creating..."
-                  : isChinese
-                    ? "创建任务"
-                    : "Create Task"}
-              </Button>
-            </DialogFooter>
-          </form>
+            </form>
+          </DialogBody>
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setDialogOpen(false);
+                setFormState(DEFAULT_FORM);
+                setError(null);
+              }}
+            >
+              {isChinese ? "取消" : "Cancel"}
+            </Button>
+            <Button type="submit" form="asset-inventory-form" disabled={pending}>
+              {pending
+                ? isChinese
+                  ? "创建中..."
+                  : "Creating..."
+                : isChinese
+                  ? "创建任务"
+                  : "Create Task"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
