@@ -161,6 +161,20 @@ const FIELD_LIBRARY: Record<string, OperationTemplateField> = {
   },
 };
 
+export const OPERATION_FIELD_LIBRARY = FIELD_LIBRARY;
+
+export type OperationFieldDraft = OperationTemplateField & {
+  source: "library" | "custom";
+};
+
+export const OPERATION_FIELD_WIDGET_OPTIONS: OperationTemplateFieldWidget[] = [
+  "text",
+  "textarea",
+  "number",
+  "date",
+  "attachments",
+];
+
 export const DEFAULT_OPERATION_TEMPLATE_FIELDS: Record<
   OperationTemplateId,
   string[]
@@ -179,9 +193,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function extractRawFieldSpecs(
-  metadata?: Record<string, unknown> | null,
-): RawFieldSpec[] {
+function extractRawFieldSpecs(metadata?: unknown): RawFieldSpec[] {
   if (!metadata) return [];
 
   if (Array.isArray(metadata)) {
@@ -196,7 +208,13 @@ function extractRawFieldSpecs(
 }
 
 function isWidget(value: unknown): value is OperationTemplateFieldWidget {
-  return value === "text" || value === "textarea" || value === "number" || value === "date" || value === "attachments";
+  return (
+    value === "text" ||
+    value === "textarea" ||
+    value === "number" ||
+    value === "date" ||
+    value === "attachments"
+  );
 }
 
 function normalizeRawField(spec: RawFieldSpec): OperationTemplateField | null {
@@ -205,7 +223,7 @@ function normalizeRawField(spec: RawFieldSpec): OperationTemplateField | null {
   if (typeof spec === "string") {
     const lib = FIELD_LIBRARY[spec];
     if (lib) {
-      return lib;
+      return { ...lib };
     }
     return {
       key: spec,
@@ -235,26 +253,142 @@ function normalizeRawField(spec: RawFieldSpec): OperationTemplateField | null {
   };
 }
 
+function toFieldDraft(field: OperationTemplateField): OperationFieldDraft {
+  const source = FIELD_LIBRARY[field.key] ? "library" : "custom";
+  return { ...field, source };
+}
+
+function normalizeOptional(value?: string | null): string | undefined {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  return trimmed.length ? trimmed : undefined;
+}
+
+function equalsLibraryDefaults(field: OperationFieldDraft): boolean {
+  if (field.source !== "library") {
+    return false;
+  }
+  const library = FIELD_LIBRARY[field.key];
+  if (!library) return false;
+
+  return (
+    library.widget === field.widget &&
+    (library.labelZh ?? library.key) === (field.labelZh ?? field.key) &&
+    (library.labelEn ?? library.key) === (field.labelEn ?? field.key) &&
+    normalizeOptional(library.placeholderZh) ===
+      normalizeOptional(field.placeholderZh) &&
+    normalizeOptional(library.placeholderEn) ===
+      normalizeOptional(field.placeholderEn) &&
+    normalizeOptional(library.helperZh) === normalizeOptional(field.helperZh) &&
+    normalizeOptional(library.helperEn) === normalizeOptional(field.helperEn) &&
+    Boolean(library.required) === Boolean(field.required)
+  );
+}
+
+function draftToRawSpec(field: OperationFieldDraft): RawFieldSpec {
+  if (equalsLibraryDefaults(field)) {
+    return field.key;
+  }
+  const cleaned: OperationTemplateField = {
+    ...field,
+    placeholderZh: normalizeOptional(field.placeholderZh),
+    placeholderEn: normalizeOptional(field.placeholderEn),
+    helperZh: normalizeOptional(field.helperZh),
+    helperEn: normalizeOptional(field.helperEn),
+  };
+  return cleaned;
+}
+
 export function deriveOperationTemplateFields(
   type: OperationTemplateId,
   template?: OperationTemplate | null,
 ): OperationTemplateField[] {
-  const rawFields = extractRawFieldSpecs(template?.metadata);
+  const drafts = buildFieldDraftsFromValue(type, template?.metadata);
+  return drafts.map((draft) => {
+    const { source: _source, ...field } = draft;
+    void _source;
+    return field;
+  });
+}
 
-  const fallbackKeys = DEFAULT_OPERATION_TEMPLATE_FIELDS[type] ?? [];
+export function buildFieldDraftsFromTemplate(
+  template: OperationTemplate,
+): OperationFieldDraft[] {
+  return buildFieldDraftsFromValue(template.type, template.metadata);
+}
+
+export function buildFieldDraftsFromValue(
+  type: OperationTemplateId,
+  metadata?: unknown,
+): OperationFieldDraft[] {
+  const rawFields = extractRawFieldSpecs(metadata);
+
+  const fallbackKeys =
+    rawFields.length === 0 ? DEFAULT_OPERATION_TEMPLATE_FIELDS[type] ?? [] : [];
   const specs = rawFields.length ? rawFields : fallbackKeys;
 
   const seen = new Set<string>();
-  const result: OperationTemplateField[] = [];
+  const result: OperationFieldDraft[] = [];
   specs.forEach((spec) => {
     const normalized = normalizeRawField(spec);
     if (!normalized) return;
     if (seen.has(normalized.key)) return;
     seen.add(normalized.key);
-    result.push(normalized);
+    result.push(toFieldDraft(normalized));
   });
 
   return result;
+}
+
+export function buildMetadataFromFieldDrafts(
+  drafts: OperationFieldDraft[],
+): Record<string, unknown> | null {
+  if (!drafts.length) {
+    return null;
+  }
+
+  const fields = drafts.map(draftToRawSpec);
+  return { fields };
+}
+
+export function createFieldDraftFromLibrary(
+  key: string,
+): OperationFieldDraft | null {
+  const entry = FIELD_LIBRARY[key];
+  if (!entry) return null;
+  return { ...entry, source: "library" };
+}
+
+export function createCustomFieldDraft(
+  key: string,
+  overrides?: Partial<OperationTemplateField>,
+): OperationFieldDraft {
+  return {
+    key,
+    widget: overrides?.widget ?? "text",
+    labelZh: overrides?.labelZh ?? "自定义字段",
+    labelEn: overrides?.labelEn ?? "Custom Field",
+    placeholderZh: overrides?.placeholderZh,
+    placeholderEn: overrides?.placeholderEn,
+    helperZh: overrides?.helperZh,
+    helperEn: overrides?.helperEn,
+    required: overrides?.required ?? false,
+    source: "custom",
+  };
+}
+
+export function getRecommendedFieldDrafts(
+  type: OperationTemplateId,
+): OperationFieldDraft[] {
+  const keys = DEFAULT_OPERATION_TEMPLATE_FIELDS[type] ?? [];
+  const drafts: OperationFieldDraft[] = [];
+  keys.forEach((key) => {
+    const draft = createFieldDraftFromLibrary(key);
+    if (draft) {
+      drafts.push(draft);
+    }
+  });
+  return drafts;
 }
 
 export function normalizeOperationTypeToTemplateType(
