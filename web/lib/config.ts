@@ -45,15 +45,11 @@ export const appConfig = {
     adminUserIds: parseNumberCsv(process.env.ASSET_HUB_ADMIN_USER_IDS),
   },
   release: {
-    version: process.env.ASSET_HUB_VERSION ?? "0.1.0-preview",
-    releasedAt:
-      process.env.ASSET_HUB_RELEASED_AT ??
-      new Date().toISOString().slice(0, 10),
+    version: process.env.ASSET_HUB_VERSION ?? "0.1.0",
+    releasedAt: process.env.ASSET_HUB_RELEASED_AT ?? new Date().toISOString().slice(0, 10),
     edition: process.env.ASSET_HUB_LICENSE_EDITION ?? "Community",
     plan: process.env.ASSET_HUB_LICENSE_PLAN ?? "Community",
-    changelogUrl:
-      process.env.ASSET_HUB_CHANGELOG_URL ??
-      "https://dootask.com/apps/asset-hub/changelog",
+    changelogUrl: process.env.ASSET_HUB_CHANGELOG_URL ?? "https://github.com/dootask/asset-hub/releases",
     maxUsers: parseNumberEnv(process.env.ASSET_HUB_LICENSE_MAX_USERS),
     expiresAt: process.env.ASSET_HUB_LICENSE_EXPIRES_AT ?? null,
   },

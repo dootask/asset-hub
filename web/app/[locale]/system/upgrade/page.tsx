@@ -30,6 +30,7 @@ export default async function SystemUpgradePage({
   const { locale } = await params;
   const isChinese = locale === "zh";
   const versionInfo = getSystemVersionInfo();
+  const aboutPath = isChinese ? "zh/about" : "en/about";
 
   const releaseDate = formatDate(versionInfo.releaseDate, locale);
   const expiresAt = formatDate(versionInfo.license.expiresAt, locale);
@@ -84,16 +85,16 @@ export default async function SystemUpgradePage({
           </div>
           <div className="flex gap-3">
             {versionInfo.changelogUrl && (
-              <Link
-                href={versionInfo.changelogUrl}
-                target="_blank"
-                className="inline-flex items-center justify-center rounded-full border px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10"
-              >
-                {isChinese ? "查看更新记录" : "View changelog"}
-              </Link>
+            <Link
+              href={versionInfo.changelogUrl}
+              target="_blank"
+              className="inline-flex items-center justify-center rounded-full border px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10"
+            >
+              {isChinese ? "查看更新记录" : "View changelog"}
+            </Link>
             )}
             <Link
-              href="https://dootask.com/contact"
+              href={`https://www.dootask.com/${aboutPath}`}
               target="_blank"
               className="inline-flex items-center justify-center rounded-full bg-primary px-5 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90"
             >
@@ -131,7 +132,7 @@ export default async function SystemUpgradePage({
                   {versionInfo.license.maxUsers
                     ? `${versionInfo.license.maxUsers.toLocaleString()}`
                     : isChinese
-                      ? "未限制"
+                      ? "无限制"
                       : "Unlimited"}
                 </dd>
               </div>
@@ -184,26 +185,22 @@ export default async function SystemUpgradePage({
 
       <section className="rounded-2xl border bg-card p-5">
         <h2 className="text-lg font-semibold">
-          {isChinese ? "需要帮助？" : "Need help?"}
+          {isChinese ? "常用链接" : "Useful Links"}
         </h2>
-        <p className="text-sm text-muted-foreground">
-          {isChinese
-            ? "通过以下方式联系我们获取升级方案或合作信息。"
-            : "Reach out via the channels below for upgrade or partnership details."}
-        </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <Link
-            href="mailto:hello@dootask.com"
-            className="inline-flex items-center justify-center rounded-full border px-4 py-2 text-sm font-medium text-muted-foreground hover:border-primary hover:text-primary"
-          >
-            hello@dootask.com
-          </Link>
-          <Link
-            href="https://dootask.com/contact"
+            href="https://appstore.dootask.com/development/manual"
             target="_blank"
             className="inline-flex items-center justify-center rounded-full border px-4 py-2 text-sm font-medium text-muted-foreground hover:border-primary hover:text-primary"
           >
-            {isChinese ? "提交升级需求" : "Submit upgrade request"}
+            {isChinese ? "插件开发文档" : "Plugin Docs"}
+          </Link>
+          <Link
+            href="https://github.com/dootask/asset-hub/issues"
+            target="_blank"
+            className="inline-flex items-center justify-center rounded-full border px-4 py-2 text-sm font-medium text-muted-foreground hover:border-primary hover:text-primary"
+          >
+            {isChinese ? "提交反馈" : "Give Feedback"}
           </Link>
         </div>
       </section>

@@ -45,12 +45,12 @@ alwaysApply: true
     - `/operations/other`：其它操作（维修、报废、回收、遗失等）。
     - `/inventory`：资产盘点任务列表与详情。
 
-- **耗材管理（预留扩展）**
+- **耗材管理**
   - URL 前缀：`/apps/asset-hub/{locale}/consumables`
   - 子路由建议：
-    - `/settings`：耗材设置。
-    - `/operations`：耗材操作流程（采购、入库、出库、处理等）。
-    - `/inventory`：耗材盘点（后期扩展）。
+    - `/settings`：耗材设置（类别、属性、安全库存等）。
+    - `/operations`：耗材操作流程（采购、入库、出库、处理等），与审批和库存联动。
+    - `/inventory`：耗材盘点任务列表与详情。
 
 - **版本信息 / 关于**
   - URL：`/apps/asset-hub/{locale}/about`（或嵌入到系统管理 / 个人中心中）

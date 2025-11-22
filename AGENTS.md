@@ -2,7 +2,7 @@
 
 ## 一、项目总览
 
-- **项目定位**：Asset Hub 是 DooTask 的资产管理插件，提供资产全生命周期管理能力（系统管理、资产管理、后期扩展的耗材管理等）。
+- **项目定位**：Asset Hub 是 DooTask 的资产管理插件，提供资产与耗材的全生命周期管理能力（系统管理、资产管理、耗材管理等）。
 - **访问前缀**：所有页面与 HTTP API 必须挂载在 `/apps/asset-hub` 前缀下。
 - **技术栈与目录**
   - Web 应用：Next.js（App Router）+ React + TypeScript + Tailwind CSS + shadcn/ui，代码集中在 `web/` 目录。
@@ -44,9 +44,9 @@
     - `operations/other`：其它操作（维修、报废、回收、遗失等）。
     - `inventory`：资产盘点任务列表与详情。
 
-- **耗材管理（预留扩展）**
-  - 前缀：`/apps/asset-hub/{locale}/consumables`
-  - 示例子路由：`settings`、`operations`、`inventory` 等。
+- **耗材管理**
+- 前缀：`/apps/asset-hub/{locale}/consumables`
+- 示例子路由：`settings`、`operations`、`inventory` 等（实际已实现列表、详情、操作时间线、盘点、告警与审计报表等能力，详细能力说明见 `.cursor/rules/30-feature-plan.mdc` 中的“耗材管理”章节）。
 
 - **关于 / 版本信息**
   - 建议在关于页或系统管理中突出显示当前插件版本号，方便用户感知版本信息。
@@ -158,4 +158,11 @@
   - 要点：审批请求表与资产操作表的关系、审批状态机、`/api/approvals` 系列接口、前端页面与宿主集成约定等。
 
 在执行某类任务时，应根据上述索引先阅读对应规则文件，再结合 Graphiti 中的相关记忆与事实完成实现与调整。
+
+## 七、开发约定
+
+- 业务规则与规划以 `.cursor/rules/*.mdc` 为准，`AGENTS.md` / 各 README 只做摘要与导航。
+- 开发中如发现“实现与规则文档不一致”，应先更新对应的 `.cursor/rules/*.mdc`（必要时同步更新本文件摘要），再调整代码，避免“实现先跑、文档滞后”。
+- 新增重要能力或调整关键流程时，优先补充或更新 `.cursor/rules` 里的设计说明，然后再开写代码。
+- AI 协助开发时也应遵守上述约定：先对齐规则文档，再改实现。
 

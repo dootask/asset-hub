@@ -1,6 +1,6 @@
 ## Asset Hub 资产管理插件
 
-- 本仓库用于开发 DooTask 的资产管理插件 **Asset Hub**，提供资产全生命周期管理能力（系统管理、资产管理、后期扩展的耗材管理等）。
+- 本仓库用于开发 DooTask 的资产管理插件 **Asset Hub**，提供资产与耗材的全生命周期管理能力（系统管理、资产管理、耗材管理等）。
 - Web 应用基于 **Next.js + React + TypeScript + Tailwind CSS + shadcn/ui**，位于 `web/` 目录。
 - 插件适配层基于 DooTask 插件规范，位于 `dootask-plugin/` 目录。
 

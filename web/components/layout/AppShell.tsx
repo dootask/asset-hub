@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
 import { useTranslations } from "next-intl";
+import { isMicroApp } from "@dootask/tools";
 import DooTaskBridge from "@/components/providers/DooTaskBridge";
 import { normalizeUserId } from "@/lib/utils/user-id";
 
@@ -24,7 +25,6 @@ const NAV_ITEMS = [
   { href: "/assets/list", match: "/assets", key: "assets" },
   { href: "/consumables", match: "/consumables", key: "consumables" },
   { href: "/system", match: "/system", key: "system" },
-  { href: "/about", match: "/about", key: "about" },
 ] as const;
 
 type Props = {
@@ -38,6 +38,7 @@ export default function AppShell({ children, locale, adminUserIds }: Props) {
   const tNav = useTranslations("Nav");
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
   const [userReady, setUserReady] = useState(false);
+  const [isMicroEnv, setIsMicroEnv] = useState<boolean | null>(null);
   const pathWithoutBase = pathname.startsWith(BASE_PATH)
     ? pathname.slice(BASE_PATH.length) || "/"
     : pathname;
@@ -61,6 +62,26 @@ export default function AppShell({ children, locale, adminUserIds }: Props) {
   useEffect(() => {
     document.documentElement.lang = locale === "zh" ? "zh-CN" : "en-US";
   }, [locale]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function checkMicroEnv() {
+      try {
+        const micro = await isMicroApp();
+        if (!cancelled) {
+          setIsMicroEnv(micro);
+        }
+      } catch {
+        if (!cancelled) {
+          setIsMicroEnv(false);
+        }
+      }
+    }
+    checkMicroEnv();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -118,6 +139,53 @@ export default function AppShell({ children, locale, adminUserIds }: Props) {
   const visibleNavItems = navItems.filter(
     (item) => item.key !== "system" || showSystemNav,
   );
+
+  const loadingEnv = isMicroEnv === null;
+  const isGuest = userReady && !sessionUser;
+
+  if (!loadingEnv && isMicroEnv === false) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-6">
+        <div className="max-w-md rounded-3xl border bg-card p-6 text-center shadow-sm">
+          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+            Asset Hub
+          </p>
+          <h1 className="mt-3 text-xl font-semibold">
+            {locale === "zh"
+              ? "请在 DooTask 插件环境中打开"
+              : "Open inside DooTask plugin"}
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {locale === "zh"
+              ? "当前访问方式未检测到 DooTask 宿主环境。请从 DooTask 应用中心打开 Asset Hub 插件。"
+              : "This app is intended to run as a DooTask plugin. Please launch Asset Hub from the DooTask app center."}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!loadingEnv && isMicroEnv && isGuest) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-6">
+        <div className="max-w-md rounded-3xl border bg-card p-6 text-center shadow-sm">
+          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+            Asset Hub
+          </p>
+          <h1 className="mt-3 text-xl font-semibold">
+            {locale === "zh"
+              ? "禁止游客访问"
+              : "Guest access is not allowed"}
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {locale === "zh"
+              ? "未检测到有效的用户信息。请确认已登录 DooTask 后，通过插件入口重新访问 Asset Hub。"
+              : "No valid user context is available. Please ensure you are logged in to DooTask and reopen Asset Hub from the plugin entry."}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background transition-colors">
