@@ -1,24 +1,20 @@
 import type { Metadata } from "next";
-import { getRequestBaseUrl } from "@/lib/utils/server-url";
 import type { ActionConfig } from "@/lib/types/action-config";
 import ActionConfigTable from "@/components/system/ActionConfigTable";
 import PageHeader from "@/components/layout/PageHeader";
+import { getApiClient } from "@/lib/http/client";
 
 export const metadata: Metadata = {
   title: "审批配置 - Asset Hub",
 };
 
 async function fetchConfigs() {
-  const baseUrl = await getRequestBaseUrl();
-  const response = await fetch(
-    `${baseUrl}/apps/asset-hub/api/config/approvals`,
-    { cache: "no-store" },
+  const client = await getApiClient();
+  const response = await client.get<{ data: ActionConfig[] }>(
+    "/apps/asset-hub/api/config/approvals",
+    { headers: { "Cache-Control": "no-cache" } },
   );
-  if (!response.ok) {
-    throw new Error("无法加载审批配置");
-  }
-  const payload = (await response.json()) as { data: ActionConfig[] };
-  return payload.data;
+  return response.data.data;
 }
 
 export default async function ApprovalConfigPage({
@@ -56,5 +52,4 @@ export default async function ApprovalConfigPage({
     </div>
   );
 }
-
 

@@ -41,6 +41,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import type { Company } from "@/lib/types/system";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
+import { getApiClient } from "@/lib/http/client";
 
 interface Props {
   initialCompanies: Company[];
@@ -133,16 +134,13 @@ const CompanyTable = forwardRef<CompanyTableHandle, Props>(function CompanyTable
         const endpoint = editingId
           ? `${baseUrl}/apps/asset-hub/api/system/companies/${editingId}`
           : `${baseUrl}/apps/asset-hub/api/system/companies`;
-        const response = await fetch(endpoint, {
+        const client = await getApiClient();
+        const response = await client.request<{ data: Company }>({
+          url: endpoint,
           method: editingId ? "PUT" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          data: payload,
         });
-        const body = await response.json();
-        if (!response.ok) {
-          throw new Error(body?.message ?? "保存失败，请稍后重试。");
-        }
-        const { data } = body as { data: Company };
+        const { data } = response.data;
         setCompanies((prev) => {
           if (editingId) {
             return prev.map((item) => (item.id === data.id ? data : item));
@@ -180,14 +178,10 @@ const CompanyTable = forwardRef<CompanyTableHandle, Props>(function CompanyTable
   const handleDelete = (company: Company) => {
     startTransition(async () => {
       try {
-        const response = await fetch(
+        const client = await getApiClient();
+        await client.delete(
           `${baseUrl}/apps/asset-hub/api/system/companies/${company.id}`,
-          { method: "DELETE" },
         );
-        const body = await response.json().catch(() => null);
-        if (!response.ok) {
-          throw new Error(body?.message ?? "删除失败");
-        }
         setCompanies((prev) => prev.filter((item) => item.id !== company.id));
         feedback.success(isChinese ? "删除成功" : "Deleted successfully");
       } catch (err) {
@@ -445,4 +439,3 @@ const CompanyTable = forwardRef<CompanyTableHandle, Props>(function CompanyTable
 });
 
 export default CompanyTable;
-

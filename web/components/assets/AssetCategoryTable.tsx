@@ -27,6 +27,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import type { AssetCategory } from "@/lib/types/asset-category";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
+import { getApiClient } from "@/lib/http/client";
 
 export interface AssetCategoryTableHandle {
   openCreateDialog: () => void;
@@ -113,39 +114,27 @@ const AssetCategoryTable = forwardRef<AssetCategoryTableHandle, Props>(function 
     event.preventDefault();
     startTransition(async () => {
       try {
+        const client = await getApiClient();
         const payload = {
           labelZh: formState.labelZh.trim(),
           labelEn: formState.labelEn.trim(),
           description: formState.description.trim() || undefined,
           color: formState.color.trim() || undefined,
         };
-        let response: Response;
-        if (editing) {
-          response = await fetch(
-            `${baseUrl}/apps/asset-hub/api/assets/categories/${editing.id}`,
-            {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload),
-            },
-          );
-        } else {
-          response = await fetch(`${baseUrl}/apps/asset-hub/api/assets/categories`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              ...payload,
-              code: formState.code.trim() || undefined,
-            }),
-          });
-        }
+        const response = editing
+          ? await client.put<{ data: AssetCategory }>(
+              `${baseUrl}/apps/asset-hub/api/assets/categories/${editing.id}`,
+              payload,
+            )
+          : await client.post<{ data: AssetCategory }>(
+              `${baseUrl}/apps/asset-hub/api/assets/categories`,
+              {
+                ...payload,
+                code: formState.code.trim() || undefined,
+              },
+            );
 
-        if (!response.ok) {
-          const message = await response.json().catch(() => null);
-          throw new Error(message?.message ?? "操作失败，请稍后重试。");
-        }
-
-        const { data } = (await response.json()) as { data: AssetCategory };
+        const { data } = response.data;
         setCategories((prev) => {
           if (editing) {
             return prev.map((item) => (item.id === data.id ? data : item));
@@ -182,16 +171,10 @@ const AssetCategoryTable = forwardRef<AssetCategoryTableHandle, Props>(function 
   const handleDelete = (category: AssetCategory) => {
     startTransition(async () => {
       try {
-        const response = await fetch(
+        const client = await getApiClient();
+        await client.delete(
           `${baseUrl}/apps/asset-hub/api/assets/categories/${category.id}`,
-          {
-            method: "DELETE",
-          },
         );
-        if (!response.ok) {
-          const message = await response.json().catch(() => null);
-          throw new Error(message?.message ?? "删除失败");
-        }
         setCategories((prev) => prev.filter((item) => item.id !== category.id));
         feedback.success(isChinese ? "删除成功" : "Deleted successfully");
       } catch (err) {

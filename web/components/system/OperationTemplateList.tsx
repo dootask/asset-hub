@@ -42,6 +42,7 @@ import {
   type OperationFieldDraft,
 } from "@/lib/config/operation-template-fields";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
+import { getApiClient } from "@/lib/http/client";
 
 interface Props {
   templates: OperationTemplate[];
@@ -250,24 +251,17 @@ export default function OperationTemplateList({
     setPendingId(template.type);
     startTransition(async () => {
       try {
-        const response = await fetch(
+        const client = await getApiClient();
+        const response = await client.put<{ data: OperationTemplate }>(
           `/apps/asset-hub/api/config/operations/${template.type}`,
           {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              descriptionZh: template.descriptionZh,
-              descriptionEn: template.descriptionEn,
-              requireAttachment: template.requireAttachment,
-              metadata: metadataPayload,
-            }),
+            descriptionZh: template.descriptionZh,
+            descriptionEn: template.descriptionEn,
+            requireAttachment: template.requireAttachment,
+            metadata: metadataPayload,
           },
         );
-        if (!response.ok) {
-          const payload = await response.json().catch(() => null);
-          throw new Error(payload?.message ?? "保存失败，请稍后重试。");
-        }
-        const { data } = (await response.json()) as { data: OperationTemplate };
+        const { data } = response.data;
         setItems((prev) => prev.map((item) => (item.type === data.type ? data : item)));
         const refreshedDrafts = buildFieldDraftsFromTemplate(data);
         setFieldDrafts((prev) => ({ ...prev, [data.type]: refreshedDrafts }));

@@ -6,6 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
+import { getApiClient } from "@/lib/http/client";
 
 interface Props {
   locale: string;
@@ -21,17 +22,8 @@ export default function AlertSettingsForm({ locale, initialSettings }: Props) {
   const handleSubmit = () => {
     startTransition(async () => {
       try {
-        const response = await fetch("/apps/asset-hub/api/system/settings/alerts", {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(settings),
-        });
-        if (!response.ok) {
-          const payload = await response.json().catch(() => null);
-          throw new Error(payload?.message ?? "Failed to update settings.");
-        }
+        const client = await getApiClient();
+        await client.put("/apps/asset-hub/api/system/settings/alerts", settings);
         feedback.success(isChinese ? "已保存告警设置。" : "Alert settings saved.");
       } catch (err) {
         const message =
@@ -102,4 +94,3 @@ export default function AlertSettingsForm({ locale, initialSettings }: Props) {
     </div>
   );
 }
-

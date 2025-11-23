@@ -1,3 +1,4 @@
+import axios from "axios";
 import { appConfig } from "@/lib/config";
 import type { ApprovalRequest } from "@/lib/types/approval";
 import type { ConsumableAlert } from "@/lib/types/consumable-alert";
@@ -18,21 +19,17 @@ async function sendRequest({
   }
 
   try {
-    const response = await fetch(`${todoConfig.baseUrl}${path}`, {
+    const response = await axios.request({
+      url: `${todoConfig.baseUrl}${path}`,
       method,
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${todoConfig.token}`,
       },
-      body: JSON.stringify(body),
+      data: body,
     });
-    if (!response.ok) {
-      throw new Error(`DooTask API ${response.status}`);
-    }
-    const payload = (await response.json().catch(() => null)) as
-      | { id?: string }
-      | null;
-    return payload;
+    const payload = (response.data ?? null) as { id?: string } | null;
+    return payload ?? null;
   } catch (error) {
     console.warn("[asset-hub] dootask todo sync failed", error);
     return null;
@@ -100,4 +97,3 @@ export async function resolveConsumableAlertTodo(alert: ConsumableAlert) {
     },
   });
 }
-

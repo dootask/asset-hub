@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { Company } from "@/lib/types/system";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
+import { getApiClient } from "@/lib/http/client";
 
 interface CompanyFormProps {
   company?: Company;
@@ -46,16 +47,12 @@ export default function CompanyForm({ company, locale = "en" }: CompanyFormProps
         ? `/apps/asset-hub/api/system/companies/${company.id}`
         : "/apps/asset-hub/api/system/companies";
       const method = company ? "PUT" : "POST";
-      const response = await fetch(url, {
+      const client = await getApiClient();
+      await client.request({
+        url,
         method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formState),
+        data: formState,
       });
-
-      if (!response.ok) {
-        const payload = await response.json();
-        throw new Error(payload?.message ?? "提交失败");
-      }
 
       router.replace(`/${locale}/system/company`);
       router.refresh();

@@ -39,6 +39,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { CreateAssetPayload } from "@/lib/types/asset";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
+import { getApiClient } from "@/lib/http/client";
 
 type Props = {
   asset: Asset;
@@ -103,16 +104,8 @@ export default function EditAssetDialog({ asset, locale = "en", categories }: Pr
     setSubmitting(true);
 
     try {
-      const response = await fetch(`/apps/asset-hub/api/assets/${asset.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formState),
-      });
-
-      if (!response.ok) {
-        const payload = await response.json();
-        throw new Error(payload?.message ?? "更新失败");
-      }
+      const client = await getApiClient();
+      await client.put(`/apps/asset-hub/api/assets/${asset.id}`, formState);
 
       setOpen(false);
       router.refresh();

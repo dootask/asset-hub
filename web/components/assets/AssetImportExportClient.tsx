@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import type { AssetCategory } from "@/lib/types/asset-category";
 import { ASSET_STATUSES, type AssetStatus } from "@/lib/types/asset";
+import { getApiClient } from "@/lib/http/client";
 
 interface Props {
   locale: string;
@@ -82,27 +83,17 @@ export default function AssetImportExportClient({ locale, categories }: Props) {
     setImportError(null);
     setImportResult(null);
     try {
+      const client = await getApiClient();
       const formData = new FormData();
       formData.append("file", selectedFile);
-      const response = await fetch("/apps/asset-hub/api/assets/import", {
-        method: "POST",
-        body: formData,
-      });
-      const payload = (await response.json()) as {
+      const response = await client.post<{
         data?: ImportResult;
         message?: string;
-      };
-      if (!response.ok) {
-        throw new Error(
-          payload?.message ??
-            (isChinese
-              ? "导入失败，请检查文件格式。"
-              : "Import failed. Please verify the file format."),
-        );
-      }
-      if (payload?.data) {
-        setImportResult(payload.data);
-      }
+      }>("/apps/asset-hub/api/assets/import", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const payload = response.data;
+      setImportResult(payload.data ?? null);
     } catch (error) {
       setImportError(
         error instanceof Error
@@ -292,4 +283,3 @@ export default function AssetImportExportClient({ locale, categories }: Props) {
     </div>
   );
 }
-

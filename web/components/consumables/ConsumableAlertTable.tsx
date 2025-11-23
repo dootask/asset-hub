@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { ConsumableAlert } from "@/lib/types/consumable-alert";
+import { getApiClient } from "@/lib/http/client";
 
 interface Props {
   locale: string;
@@ -29,18 +30,11 @@ export default function ConsumableAlertTable({ locale, alerts }: Props) {
     startTransition(() => {
       void (async () => {
         try {
-          const response = await fetch(
+          const client = await getApiClient();
+          await client.patch(
             `/apps/asset-hub/api/consumables/alerts/${alertId}`,
-            {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ status: "resolved" }),
-            },
+            { status: "resolved" },
           );
-          if (!response.ok) {
-            const payload = await response.json().catch(() => null);
-            throw new Error(payload?.message ?? "更新失败");
-          }
           window.location.reload();
         } catch (error) {
           alert(

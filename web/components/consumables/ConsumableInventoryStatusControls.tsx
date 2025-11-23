@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import type { ConsumableInventoryTaskStatus } from "@/lib/types/consumable-inventory";
+import { getApiClient } from "@/lib/http/client";
 
 interface Props {
   taskId: string;
@@ -23,18 +24,11 @@ export default function ConsumableInventoryStatusControls({
   const updateStatus = (nextStatus: ConsumableInventoryTaskStatus) => {
     startTransition(async () => {
       try {
-        const response = await fetch(
+        const client = await getApiClient();
+        await client.put(
           `/apps/asset-hub/api/consumables/inventory/${taskId}`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status: nextStatus }),
-          },
+          { status: nextStatus },
         );
-        if (!response.ok) {
-          const payload = await response.json().catch(() => null);
-          throw new Error(payload?.message ?? "更新失败");
-        }
         router.refresh();
       } catch (error) {
         alert(
@@ -90,4 +84,3 @@ export default function ConsumableInventoryStatusControls({
     </div>
   );
 }
-

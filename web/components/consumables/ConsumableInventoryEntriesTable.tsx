@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { ConsumableInventoryEntry } from "@/lib/types/consumable-inventory";
+import { getApiClient } from "@/lib/http/client";
 
 interface Props {
   taskId: string;
@@ -102,18 +103,11 @@ export default function ConsumableInventoryEntriesTable({
     };
     setSavingId(entryId);
     try {
-      const response = await fetch(
+      const client = await getApiClient();
+      await client.put(
         `/apps/asset-hub/api/consumables/inventory/${taskId}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        },
+        body,
       );
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload?.message ?? "更新失败");
-      }
       router.refresh();
     } catch (error) {
       console.error(error);
@@ -256,4 +250,3 @@ export default function ConsumableInventoryEntriesTable({
     </div>
   );
 }
-

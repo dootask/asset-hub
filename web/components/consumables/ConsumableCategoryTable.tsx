@@ -27,6 +27,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import type { ConsumableCategory } from "@/lib/types/consumable";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
+import { getApiClient } from "@/lib/http/client";
 
 export interface ConsumableCategoryTableHandle {
   openCreateDialog: () => void;
@@ -96,34 +97,27 @@ const ConsumableCategoryTable = forwardRef<ConsumableCategoryTableHandle, Props>
     event.preventDefault();
     startTransition(async () => {
       try {
+        const client = await getApiClient();
         const payload = {
           labelZh: formState.labelZh.trim(),
           labelEn: formState.labelEn.trim(),
           description: formState.description.trim() || undefined,
           unit: formState.unit.trim() || undefined,
         };
-        const response = await fetch(
-          editing
-            ? `${baseUrl}/apps/asset-hub/api/consumables/categories/${editing.id}`
+        const response = await client.request<{ data: ConsumableCategory }>({
+          url:
+            editing
+              ? `${baseUrl}/apps/asset-hub/api/consumables/categories/${editing.id}`
             : `${baseUrl}/apps/asset-hub/api/consumables/categories`,
-          {
-            method: editing ? "PUT" : "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(
-              editing
-                ? payload
-                : {
-                    code: formState.code.trim(),
-                    ...payload,
-                  },
-            ),
-          },
-        );
-        if (!response.ok) {
-          const message = await response.json().catch(() => null);
-          throw new Error(message?.message ?? "保存失败，请稍后重试。");
-        }
-        const { data } = (await response.json()) as { data: ConsumableCategory };
+          method: editing ? "PUT" : "POST",
+          data: editing
+            ? payload
+            : {
+                code: formState.code.trim(),
+                ...payload,
+              },
+        });
+        const { data } = response.data;
         setCategories((prev) => {
           if (editing) {
             return prev.map((item) => (item.id === editing.id ? data : item));
@@ -160,16 +154,10 @@ const ConsumableCategoryTable = forwardRef<ConsumableCategoryTableHandle, Props>
   const handleDelete = (category: ConsumableCategory) => {
     startTransition(async () => {
       try {
-        const response = await fetch(
+        const client = await getApiClient();
+        await client.delete(
           `${baseUrl}/apps/asset-hub/api/consumables/categories/${category.id}`,
-          {
-            method: "DELETE",
-          },
         );
-        const message = await response.json().catch(() => null);
-        if (!response.ok) {
-          throw new Error(message?.message ?? "删除失败");
-        }
         setCategories((prev) => prev.filter((item) => item.id !== category.id));
         feedback.success(isChinese ? "删除成功" : "Deleted successfully");
       } catch (err) {

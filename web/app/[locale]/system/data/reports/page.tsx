@@ -1,7 +1,7 @@
-import { getRequestBaseUrl } from "@/lib/utils/server-url";
 import PageHeader from "@/components/layout/PageHeader";
 import ReportsClient from "./ReportsClient";
 import { listAssetCategories } from "@/lib/repositories/asset-categories";
+import { getApiClient } from "@/lib/http/client";
 
 interface SummaryResponse {
   data: {
@@ -15,14 +15,12 @@ interface SummaryResponse {
 }
 
 async function fetchSummary() {
-  const baseUrl = await getRequestBaseUrl();
-  const response = await fetch(`${baseUrl}/apps/asset-hub/api/reports/summary`, {
-    cache: "no-store",
-  });
-  if (!response.ok) {
-    throw new Error("无法加载报表统计数据");
-  }
-  return (await response.json()) as SummaryResponse;
+  const client = await getApiClient();
+  const response = await client.get<SummaryResponse>(
+    "/apps/asset-hub/api/reports/summary",
+    { headers: { "Cache-Control": "no-cache" } },
+  );
+  return response.data;
 }
 
 export default async function ReportsPage({
@@ -65,5 +63,4 @@ export default async function ReportsPage({
     </div>
   );
 }
-
 

@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
+import { getApiClient } from "@/lib/http/client";
 
 interface Props {
   locale: string;
@@ -62,26 +63,19 @@ export default function ConsumableInventoryCreateDialog({
             isChinese ? "请输入任务名称。" : "Please enter task name.",
           );
         }
-        const response = await fetch(
+        const client = await getApiClient();
+        await client.post<{ message?: string }>(
           "/apps/asset-hub/api/consumables/inventory",
           {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: formState.name.trim(),
-              owner: formState.owner.trim() || undefined,
-              description: formState.description.trim() || undefined,
-              filters: formState.categories.length
-                ? { categories: formState.categories }
-                : undefined,
-              status: "in-progress",
-            }),
+            name: formState.name.trim(),
+            owner: formState.owner.trim() || undefined,
+            description: formState.description.trim() || undefined,
+            filters: formState.categories.length
+              ? { categories: formState.categories }
+              : undefined,
+            status: "in-progress",
           },
         );
-        const payload = await response.json();
-        if (!response.ok) {
-          throw new Error(payload?.message ?? "创建失败，请稍后再试。");
-        }
         setOpen(false);
         setFormState(DEFAULT_FORM);
         router.refresh();

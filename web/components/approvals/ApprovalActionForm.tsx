@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { sendApprovalUpdatedNotification } from "@/lib/client/dootask-notifications";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
+import { getApiClient } from "@/lib/http/client";
 
 const ACTIONS: { value: ApprovalAction; labelZh: string; labelEn: string }[] = [
   { value: "approve", labelZh: "通过", labelEn: "Approve" },
@@ -74,27 +75,20 @@ export default function ApprovalActionForm({ approvalId, locale }: Props) {
         return locale ? `?lang=${locale}` : "";
       })();
       const endpoint = `/apps/asset-hub/api/approvals/${approvalId}/actions${searchSuffix}`;
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action,
-          comment: comment.trim() ? comment.trim() : undefined,
-          actor: {
-            id: `${applicant.id}`.trim(),
-            name: `${applicant.name}`.trim(),
-          },
-        }),
-      });
-
-      const payload = (await response.json()) as {
+      const client = await getApiClient();
+      const response = await client.post<{
         data?: ApprovalRequest;
         message?: string;
-      };
+      }>(endpoint, {
+        action,
+        comment: comment.trim() ? comment.trim() : undefined,
+        actor: {
+          id: `${applicant.id}`.trim(),
+          name: `${applicant.name}`.trim(),
+        },
+      });
 
-      if (!response.ok) {
-        throw new Error(payload?.message ?? "提交失败");
-      }
+      const payload = response.data;
 
       if (payload?.data) {
         const actorName = applicant.name || applicant.id;

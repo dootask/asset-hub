@@ -26,6 +26,7 @@ import {
 } from "@/lib/types/asset";
 import type { AssetCategory } from "@/lib/types/asset-category";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
+import { getApiClient } from "@/lib/http/client";
 
 type Props = {
   locale?: string;
@@ -60,22 +61,13 @@ export default function NewAssetForm({ locale = "en", categories }: Props) {
     setSubmitting(true);
 
     try {
-      const response = await fetch("/apps/asset-hub/api/assets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formState),
-      });
+      const client = await getApiClient();
+      const response = await client.post<{ data: { id: string } }>(
+        "/apps/asset-hub/api/assets",
+        formState,
+      );
 
-      if (!response.ok) {
-        const payload = await response.json();
-        throw new Error(
-          payload?.message ??
-            (isChinese ? "提交失败" : "Submission failed"),
-        );
-      }
-
-      const payload = await response.json();
-      router.push(`/${locale}/assets/${payload.data.id}`);
+      router.push(`/${locale}/assets/${response.data.data.id}`);
       router.refresh();
       feedback.success(isChinese ? "资产已创建" : "Asset created");
     } catch (err) {

@@ -30,6 +30,9 @@ export default function DooTaskBridge() {
           id: normalizedId,
           nickname: (user as { nickname?: string })?.nickname,
           email: (user as { email?: string })?.email,
+          token:
+            (user as { token?: string })?.token ??
+            (user as { user_token?: string })?.user_token,
         };
         sessionStorage.setItem("asset-hub:dootask-user", JSON.stringify(payload));
         window.dispatchEvent(new CustomEvent("asset-hub:user-updated", { detail: payload }));

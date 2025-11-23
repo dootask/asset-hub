@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { getApiClient } from "@/lib/http/client";
 import {
   deriveOperationTemplateFields,
   normalizeOperationTypeToTemplateType,
@@ -144,15 +145,13 @@ export default function OperationForm({
     async function fetchConfigs() {
       setLoadingConfigs(true);
       try {
-        const response = await fetch("/apps/asset-hub/api/config/approvals", {
-          cache: "no-store",
-        });
-        if (!response.ok) {
-          throw new Error("Failed to load action configs");
-        }
-        const payload = (await response.json()) as { data: ActionConfig[] };
+        const client = await getApiClient();
+        const response = await client.get<{ data: ActionConfig[] }>(
+          "/apps/asset-hub/api/config/approvals",
+          { headers: { "Cache-Control": "no-cache" } },
+        );
         if (!cancelled) {
-          setActionConfigs(payload.data);
+          setActionConfigs(response.data.data);
           setConfigError(null);
         }
       } catch (err) {
@@ -336,45 +335,34 @@ export default function OperationForm({
         metadata,
       };
 
-      const response = await fetch(
-        `/apps/asset-hub/api/assets/${assetId}/operations`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        },
-      );
+      const client = await getApiClient();
+      await client.post(`/apps/asset-hub/api/assets/${assetId}/operations`, payload);
 
-      if (!response.ok) {
-      const payload = await response.json();
-      throw new Error(payload?.message ?? "提交失败");
+      setFormState((prev) => ({
+        ...prev,
+        actor: "",
+        description: "",
+      }));
+      resetFieldValues();
+      router.refresh();
+      onSuccess?.();
+      feedback.success(isChinese ? "操作记录已创建" : "Operation created");
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : isChinese
+            ? "无法创建操作记录，请稍后重试。"
+            : "Failed to create operation, please try again.";
+      feedback.error(message, {
+        blocking: true,
+        title: isChinese ? "提交失败" : "Submit failed",
+        acknowledgeLabel: isChinese ? "知道了" : "Got it",
+      });
+    } finally {
+      setSubmitting(false);
     }
-
-    setFormState((prev) => ({
-      ...prev,
-      actor: "",
-      description: "",
-    }));
-    resetFieldValues();
-    router.refresh();
-    onSuccess?.();
-    feedback.success(isChinese ? "操作记录已创建" : "Operation created");
-  } catch (err) {
-    const message =
-      err instanceof Error
-        ? err.message
-        : isChinese
-          ? "无法创建操作记录，请稍后重试。"
-          : "Failed to create operation, please try again.";
-    feedback.error(message, {
-      blocking: true,
-      title: isChinese ? "提交失败" : "Submit failed",
-      acknowledgeLabel: isChinese ? "知道了" : "Got it",
-    });
-  } finally {
-    setSubmitting(false);
-  }
-};
+  };
 
   const renderField = (field: OperationTemplateField) => {
     const value = fieldValues[field.key] ?? "";

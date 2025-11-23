@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
+import { getApiClient } from "@/lib/http/client";
 import {
   Accordion,
   AccordionContent,
@@ -148,25 +149,18 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
     setSavingId(config.id);
     startTransition(async () => {
       try {
-        const response = await fetch(
+        const client = await getApiClient();
+        const response = await client.put<{ data: ActionConfig }>(
           `/apps/asset-hub/api/config/approvals/${config.id}`,
           {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              requiresApproval: config.requiresApproval,
-              defaultApproverType: config.defaultApproverType,
-              defaultApproverRefs: config.defaultApproverRefs,
-              allowOverride: config.allowOverride,
-              metadata: config.metadata,
-            }),
+            requiresApproval: config.requiresApproval,
+            defaultApproverType: config.defaultApproverType,
+            defaultApproverRefs: config.defaultApproverRefs,
+            allowOverride: config.allowOverride,
+            metadata: config.metadata,
           },
         );
-        if (!response.ok) {
-          const payload = await response.json().catch(() => null);
-          throw new Error(payload?.message ?? "保存失败");
-        }
-        const payload = (await response.json()) as { data: ActionConfig };
+        const payload = response.data;
         setConfigs((prev) =>
           prev.map((item) => (item.id === config.id ? payload.data : item)),
         );

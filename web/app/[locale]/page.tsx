@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { DashboardOverview } from "@/lib/repositories/analytics";
-import { getRequestBaseUrl } from "@/lib/utils/server-url";
 import {
   type AssetStatus,
   getAssetStatusLabel,
@@ -11,6 +10,7 @@ import ApprovalStatusBadge from "@/components/approvals/ApprovalStatusBadge";
 import type { ApprovalStatus } from "@/lib/types/approval";
 import { listAssetCategories } from "@/lib/repositories/asset-categories";
 import { listInventoryTasks } from "@/lib/repositories/inventory-tasks";
+import { getApiClient } from "@/lib/http/client";
 
 const RANGE_OPTIONS = [7, 14, 30] as const;
 
@@ -20,11 +20,27 @@ function ensureSingle(value?: string | string[] | null) {
 }
 
 async function fetchSummary() {
-  const baseUrl = await getRequestBaseUrl();
-  const response = await fetch(`${baseUrl}/apps/asset-hub/api/system/config`, {
-    cache: "no-store",
-  });
-  if (!response.ok) {
+  const client = await getApiClient();
+  try {
+    const { data } = await client.get<{
+      data: {
+        assets: number;
+        companies: number;
+        roles: number;
+        consumables?: number;
+        lowStockConsumables?: number;
+      };
+    }>("/apps/asset-hub/api/system/config", {
+      headers: { "Cache-Control": "no-cache" },
+    });
+    return {
+      assets: data.data.assets,
+      companies: data.data.companies,
+      roles: data.data.roles,
+      consumables: data.data.consumables ?? 0,
+      lowStockConsumables: data.data.lowStockConsumables ?? 0,
+    };
+  } catch {
     return {
       assets: 0,
       companies: 0,
@@ -33,33 +49,20 @@ async function fetchSummary() {
       lowStockConsumables: 0,
     };
   }
-  const payload = (await response.json()) as {
-    data: {
-      assets: number;
-      companies: number;
-      roles: number;
-      consumables?: number;
-      lowStockConsumables?: number;
-    };
-  };
-  return {
-    assets: payload.data.assets,
-    companies: payload.data.companies,
-    roles: payload.data.roles,
-    consumables: payload.data.consumables ?? 0,
-    lowStockConsumables: payload.data.lowStockConsumables ?? 0,
-  };
 }
 
 async function fetchOverview(days: number) {
-  const baseUrl = await getRequestBaseUrl();
-  const response = await fetch(
-    `${baseUrl}/apps/asset-hub/api/reports/overview?days=${days}`,
-    {
-      cache: "no-store",
-    },
-  );
-  if (!response.ok) {
+  const client = await getApiClient();
+  try {
+    const { data } = await client.get<{ data: DashboardOverview }>(
+      "/apps/asset-hub/api/reports/overview",
+      {
+        params: { days },
+        headers: { "Cache-Control": "no-cache" },
+      },
+    );
+    return data.data;
+  } catch {
     const fallback: DashboardOverview = {
       stats: {
         total: 0,
@@ -79,10 +82,6 @@ async function fetchOverview(days: number) {
     };
     return fallback;
   }
-  const payload = (await response.json()) as {
-    data: DashboardOverview;
-  };
-  return payload.data;
 }
 
 export default async function LocaleDashboard({
@@ -560,4 +559,3 @@ export default async function LocaleDashboard({
     </div>
   );
 }
-

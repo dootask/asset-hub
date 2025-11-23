@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/dialog";
 import type { Role } from "@/lib/types/system";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
+import { getApiClient } from "@/lib/http/client";
 
 interface Props {
   initialRoles: Role[];
@@ -115,16 +116,13 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
         const url = editing
           ? `${baseUrl}/apps/asset-hub/api/system/roles/${editing.id}`
           : `${baseUrl}/apps/asset-hub/api/system/roles`;
-        const response = await fetch(url, {
+        const client = await getApiClient();
+        const response = await client.request<{ data: Role }>({
+          url,
           method: editing ? "PUT" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          data: payload,
         });
-        if (!response.ok) {
-          const message = await response.json().catch(() => null);
-          throw new Error(message?.message ?? "保存失败");
-        }
-        const { data } = (await response.json()) as { data: Role };
+        const { data } = response.data;
         setRoles((prev) =>
           editing ? prev.map((role) => (role.id === data.id ? data : role)) : [data, ...prev],
         );
@@ -164,16 +162,8 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
     if (!dialogRole) return;
     startTransition(async () => {
       try {
-        const response = await fetch(
-          `${baseUrl}/apps/asset-hub/api/system/roles/${dialogRole.id}`,
-          {
-            method: "DELETE",
-          },
-        );
-        if (!response.ok) {
-          const message = await response.json().catch(() => null);
-          throw new Error(message?.message ?? "删除失败");
-        }
+        const client = await getApiClient();
+        await client.delete(`${baseUrl}/apps/asset-hub/api/system/roles/${dialogRole.id}`);
         setRoles((prev) => prev.filter((role) => role.id !== dialogRole.id));
         setDeleteDialogOpen(false);
         setDialogRole(null);

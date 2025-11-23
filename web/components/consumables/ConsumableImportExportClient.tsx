@@ -10,6 +10,7 @@ import {
   CONSUMABLE_STATUSES,
 } from "@/lib/types/consumable";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getApiClient } from "@/lib/http/client";
 
 interface Props {
   locale: string;
@@ -54,17 +55,16 @@ export default function ConsumableImportExportClient({ locale, categories }: Pro
     setImportResult(null);
     setImportError(null);
     try {
+      const client = await getApiClient();
       const formData = new FormData();
       formData.append("file", selectedFile);
-      const response = await fetch(`/apps/asset-hub/api/consumables/import`, {
-        method: "POST",
-        body: formData,
+      const response = await client.post<{
+        data: ImportResult;
+        message?: string;
+      }>("/apps/asset-hub/api/consumables/import", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload?.message ?? "导入失败");
-      }
-      setImportResult(payload.data as ImportResult);
+      setImportResult(response.data.data);
     } catch (error) {
       setImportError(
         error instanceof Error
@@ -207,4 +207,3 @@ export default function ConsumableImportExportClient({ locale, categories }: Pro
     </div>
   );
 }
-

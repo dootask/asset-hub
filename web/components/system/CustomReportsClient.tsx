@@ -20,6 +20,7 @@ import type { ReportView, ReportExecutionResult } from "@/lib/types/report";
 import { APPROVAL_TYPES } from "@/lib/types/approval";
 import { ASSET_STATUSES } from "@/lib/types/asset";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
+import { getApiClient } from "@/lib/http/client";
 
 interface CustomReportsClientProps {
   locale: string;
@@ -132,21 +133,18 @@ export default function CustomReportsClient({
         const endpoint = formState.id
           ? `${baseUrl}/apps/asset-hub/api/system/report-views/${formState.id}`
           : `${baseUrl}/apps/asset-hub/api/system/report-views`;
-        const response = await fetch(endpoint, {
+        const client = await getApiClient();
+        const response = await client.request<{ data: ReportView; message?: string }>({
+          url: endpoint,
           method: formState.id ? "PUT" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+          data: {
             name: formState.name.trim(),
             dataSource: formState.dataSource,
             fields: formState.fields,
             filters: formState.filters,
-          }),
+          },
         });
-        const payload = await response.json();
-        if (!response.ok) {
-          throw new Error(payload?.message ?? "保存失败");
-        }
-        const { data } = payload as { data: ReportView };
+        const { data } = response.data;
         setViews((prev) => {
           const updated = formState.id
             ? prev.map((view) => (view.id === data.id ? data : view))
@@ -183,14 +181,10 @@ export default function CustomReportsClient({
   const handleDelete = (view: ReportView) => {
     startTransition(async () => {
       try {
-        const response = await fetch(
+        const client = await getApiClient();
+        await client.delete(
           `${baseUrl}/apps/asset-hub/api/system/report-views/${view.id}`,
-          { method: "DELETE" },
         );
-        const payload = await response.json().catch(() => null);
-        if (!response.ok) {
-          throw new Error(payload?.message ?? "删除失败");
-        }
         setViews((prev) => prev.filter((item) => item.id !== view.id));
         feedback.success(isChinese ? "删除成功" : "Deleted successfully");
       } catch (err) {
@@ -215,14 +209,11 @@ export default function CustomReportsClient({
     setPreviewError(null);
     setPreviewName(view.name);
     try {
-      const response = await fetch(
+      const client = await getApiClient();
+      const response = await client.get<{ data: ReportExecutionResult }>(
         `${baseUrl}/apps/asset-hub/api/system/report-views/${view.id}/run`,
       );
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload?.message ?? "预览失败");
-      }
-      setPreviewResult(payload.data as ReportExecutionResult);
+      setPreviewResult(response.data.data);
     } catch (err) {
       setPreviewError(
         err instanceof Error

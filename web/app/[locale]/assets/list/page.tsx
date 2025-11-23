@@ -4,8 +4,8 @@ import ListPagination from "@/components/layout/ListPagination";
 import PageHeader from "@/components/layout/PageHeader";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { type Asset, getAssetStatusLabel } from "@/lib/types/asset";
-import { getRequestBaseUrl } from "@/lib/utils/server-url";
 import { listAssetCategories } from "@/lib/repositories/asset-categories";
+import { getApiClient } from "@/lib/http/client";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -21,7 +21,6 @@ function parseStatuses(value?: string | string[]) {
 }
 
 async function fetchAssets(searchParams: SearchParams) {
-  const baseUrl = await getRequestBaseUrl();
   const qs = new URLSearchParams();
 
   const allowList = ["search", "status", "category", "page", "pageSize"];
@@ -34,20 +33,16 @@ async function fetchAssets(searchParams: SearchParams) {
     }
   });
 
-  const url = `${baseUrl}/apps/asset-hub/api/assets${
-    qs.toString() ? `?${qs.toString()}` : ""
-  }`;
-
-  const response = await fetch(url, { cache: "no-store" });
-
-  if (!response.ok) {
-    throw new Error("资产列表加载失败");
-  }
-
-  return (await response.json()) as {
+  const client = await getApiClient();
+  const response = await client.get<{
     data: Asset[];
     meta: { total: number; page: number; pageSize: number };
-  };
+  }>("/apps/asset-hub/api/assets", {
+    params: Object.fromEntries(qs.entries()),
+    headers: { "Cache-Control": "no-cache" },
+  });
+
+  return response.data;
 }
 
 export default async function AssetListPage({
@@ -231,4 +226,3 @@ export default async function AssetListPage({
     </div>
   );
 }
-

@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
+import { getApiClient } from "@/lib/http/client";
 
 interface Props {
   assetId: string;
@@ -62,22 +63,14 @@ export default function DisposeAssetButton({ assetId, locale }: Props) {
   const handleConfirm = async () => {
     setSubmitting(true);
     try {
-      const response = await fetch(
+      const client = await getApiClient();
+      await client.post(
         `/apps/asset-hub/api/assets/${assetId}/dispose${searchSuffix}`,
         {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            reason,
-            actor: currentUser ?? undefined,
-          }),
+          reason,
+          actor: currentUser ?? undefined,
         },
       );
-
-      if (!response.ok) {
-        const payload = await response.json().catch(() => null);
-        throw new Error(payload?.message ?? "报废失败，请稍后再试。");
-      }
 
       setOpen(false);
       setReason("");

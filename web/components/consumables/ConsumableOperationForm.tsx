@@ -22,6 +22,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
+import { getApiClient } from "@/lib/http/client";
 
 const CONFIG_MAP: Record<ConsumableOperationType, ConsumableActionConfig> =
   CONSUMABLE_ACTION_CONFIGS.reduce(
@@ -148,28 +149,14 @@ export default function ConsumableOperationForm({
         );
       }
 
-      const response = await fetch(
-        `/apps/asset-hub/api/consumables/${consumableId}/operations`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            type: operationType,
-            actor: actor.trim(),
-            description: description.trim(),
-            quantityDelta: parsedQuantity,
-            reservedDelta: parsedReserved,
-          }),
-        },
-      );
-
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        throw new Error(
-          payload?.message ??
-            (isChinese ? "创建操作失败，请稍后再试。" : "Failed to create operation."),
-        );
-      }
+      const client = await getApiClient();
+      await client.post(`/apps/asset-hub/api/consumables/${consumableId}/operations`, {
+        type: operationType,
+        actor: actor.trim(),
+        description: description.trim(),
+        quantityDelta: parsedQuantity,
+        reservedDelta: parsedReserved,
+      });
 
       setActor("");
       setDescription("");

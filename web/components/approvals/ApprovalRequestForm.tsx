@@ -47,6 +47,7 @@ import {
   mapApprovalTypeToTemplateType,
 } from "@/lib/config/operation-template-fields";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
+import { getApiClient } from "@/lib/http/client";
 
 type Applicant = {
   id: string;
@@ -183,15 +184,13 @@ export default function ApprovalRequestForm({
     async function fetchConfigs() {
       setLoadingConfigs(true);
       try {
-        const response = await fetch("/apps/asset-hub/api/config/approvals", {
-          cache: "no-store",
-        });
-        if (!response.ok) {
-          throw new Error("Failed to load action configs");
-        }
-        const payload = (await response.json()) as { data: ActionConfig[] };
+        const client = await getApiClient();
+        const response = await client.get<{ data: ActionConfig[] }>(
+          "/apps/asset-hub/api/config/approvals",
+          { headers: { "Cache-Control": "no-cache" } },
+        );
         if (!cancelled) {
-          setConfigs(payload.data);
+          setConfigs(response.data.data);
           setConfigError(null);
         }
       } catch (err) {
@@ -561,37 +560,30 @@ export default function ApprovalRequestForm({
         return locale ? `?lang=${locale}` : "";
       })();
       const endpoint = `/apps/asset-hub/api/approvals${searchSuffix}`;
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: formState.type,
-          title: formState.title.trim(),
-          reason: formState.reason.trim(),
-          assetId,
-          applicant: {
-            id: `${applicant.id}`.trim(),
-            name: `${applicant.name}`.trim(),
-          },
-          approver:
-            formState.approverId || formState.approverName
-              ? {
-                  id: formState.approverId || undefined,
-                  name: formState.approverName || undefined,
-                }
-              : undefined,
-          metadata: metadataPayload,
-        }),
-      });
-
-      const payload = (await response.json()) as {
+      const client = await getApiClient();
+      const response = await client.post<{
         data?: ApprovalRequest;
         message?: string;
-      };
+      }>(endpoint, {
+        type: formState.type,
+        title: formState.title.trim(),
+        reason: formState.reason.trim(),
+        assetId,
+        applicant: {
+          id: `${applicant.id}`.trim(),
+          name: `${applicant.name}`.trim(),
+        },
+        approver:
+          formState.approverId || formState.approverName
+            ? {
+                id: formState.approverId || undefined,
+                name: formState.approverName || undefined,
+              }
+            : undefined,
+        metadata: metadataPayload,
+      });
 
-      if (!response.ok) {
-        throw new Error(payload?.message ?? "无法提交审批请求");
-      }
+      const payload = response.data;
 
       if (payload?.data) {
         void sendApprovalCreatedNotification({

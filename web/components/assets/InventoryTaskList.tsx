@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { InventoryTask, InventoryTaskStatus } from "@/lib/types/inventory";
 import { ASSET_STATUSES } from "@/lib/types/asset";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
+import { getApiClient } from "@/lib/http/client";
 
 interface Props {
   locale: string;
@@ -77,25 +78,18 @@ export default function InventoryTaskList({ locale, baseUrl, initialTasks }: Pro
         if (!formState.name.trim()) {
           throw new Error(isChinese ? "请输入任务名称。" : "Please enter a task name.");
         }
-        const response = await fetch(
+        const client = await getApiClient();
+        const response = await client.post<{ data: InventoryTask }>(
           `${baseUrl}/apps/asset-hub/api/assets/inventory-tasks`,
           {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: formState.name.trim(),
-              scope: formState.scope.trim() || undefined,
-              owner: formState.owner.trim() || undefined,
-              description: formState.description.trim() || undefined,
-              filters: formState.filters,
-            }),
+            name: formState.name.trim(),
+            scope: formState.scope.trim() || undefined,
+            owner: formState.owner.trim() || undefined,
+            description: formState.description.trim() || undefined,
+            filters: formState.filters,
           },
         );
-        const payload = await response.json();
-        if (!response.ok) {
-          throw new Error(payload?.message ?? "创建失败，请稍后重试。");
-        }
-        setTasks((prev) => [payload.data as InventoryTask, ...prev]);
+        setTasks((prev) => [response.data.data, ...prev]);
         setDialogOpen(false);
         setFormState(DEFAULT_FORM);
         feedback.success(isChinese ? "盘点任务已创建" : "Inventory task created");
@@ -118,20 +112,13 @@ export default function InventoryTaskList({ locale, baseUrl, initialTasks }: Pro
   const updateStatus = (task: InventoryTask, status: InventoryTaskStatus) => {
     startTransition(async () => {
       try {
-        const response = await fetch(
+        const client = await getApiClient();
+        const response = await client.put<{ data: InventoryTask }>(
           `${baseUrl}/apps/asset-hub/api/assets/inventory-tasks/${task.id}`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status }),
-          },
+          { status },
         );
-        const payload = await response.json();
-        if (!response.ok) {
-          throw new Error(payload?.message ?? "更新失败");
-        }
         setTasks((prev) =>
-          prev.map((item) => (item.id === task.id ? (payload.data as InventoryTask) : item)),
+          prev.map((item) => (item.id === task.id ? response.data.data : item)),
         );
         feedback.success(isChinese ? "状态已更新" : "Status updated");
       } catch (err) {
