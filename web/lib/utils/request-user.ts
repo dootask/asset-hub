@@ -19,8 +19,18 @@ export function extractUserFromRequest(request: Request): RequestUser | null {
     return null;
   }
 
-  const nickname =
+  const nicknameRaw =
     firstNonEmpty([headers.get("x-user-nickname")]) ?? undefined;
+  const nickname =
+    nicknameRaw !== undefined
+      ? (() => {
+          try {
+            return decodeURIComponent(nicknameRaw);
+          } catch {
+            return nicknameRaw;
+          }
+        })()
+      : undefined;
 
   const email =
     firstNonEmpty([headers.get("x-user-email")]) ?? undefined;

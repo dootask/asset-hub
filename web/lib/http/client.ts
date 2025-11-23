@@ -29,6 +29,14 @@ function extractUserFromStorage(): UserContext {
   }
 }
 
+function encodeHeaderValue(value: string) {
+  try {
+    return encodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 function attachUserHeaders(
   config: AxiosRequestConfig,
   context: UserContext,
@@ -46,7 +54,7 @@ function attachUserHeaders(
   }
 
   if (context.nickname) {
-    config.headers["x-user-nickname"] ??= context.nickname;
+    config.headers["x-user-nickname"] ??= encodeHeaderValue(context.nickname);
   }
 
   return config;
