@@ -41,6 +41,7 @@ import {
   getRecommendedFieldDrafts,
   type OperationFieldDraft,
 } from "@/lib/config/operation-template-fields";
+import { useAppFeedback } from "@/components/providers/feedback-provider";
 
 interface Props {
   templates: OperationTemplate[];
@@ -71,7 +72,6 @@ export default function OperationTemplateList({
   const isChinese = locale === "zh";
   const [items, setItems] = useState(() => templates);
   const [pendingId, setPendingId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [fieldDrafts, setFieldDrafts] = useState<Record<string, OperationFieldDraft[]>>(
     () =>
@@ -91,6 +91,7 @@ export default function OperationTemplateList({
   const [jsonErrors, setJsonErrors] = useState<Record<string, string | null>>({});
   const [fieldPickerOpen, setFieldPickerOpen] = useState<Record<string, boolean>>({});
   const [editorTabs, setEditorTabs] = useState<Record<string, "builder" | "json">>({});
+  const feedback = useAppFeedback();
 
   const configMap = useMemo(() => {
     const map = new Map<string, ActionConfig>();
@@ -166,17 +167,16 @@ export default function OperationTemplateList({
     }
     const drafts = fieldDrafts[type] ?? [];
     if (drafts.some((field) => field.key === fieldKey)) {
-      setError(
+      feedback.error(
         isChinese ? "该字段已在列表中。" : "The selected field is already added.",
       );
       return;
     }
     const nextField = createFieldDraftFromLibrary(fieldKey);
     if (!nextField) {
-      setError(isChinese ? "无法加载该字段。" : "Unable to load the selected field.");
+      feedback.error(isChinese ? "无法加载该字段。" : "Unable to load the selected field.");
       return;
     }
-    setError(null);
     applyDraftChange(type, [...drafts, nextField]);
   };
 
@@ -184,20 +184,18 @@ export default function OperationTemplateList({
     const drafts = fieldDrafts[type] ?? [];
     const key = generateCustomFieldKey(drafts);
     applyDraftChange(type, [...drafts, createCustomFieldDraft(key)]);
-    setError(null);
   };
 
   const handleUseRecommended = (type: OperationTemplate["type"]) => {
     const drafts = getRecommendedFieldDrafts(type);
     if (!drafts.length) {
-      setError(
+      feedback.error(
         isChinese
           ? "当前操作类型暂无推荐字段。"
           : "No recommended fields for this operation.",
       );
       return;
     }
-    setError(null);
     applyDraftChange(type, drafts);
   };
 
@@ -240,13 +238,16 @@ export default function OperationTemplateList({
     const sanitizedDrafts = drafts.map(sanitizeDraft);
     const validationError = validateFieldDrafts(sanitizedDrafts, isChinese);
     if (validationError) {
-      setError(validationError);
+      feedback.error(validationError, {
+        blocking: true,
+        title: isChinese ? "保存失败" : "Save failed",
+        acknowledgeLabel: isChinese ? "知道了" : "Got it",
+      });
       return;
     }
     const metadataPayload = buildMetadataFromFieldDrafts(sanitizedDrafts);
 
     setPendingId(template.type);
-    setError(null);
     startTransition(async () => {
       try {
         const response = await fetch(
@@ -276,14 +277,19 @@ export default function OperationTemplateList({
         }));
         setJsonDirtyMap((prev) => ({ ...prev, [data.type]: false }));
         setJsonErrors((prev) => ({ ...prev, [data.type]: null }));
+        feedback.success(isChinese ? "保存成功" : "Saved successfully");
       } catch (err) {
-        setError(
+        const message =
           err instanceof Error
             ? err.message
             : isChinese
               ? "保存失败，请稍后重试。"
-              : "Failed to save template.",
-        );
+              : "Failed to save template.";
+        feedback.error(message, {
+          blocking: true,
+          title: isChinese ? "保存失败" : "Save failed",
+          acknowledgeLabel: isChinese ? "知道了" : "Got it",
+        });
       } finally {
         setPendingId(null);
       }
@@ -292,11 +298,6 @@ export default function OperationTemplateList({
 
   return (
     <div className="space-y-6">
-      {error && (
-        <div className="rounded-2xl border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm text-destructive">
-          {error}
-        </div>
-      )}
       {items.length === 0 && (
         <div className="rounded-3xl border border-dashed border-muted-foreground/40 bg-muted/20 p-6 text-sm text-muted-foreground">
           {isChinese
