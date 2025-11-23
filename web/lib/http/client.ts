@@ -1,4 +1,7 @@
-import axios, { type AxiosInstance, type AxiosRequestConfig } from "axios";
+import axios, {
+  type AxiosInstance,
+  type InternalAxiosRequestConfig,
+} from "axios";
 
 type UserContext = {
   userId?: string;
@@ -38,12 +41,10 @@ function encodeHeaderValue(value: string) {
 }
 
 function attachUserHeaders(
-  config: AxiosRequestConfig,
+  config: InternalAxiosRequestConfig,
   context: UserContext,
-): AxiosRequestConfig {
-  if (!config.headers) {
-    config.headers = {};
-  }
+): InternalAxiosRequestConfig {
+  config.headers = config.headers ?? {};
 
   if (context.userId) {
     config.headers["x-user-id"] ??= `${context.userId}`;
