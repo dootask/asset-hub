@@ -234,7 +234,7 @@ export default function AppShell({ children, locale, adminUserIds }: Props) {
           )}
         </aside>
 
-        <div className="flex flex-1 flex-col gap-5">
+        <div className="flex flex-1 flex-col gap-5 min-w-0">
           <header className="rounded-3xl border bg-card px-6 py-5 shadow-sm">
             <div className="flex flex-col gap-1">
               <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
