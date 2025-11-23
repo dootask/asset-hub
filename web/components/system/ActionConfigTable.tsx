@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import type { ActionConfig, ActionConfigId } from "@/lib/types/action-config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
+import { appReady, fetchUserBasic, isMicroApp, selectUsers } from "@dootask/tools";
 
 interface Props {
   initialConfigs: ActionConfig[];
@@ -48,9 +49,24 @@ const CONFIG_ORDER: ActionConfigId[] = [
   "other",
 ];
 
+type DootaskUser =
+  | string
+  | number
+  | {
+      userid?: string;
+      id?: string;
+      nickname?: string;
+      name?: string;
+    };
+
+type SelectUsersReturn = DootaskUser[] | { users?: DootaskUser[] };
+
 export default function ActionConfigTable({ initialConfigs, locale }: Props) {
   const [configs, setConfigs] = useState(initialConfigs);
   const [savingId, setSavingId] = useState<ActionConfigId | null>(null);
+  const [selectingId, setSelectingId] = useState<ActionConfigId | null>(null);
+  const [selectorReady, setSelectorReady] = useState(false);
+  const [userNames, setUserNames] = useState<Record<string, string>>({});
   const [pending, startTransition] = useTransition();
   const isChinese = locale === "zh";
   const feedback = useAppFeedback();
@@ -76,6 +92,57 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
       .filter(Boolean);
     handleChange(id, { defaultApproverRefs: refs });
   };
+
+  useEffect(() => {
+    let active = true;
+    async function detectSelector() {
+      try {
+        const micro = await isMicroApp();
+        if (!micro) {
+          if (active) setSelectorReady(false);
+          return;
+        }
+        await appReady();
+        if (active) setSelectorReady(true);
+      } catch {
+        if (active) setSelectorReady(false);
+      }
+    }
+    detectSelector();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function hydrateUserNames() {
+      const ids = configs
+        .filter((config) => config.defaultApproverType === "user")
+        .flatMap((config) => config.defaultApproverRefs)
+        .filter(Boolean);
+      const missing = ids.filter((id) => !(id in userNames));
+      if (missing.length === 0) return;
+      for (const id of missing) {
+        const numeric = Number(id);
+        if (Number.isNaN(numeric)) continue;
+        try {
+          const result = await fetchUserBasic([numeric]);
+          const info = Array.isArray(result) ? result[0] : undefined;
+          const name = info?.nickname ?? info?.name;
+          if (name && !cancelled) {
+            setUserNames((prev) => ({ ...prev, [id]: name }));
+          }
+        } catch {
+          // ignore lookup errors to avoid blocking UI
+        }
+      }
+    }
+    hydrateUserNames();
+    return () => {
+      cancelled = true;
+    };
+  }, [configs, userNames]);
 
   const handleSave = (config: ActionConfig) => {
     setSavingId(config.id);
@@ -122,6 +189,86 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
         setSavingId(null);
       }
     });
+  };
+
+  const resolveSelectedUser = async (entry: DootaskUser) => {
+    const rawId = typeof entry === "object" ? entry.userid ?? entry.id : entry;
+    const id = rawId !== undefined ? `${rawId}`.trim() : "";
+    if (!id) return null;
+    const name =
+      typeof entry === "object"
+        ? entry.nickname ?? entry.name ?? ""
+        : "";
+    if (name) {
+      return { id, name };
+    }
+    try {
+      const numeric = Number(id);
+      const list = await fetchUserBasic([numeric]);
+      const info = Array.isArray(list) ? list[0] : undefined;
+      return { id, name: info?.nickname ?? info?.name ?? "" };
+    } catch {
+      return { id, name: "" };
+    }
+  };
+
+  const handleSelectApprovers = async (config: ActionConfig) => {
+    if (config.defaultApproverType !== "user") return;
+    if (!selectorReady) {
+      feedback.error(
+        isChinese
+          ? "当前环境不支持选择审批人，请手动填写。"
+          : "User picker is unavailable. Please type approver IDs.",
+      );
+      return;
+    }
+    setSelectingId(config.id);
+    try {
+      const result = (await selectUsers({
+        multipleMax: 5,
+        showSelectAll: false,
+        showDialog: false,
+        value: config.defaultApproverRefs
+          .map((id) => Number(id))
+          .filter((id) => Number.isFinite(id)),
+      })) as SelectUsersReturn;
+      const entries = Array.isArray(result) ? result : result?.users ?? [];
+      if (!entries.length) {
+        return;
+      }
+      const picks = (
+        await Promise.all(entries.map((entry) => resolveSelectedUser(entry)))
+      ).filter(Boolean) as { id: string; name?: string }[];
+      if (!picks.length) {
+        feedback.error(isChinese ? "无法解析所选用户。" : "Could not parse selected users.");
+        return;
+      }
+      const refs = picks.map((item) => item.id).filter(Boolean);
+      handleChange(config.id, { defaultApproverRefs: refs });
+      setUserNames((prev) => {
+        const next = { ...prev };
+        picks.forEach((item) => {
+          if (item.name) {
+            next[item.id] = item.name;
+          }
+        });
+        return next;
+      });
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : isChinese
+            ? "选择审批人失败。"
+            : "Failed to pick approvers.";
+      feedback.error(message, {
+        blocking: true,
+        title: isChinese ? "选择失败" : "Selection failed",
+        acknowledgeLabel: isChinese ? "知道了" : "Got it",
+      });
+    } finally {
+      setSelectingId(null);
+    }
   };
 
   return (
@@ -282,27 +429,72 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
                           <Label className="text-xs text-muted-foreground">
                             {config.defaultApproverType === "user"
                               ? isChinese
-                                ? "默认审批人 ID（逗号分隔）"
-                                : "Default user IDs (comma separated)"
+                                ? "默认审批人"
+                                : "Default approvers"
                               : isChinese
                                 ? "默认角色 ID（逗号分隔）"
                                 : "Default role IDs (comma separated)"}
                           </Label>
-                          <Input
-                            value={config.defaultApproverRefs.join(", ")}
-                            onChange={(event) =>
-                              handleRefsChange(config.id, event.target.value)
-                            }
-                            placeholder={
-                              config.defaultApproverType === "user"
-                                ? isChinese
-                                  ? "示例：user-1, user-2"
-                                  : "e.g. user-1, user-2"
-                                : isChinese
-                                  ? "示例：role-asset-admin"
-                                  : "e.g. role-asset-admin"
-                            }
-                          />
+                          {config.defaultApproverType === "user" ? (
+                            <div className="space-y-2">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={pending || selectingId === config.id}
+                                  onClick={() => handleSelectApprovers(config)}
+                                >
+                                  {selectingId === config.id
+                                    ? isChinese
+                                      ? "加载中..."
+                                      : "Loading..."
+                                    : isChinese
+                                      ? "选择用户"
+                                      : "Select users"}
+                                </Button>
+                                {config.defaultApproverRefs.length > 0 && (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    disabled={pending || selectingId === config.id}
+                                    onClick={() =>
+                                      handleChange(config.id, { defaultApproverRefs: [] })
+                                    }
+                                  >
+                                    {isChinese ? "清空" : "Clear"}
+                                  </Button>
+                                )}
+                                {!selectorReady && (
+                                  <span className="text-xs text-muted-foreground">
+                                    {isChinese
+                                      ? "当前环境暂不支持选择器，请在宿主中使用。"
+                                      : "Picker unavailable here; use host app."}
+                                  </span>
+                                )}
+                              </div>
+                              {config.defaultApproverRefs.length > 0 && (
+                                <div className="flex flex-wrap gap-2">
+                                  {config.defaultApproverRefs.map((id) => (
+                                    <Badge key={id} variant="secondary">
+                                      {userNames[id] ? `${userNames[id]} (${id})` : id}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <Input
+                              value={config.defaultApproverRefs.join(", ")}
+                              onChange={(event) =>
+                                handleRefsChange(config.id, event.target.value)
+                              }
+                              placeholder={
+                                isChinese ? "示例：role-asset-admin" : "e.g. role-asset-admin"
+                              }
+                            />
+                          )}
                         </div>
                       )}
                     </div>
