@@ -25,6 +25,7 @@ import {
   getAssetStatusLabel,
 } from "@/lib/types/asset";
 import type { AssetCategory } from "@/lib/types/asset-category";
+import { useAppFeedback } from "@/components/providers/feedback-provider";
 
 type Props = {
   locale?: string;
@@ -45,7 +46,7 @@ export default function NewAssetForm({ locale = "en", categories }: Props) {
     purchaseDate: new Date().toISOString().slice(0, 10),
   });
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const feedback = useAppFeedback();
 
   const handleChange = (
     field: keyof typeof formState,
@@ -57,7 +58,6 @@ export default function NewAssetForm({ locale = "en", categories }: Props) {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitting(true);
-    setError(null);
 
     try {
       const response = await fetch("/apps/asset-hub/api/assets", {
@@ -77,12 +77,19 @@ export default function NewAssetForm({ locale = "en", categories }: Props) {
       const payload = await response.json();
       router.push(`/${locale}/assets/${payload.data.id}`);
       router.refresh();
+      feedback.success(isChinese ? "资产已创建" : "Asset created");
     } catch (err) {
-      setError(
+      const message =
         err instanceof Error
           ? err.message
-          : "提交失败，请稍后再试。",
-      );
+          : isChinese
+            ? "提交失败，请稍后再试。"
+            : "Submission failed, please try again later.";
+      feedback.error(message, {
+        blocking: true,
+        title: isChinese ? "提交失败" : "Submit failed",
+        acknowledgeLabel: isChinese ? "知道了" : "Got it",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -234,12 +241,6 @@ export default function NewAssetForm({ locale = "en", categories }: Props) {
         </div>
       </div>
 
-      {error && (
-        <div className="rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm text-destructive">
-          {error}
-        </div>
-      )}
-
       {categories.length === 0 && (
         <p className="rounded-2xl border border-dashed border-amber-400/60 bg-amber-50 px-4 py-2 text-sm text-amber-900 dark:bg-amber-500/10 dark:text-amber-100">
           {isChinese
@@ -275,4 +276,3 @@ export default function NewAssetForm({ locale = "en", categories }: Props) {
     </form>
   );
 }
-

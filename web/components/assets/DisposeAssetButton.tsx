@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { useAppFeedback } from "@/components/providers/feedback-provider";
 
 interface Props {
   assetId: string;
@@ -27,8 +28,8 @@ export default function DisposeAssetButton({ assetId, locale }: Props) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<{ id: string; name?: string } | null>(null);
+  const feedback = useAppFeedback();
 
   useEffect(() => {
     try {
@@ -60,7 +61,6 @@ export default function DisposeAssetButton({ assetId, locale }: Props) {
 
   const handleConfirm = async () => {
     setSubmitting(true);
-    setError(null);
     try {
       const response = await fetch(
         `/apps/asset-hub/api/assets/${assetId}/dispose${searchSuffix}`,
@@ -82,14 +82,19 @@ export default function DisposeAssetButton({ assetId, locale }: Props) {
       setOpen(false);
       setReason("");
       router.refresh();
+      feedback.success(locale === "zh" ? "资产已报废" : "Asset disposed");
     } catch (err) {
-      setError(
+      const message =
         err instanceof Error
           ? err.message
           : locale === "zh"
             ? "报废失败，请稍后再试。"
-            : "Failed to dispose asset.",
-      );
+            : "Failed to dispose asset.";
+      feedback.error(message, {
+        blocking: true,
+        title: locale === "zh" ? "操作失败" : "Action failed",
+        acknowledgeLabel: locale === "zh" ? "知道了" : "Got it",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -116,7 +121,6 @@ export default function DisposeAssetButton({ assetId, locale }: Props) {
             value={reason}
             onChange={(event) => setReason(event.target.value)}
           />
-          {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={submitting}>
@@ -139,4 +143,3 @@ export default function DisposeAssetButton({ assetId, locale }: Props) {
     </AlertDialog>
   );
 }
-

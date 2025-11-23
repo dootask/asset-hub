@@ -81,9 +81,7 @@ export default function ApprovalRequestForm({
   const isChinese = locale === "zh";
   const [loadingUser, setLoadingUser] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [selectingApprover, setSelectingApprover] = useState(false);
-  const [selectError, setSelectError] = useState<string | null>(null);
   const [canUseSelector, setCanUseSelector] = useState(false);
 
   const [applicant, setApplicant] = useState<Applicant>({
@@ -103,6 +101,7 @@ export default function ApprovalRequestForm({
   const [configs, setConfigs] = useState<ActionConfig[]>([]);
   const [loadingConfigs, setLoadingConfigs] = useState(true);
   const [configError, setConfigError] = useState<string | null>(null);
+  const feedback = useAppFeedback();
   const fieldIds = {
     type: useId(),
     title: useId(),
@@ -203,6 +202,17 @@ export default function ApprovalRequestForm({
                 ? "无法加载审批配置，请稍后重试。"
                 : "Failed to load approval configurations.",
           );
+          const message =
+            err instanceof Error
+              ? err.message
+              : isChinese
+                ? "无法加载审批配置，请稍后重试。"
+                : "Failed to load approval configurations.";
+          feedback.error(message, {
+            blocking: true,
+            title: isChinese ? "加载失败" : "Load failed",
+            acknowledgeLabel: isChinese ? "知道了" : "Got it",
+          });
         }
       } finally {
         if (!cancelled) {
@@ -214,7 +224,7 @@ export default function ApprovalRequestForm({
     return () => {
       cancelled = true;
     };
-  }, [isChinese]);
+  }, [feedback, isChinese]);
 
   useEffect(() => {
     if (!formState.title) {
@@ -338,7 +348,7 @@ export default function ApprovalRequestForm({
   const handleSelectApprover = async () => {
     if (!canUseSelector) return;
     if (!allowOverride) {
-      setSelectError(
+      feedback.error(
         isChinese
           ? "当前操作的审批人由系统自动指派，无法修改。"
           : "Approver is locked by system configuration.",
@@ -346,7 +356,6 @@ export default function ApprovalRequestForm({
       return;
     }
     setSelectingApprover(true);
-    setSelectError(null);
     try {
       const result = (await selectUsers({
         multipleMax: 1,
@@ -356,9 +365,7 @@ export default function ApprovalRequestForm({
       const entry = normalizeSelectedUser(result);
       const pick = await resolveSelectedApprover(entry);
       if (!pick) {
-        setSelectError(
-          isChinese ? "未选择任何审批人。" : "No approver selected.",
-        );
+        feedback.error(isChinese ? "未选择任何审批人。" : "No approver selected.");
       } else {
         setFormState((prev) => ({
           ...prev,
@@ -367,13 +374,17 @@ export default function ApprovalRequestForm({
         }));
       }
     } catch (err) {
-      setSelectError(
+      const message =
         err instanceof Error
           ? err.message
           : isChinese
             ? "选择审批人失败。"
-            : "Failed to select approver.",
-      );
+            : "Failed to select approver.";
+      feedback.error(message, {
+        blocking: true,
+        title: isChinese ? "选择失败" : "Selection failed",
+        acknowledgeLabel: isChinese ? "知道了" : "Got it",
+      });
     } finally {
       setSelectingApprover(false);
     }
@@ -442,7 +453,6 @@ export default function ApprovalRequestForm({
     event.preventDefault();
     if (!canSubmit) return;
     setSubmitting(true);
-    setError(null);
 
     try {
       for (const field of operationTemplateFields) {
@@ -599,14 +609,19 @@ export default function ApprovalRequestForm({
       });
       setOperationFieldValues({});
       router.refresh();
+      feedback.success(isChinese ? "审批已提交" : "Approval submitted");
     } catch (err) {
-      setError(
+      const message =
         err instanceof Error
           ? err.message
           : isChinese
             ? "提交失败，请稍后再试。"
-            : "Failed to create approval request.",
-      );
+            : "Failed to create approval request.";
+      feedback.error(message, {
+        blocking: true,
+        title: isChinese ? "提交失败" : "Submit failed",
+        acknowledgeLabel: isChinese ? "知道了" : "Got it",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -988,11 +1003,6 @@ export default function ApprovalRequestForm({
             )}
           </div>
         )}
-        {selectError && (
-          <p className="text-xs text-destructive">
-            {selectError}
-          </p>
-        )}
         {!allowOverride && (
           <p className="text-xs text-muted-foreground">
             {isChinese
@@ -1006,8 +1016,6 @@ export default function ApprovalRequestForm({
           </p>
         )}
       </div>
-
-      {error && <p className="text-xs text-destructive">{error}</p>}
 
       <Button
         type="submit"

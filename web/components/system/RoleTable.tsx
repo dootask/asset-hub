@@ -32,6 +32,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { Role } from "@/lib/types/system";
+import { useAppFeedback } from "@/components/providers/feedback-provider";
 
 interface Props {
   initialRoles: Role[];
@@ -65,11 +66,10 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Role | null>(null);
   const [formState, setFormState] = useState<FormState>(DEFAULT_FORM);
-  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [dialogRole, setDialogRole] = useState<Role | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const feedback = useAppFeedback();
 
   const filteredRoles = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -82,7 +82,6 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
   const openCreateDialog = () => {
     setEditing(null);
     setFormState(DEFAULT_FORM);
-    setError(null);
     setDialogOpen(true);
   };
 
@@ -101,7 +100,6 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
       scope: role.scope,
       description: role.description ?? "",
     });
-    setError(null);
     setDialogOpen(true);
   };
 
@@ -132,21 +130,33 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
         );
         setDialogOpen(false);
         setEditing(null);
+        feedback.success(
+          isChinese
+            ? editing
+              ? "角色已更新"
+              : "角色已创建"
+            : editing
+              ? "Role updated"
+              : "Role created",
+        );
       } catch (err) {
-        setError(
+        const message =
           err instanceof Error
             ? err.message
             : isChinese
               ? "保存失败，请稍后再试。"
-              : "Save failed, please try again.",
-        );
+              : "Save failed, please try again.";
+        feedback.error(message, {
+          blocking: true,
+          title: isChinese ? "保存失败" : "Save failed",
+          acknowledgeLabel: isChinese ? "知道了" : "Got it",
+        });
       }
     });
   };
 
   const openDeleteDialog = (role: Role) => {
     setDialogRole(role);
-    setDeleteError(null);
     setDeleteDialogOpen(true);
   };
 
@@ -167,14 +177,19 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
         setRoles((prev) => prev.filter((role) => role.id !== dialogRole.id));
         setDeleteDialogOpen(false);
         setDialogRole(null);
+        feedback.success(isChinese ? "删除成功" : "Deleted successfully");
       } catch (err) {
-        setDeleteError(
+        const message =
           err instanceof Error
             ? err.message
             : isChinese
               ? "删除失败，请稍后再试。"
-              : "Failed to delete role.",
-        );
+              : "Failed to delete role.";
+        feedback.error(message, {
+          blocking: true,
+          title: isChinese ? "删除失败" : "Delete failed",
+          acknowledgeLabel: isChinese ? "知道了" : "Got it",
+        });
       }
     });
   };
@@ -313,11 +328,6 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
                   }
                 />
               </div>
-              {error && (
-                <div className="rounded-2xl border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm text-destructive">
-                  {error}
-                </div>
-              )}
             </form>
           </DialogBody>
           <DialogFooter className="gap-2">
@@ -349,11 +359,6 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
                 : `Are you sure you want to delete ${dialogRole?.name ?? ""}?`}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          {deleteError && (
-            <div className="rounded-2xl border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm text-destructive">
-              {deleteError}
-            </div>
-          )}
           <AlertDialogFooter>
             <AlertDialogCancel>
               {isChinese ? "取消" : "Cancel"}
@@ -372,4 +377,3 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
 });
 
 export default RoleTable;
-

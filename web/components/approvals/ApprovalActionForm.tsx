@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { sendApprovalUpdatedNotification } from "@/lib/client/dootask-notifications";
+import { useAppFeedback } from "@/components/providers/feedback-provider";
 
 const ACTIONS: { value: ApprovalAction; labelZh: string; labelEn: string }[] = [
   { value: "approve", labelZh: "通过", labelEn: "Approve" },
@@ -29,7 +30,7 @@ export default function ApprovalActionForm({ approvalId, locale }: Props) {
   const [action, setAction] = useState<ApprovalAction>("approve");
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const feedback = useAppFeedback();
   const fieldIds = {
     action: useId(),
     comment: useId(),
@@ -63,7 +64,6 @@ export default function ApprovalActionForm({ approvalId, locale }: Props) {
     event.preventDefault();
     if (!canSubmit) return;
     setSubmitting(true);
-    setError(null);
 
     try {
       const searchSuffix = (() => {
@@ -107,14 +107,19 @@ export default function ApprovalActionForm({ approvalId, locale }: Props) {
 
       setComment("");
       router.refresh();
+      feedback.success(isChinese ? "审批动作已提交" : "Action submitted");
     } catch (err) {
-      setError(
+      const message =
         err instanceof Error
           ? err.message
           : isChinese
             ? "操作失败，请稍后重试。"
-            : "Failed to apply action, please try again.",
-      );
+            : "Failed to apply action, please try again.";
+      feedback.error(message, {
+        blocking: true,
+        title: isChinese ? "提交失败" : "Submit failed",
+        acknowledgeLabel: isChinese ? "知道了" : "Got it",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -206,8 +211,6 @@ export default function ApprovalActionForm({ approvalId, locale }: Props) {
           />
         </div>
       </div>
-
-      {error && <p className="text-xs text-destructive">{error}</p>}
 
       <Button type="submit" disabled={!canSubmit || submitting} className="w-full rounded-2xl">
         {submitting

@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import type { Company } from "@/lib/types/system";
+import { useAppFeedback } from "@/components/providers/feedback-provider";
 
 interface Props {
   initialCompanies: Company[];
@@ -73,8 +74,8 @@ const CompanyTable = forwardRef<CompanyTableHandle, Props>(function CompanyTable
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formState, setFormState] = useState<FormState>(DEFAULT_FORM);
   const [search, setSearch] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const feedback = useAppFeedback();
 
   const displayedCompanies = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -94,7 +95,6 @@ const CompanyTable = forwardRef<CompanyTableHandle, Props>(function CompanyTable
   const openCreateDialog = useCallback(() => {
     setEditingId(null);
     setFormState(DEFAULT_FORM);
-    setError(null);
     setDialogOpen(true);
   }, []);
 
@@ -113,7 +113,6 @@ const CompanyTable = forwardRef<CompanyTableHandle, Props>(function CompanyTable
       code: company.code,
       description: company.description ?? "",
     });
-    setError(null);
     setDialogOpen(true);
   };
 
@@ -153,14 +152,27 @@ const CompanyTable = forwardRef<CompanyTableHandle, Props>(function CompanyTable
         setDialogOpen(false);
         setEditingId(null);
         setFormState(DEFAULT_FORM);
+        feedback.success(
+          isChinese
+            ? editingId
+              ? "公司已更新"
+              : "公司已创建"
+            : editingId
+              ? "Company updated"
+              : "Company created",
+        );
       } catch (err) {
-        setError(
+        const message =
           err instanceof Error
             ? err.message
             : isChinese
               ? "保存失败，请稍后重试。"
-              : "Failed to save company.",
-        );
+              : "Failed to save company.";
+        feedback.error(message, {
+          blocking: true,
+          title: isChinese ? "保存失败" : "Save failed",
+          acknowledgeLabel: isChinese ? "知道了" : "Got it",
+        });
       }
     });
   };
@@ -177,14 +189,19 @@ const CompanyTable = forwardRef<CompanyTableHandle, Props>(function CompanyTable
           throw new Error(body?.message ?? "删除失败");
         }
         setCompanies((prev) => prev.filter((item) => item.id !== company.id));
+        feedback.success(isChinese ? "删除成功" : "Deleted successfully");
       } catch (err) {
-        setError(
+        const message =
           err instanceof Error
             ? err.message
             : isChinese
               ? "删除失败，请稍后重试。"
-              : "Failed to delete company.",
-        );
+              : "Failed to delete company.";
+        feedback.error(message, {
+          blocking: true,
+          title: isChinese ? "删除失败" : "Delete failed",
+          acknowledgeLabel: isChinese ? "知道了" : "Got it",
+        });
       }
     });
   };
@@ -393,11 +410,6 @@ const CompanyTable = forwardRef<CompanyTableHandle, Props>(function CompanyTable
                   }
                 />
               </div>
-              {error && (
-                <div className="rounded-2xl border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm text-destructive">
-                  {error}
-                </div>
-              )}
             </form>
           </DialogBody>
           <DialogFooter className="gap-2">
@@ -433,5 +445,4 @@ const CompanyTable = forwardRef<CompanyTableHandle, Props>(function CompanyTable
 });
 
 export default CompanyTable;
-
 

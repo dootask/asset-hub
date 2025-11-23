@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { useAppFeedback } from "@/components/providers/feedback-provider";
 
 interface Props {
   initialConfigs: ActionConfig[];
@@ -37,9 +38,9 @@ const CONFIG_ORDER: ActionConfigId[] = [
 export default function ActionConfigTable({ initialConfigs, locale }: Props) {
   const [configs, setConfigs] = useState(initialConfigs);
   const [savingId, setSavingId] = useState<ActionConfigId | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const isChinese = locale === "zh";
+  const feedback = useAppFeedback();
 
   const sortedConfigs = useMemo(
     () =>
@@ -65,7 +66,6 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
 
   const handleSave = (config: ActionConfig) => {
     setSavingId(config.id);
-    setError(null);
     startTransition(async () => {
       try {
         const response = await fetch(
@@ -90,14 +90,21 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
         setConfigs((prev) =>
           prev.map((item) => (item.id === config.id ? payload.data : item)),
         );
+        feedback.success(
+          isChinese ? "配置已保存" : "Configuration saved",
+        );
       } catch (err) {
-        setError(
+        const message =
           err instanceof Error
             ? err.message
             : isChinese
               ? "保存审批配置失败。"
-              : "Failed to save configuration.",
-        );
+              : "Failed to save configuration.";
+        feedback.error(message, {
+          blocking: true,
+          title: isChinese ? "保存失败" : "Save failed",
+          acknowledgeLabel: isChinese ? "知道了" : "Got it",
+        });
       } finally {
         setSavingId(null);
       }
@@ -106,7 +113,6 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
 
   return (
     <div className="space-y-4">
-      {error && <p className="text-sm text-destructive">{error}</p>}
       <div className="space-y-6">
         {sortedConfigs.map((config) => (
           <div
@@ -211,5 +217,4 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
     </div>
   );
 }
-
 

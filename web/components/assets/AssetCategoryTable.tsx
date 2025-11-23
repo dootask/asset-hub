@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import type { AssetCategory } from "@/lib/types/asset-category";
+import { useAppFeedback } from "@/components/providers/feedback-provider";
 
 export interface AssetCategoryTableHandle {
   openCreateDialog: () => void;
@@ -62,9 +63,9 @@ const AssetCategoryTable = forwardRef<AssetCategoryTableHandle, Props>(function 
   const [editing, setEditing] = useState<AssetCategory | null>(null);
   const [formState, setFormState] = useState<FormState>(DEFAULT_FORM);
   const [search, setSearch] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const isChinese = locale === "zh";
+  const feedback = useAppFeedback();
 
   const displayedCategories = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -85,7 +86,6 @@ const AssetCategoryTable = forwardRef<AssetCategoryTableHandle, Props>(function 
   const openCreateDialog = useCallback(() => {
     setEditing(null);
     setFormState(DEFAULT_FORM);
-    setError(null);
     setDialogOpen(true);
   }, []);
 
@@ -106,7 +106,6 @@ const AssetCategoryTable = forwardRef<AssetCategoryTableHandle, Props>(function 
       description: category.description ?? "",
       color: category.color ?? "",
     });
-    setError(null);
     setDialogOpen(true);
   }, []);
 
@@ -155,14 +154,27 @@ const AssetCategoryTable = forwardRef<AssetCategoryTableHandle, Props>(function 
         });
         setDialogOpen(false);
         setEditing(null);
+        feedback.success(
+          isChinese
+            ? editing
+              ? "类别已更新"
+              : "类别已创建"
+            : editing
+              ? "Category updated"
+              : "Category created",
+        );
       } catch (err) {
-        setError(
+        const message =
           err instanceof Error
             ? err.message
             : isChinese
               ? "保存失败，请稍后重试。"
-              : "Failed to save category.",
-        );
+              : "Failed to save category.";
+        feedback.error(message, {
+          blocking: true,
+          title: isChinese ? "保存失败" : "Save failed",
+          acknowledgeLabel: isChinese ? "知道了" : "Got it",
+        });
       }
     });
   };
@@ -181,14 +193,19 @@ const AssetCategoryTable = forwardRef<AssetCategoryTableHandle, Props>(function 
           throw new Error(message?.message ?? "删除失败");
         }
         setCategories((prev) => prev.filter((item) => item.id !== category.id));
+        feedback.success(isChinese ? "删除成功" : "Deleted successfully");
       } catch (err) {
-        setError(
+        const message =
           err instanceof Error
             ? err.message
             : isChinese
               ? "删除失败，请稍后重试。"
-              : "Failed to delete category.",
-        );
+              : "Failed to delete category.";
+        feedback.error(message, {
+          blocking: true,
+          title: isChinese ? "删除失败" : "Delete failed",
+          acknowledgeLabel: isChinese ? "知道了" : "Got it",
+        });
       }
     });
   };
@@ -438,12 +455,6 @@ const AssetCategoryTable = forwardRef<AssetCategoryTableHandle, Props>(function 
                   }
                 />
               </div>
-
-              {error && (
-                <div className="rounded-2xl border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm text-destructive">
-                  {error}
-                </div>
-              )}
             </form>
           </DialogBody>
           <DialogFooter className="gap-2">

@@ -19,6 +19,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import type { ReportView, ReportExecutionResult } from "@/lib/types/report";
 import { APPROVAL_TYPES } from "@/lib/types/approval";
 import { ASSET_STATUSES } from "@/lib/types/asset";
+import { useAppFeedback } from "@/components/providers/feedback-provider";
 
 interface CustomReportsClientProps {
   locale: string;
@@ -71,17 +72,16 @@ export default function CustomReportsClient({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formState, setFormState] = useState<FormState>(DEFAULT_FORM);
   const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
   const [previewResult, setPreviewResult] = useState<ReportExecutionResult | null>(null);
   const [previewName, setPreviewName] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const feedback = useAppFeedback();
 
   const fieldsForSource = formState.dataSource === "assets" ? ASSET_FIELDS : APPROVAL_FIELDS;
 
   const openCreateDialog = () => {
     setFormState(DEFAULT_FORM);
-    setError(null);
     setDialogOpen(true);
   };
 
@@ -93,7 +93,6 @@ export default function CustomReportsClient({
       fields: view.fields,
       filters: view.filters ?? {},
     });
-    setError(null);
     setDialogOpen(true);
   };
 
@@ -156,14 +155,27 @@ export default function CustomReportsClient({
         });
         setDialogOpen(false);
         setFormState(DEFAULT_FORM);
+        feedback.success(
+          isChinese
+            ? formState.id
+              ? "报表视图已更新"
+              : "报表视图已创建"
+            : formState.id
+              ? "Report view updated"
+              : "Report view created",
+        );
       } catch (err) {
-        setError(
+        const message =
           err instanceof Error
             ? err.message
             : isChinese
               ? "保存失败，请稍后重试。"
-              : "Failed to save report view.",
-        );
+              : "Failed to save report view.";
+        feedback.error(message, {
+          blocking: true,
+          title: isChinese ? "保存失败" : "Save failed",
+          acknowledgeLabel: isChinese ? "知道了" : "Got it",
+        });
       }
     });
   };
@@ -180,14 +192,19 @@ export default function CustomReportsClient({
           throw new Error(payload?.message ?? "删除失败");
         }
         setViews((prev) => prev.filter((item) => item.id !== view.id));
+        feedback.success(isChinese ? "删除成功" : "Deleted successfully");
       } catch (err) {
-        setError(
+        const message =
           err instanceof Error
             ? err.message
             : isChinese
               ? "删除失败，请稍后重试。"
-              : "Failed to delete report view.",
-        );
+              : "Failed to delete report view.";
+        feedback.error(message, {
+          blocking: true,
+          title: isChinese ? "删除失败" : "Delete failed",
+          acknowledgeLabel: isChinese ? "知道了" : "Got it",
+        });
       }
     });
   };
@@ -500,12 +517,6 @@ export default function CustomReportsClient({
                 <Label>{isChinese ? "筛选条件" : "Filters"}</Label>
                 <div className="grid gap-3 md:grid-cols-2">{filterControls}</div>
               </div>
-
-              {error && (
-                <div className="rounded-2xl border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm text-destructive">
-                  {error}
-                </div>
-              )}
             </form>
           </DialogBody>
           <DialogFooter className="gap-2">
@@ -515,7 +526,6 @@ export default function CustomReportsClient({
               onClick={() => {
                 setDialogOpen(false);
                 setFormState(DEFAULT_FORM);
-                setError(null);
               }}
             >
               {isChinese ? "取消" : "Cancel"}
@@ -592,4 +602,3 @@ export default function CustomReportsClient({
     </div>
   );
 }
-

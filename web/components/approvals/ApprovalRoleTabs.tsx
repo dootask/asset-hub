@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import clsx from "clsx";
 import { getUserInfo } from "@dootask/tools";
+import { useAppFeedback } from "@/components/providers/feedback-provider";
 
 type RoleValue = "all" | "my-requests" | "my-tasks";
 
@@ -22,7 +23,7 @@ export default function ApprovalRoleTabs({ locale = "en" }: Props) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [loadingRole, setLoadingRole] = useState<RoleValue | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const feedback = useAppFeedback();
 
   const currentRole: RoleValue = useMemo(() => {
     const role = searchParams?.get("role") ?? "all";
@@ -45,8 +46,6 @@ export default function ApprovalRoleTabs({ locale = "en" }: Props) {
 
       const params = new URLSearchParams(searchParams?.toString() ?? "");
       params.delete("page");
-      setError(null);
-
       if (role === "all") {
         params.delete("role");
         params.delete("userId");
@@ -72,18 +71,22 @@ export default function ApprovalRoleTabs({ locale = "en" }: Props) {
         params.set("userId", String(resolvedUserId));
         router.push(`${pathname}?${params.toString()}`);
       } catch (err) {
-        setError(
+        const message =
           err instanceof Error
             ? err.message
             : isChinese
               ? "无法获取用户信息"
-              : "Failed to resolve user info",
-        );
+              : "Failed to resolve user info";
+        feedback.error(message, {
+          blocking: true,
+          title: isChinese ? "获取用户信息失败" : "Failed to fetch user",
+          acknowledgeLabel: isChinese ? "知道了" : "Got it",
+        });
       } finally {
         setLoadingRole(null);
       }
     },
-    [currentRole, isChinese, pathname, router, searchParams],
+    [currentRole, feedback, isChinese, pathname, router, searchParams],
   );
 
   return (
@@ -116,12 +119,6 @@ export default function ApprovalRoleTabs({ locale = "en" }: Props) {
           );
         })}
       </div>
-      {error && (
-        <p className="text-xs text-destructive">
-          {error}
-        </p>
-      )}
     </div>
   );
 }
-

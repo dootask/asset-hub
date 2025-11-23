@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
+import { useAppFeedback } from "@/components/providers/feedback-provider";
 
 interface Props {
   locale: string;
@@ -37,8 +38,8 @@ export default function ConsumableInventoryCreateDialog({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [formState, setFormState] = useState(DEFAULT_FORM);
-  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const feedback = useAppFeedback();
 
   const toggleCategory = (code: string) => {
     setFormState((prev) => {
@@ -81,18 +82,22 @@ export default function ConsumableInventoryCreateDialog({
         if (!response.ok) {
           throw new Error(payload?.message ?? "创建失败，请稍后再试。");
         }
-        setError(null);
         setOpen(false);
         setFormState(DEFAULT_FORM);
         router.refresh();
+        feedback.success(isChinese ? "盘点任务已创建" : "Inventory task created");
       } catch (err) {
-        setError(
+        const message =
           err instanceof Error
             ? err.message
             : isChinese
               ? "创建失败，请稍后重试。"
-              : "Failed to create task.",
-        );
+              : "Failed to create task.";
+        feedback.error(message, {
+          blocking: true,
+          title: isChinese ? "创建失败" : "Create failed",
+          acknowledgeLabel: isChinese ? "知道了" : "Got it",
+        });
       }
     });
   };
@@ -196,11 +201,6 @@ export default function ConsumableInventoryCreateDialog({
                   </p>
                 </div>
               </div>
-              {error && (
-                <p className="text-sm text-destructive" role="alert">
-                  {error}
-                </p>
-              )}
             </form>
           </DialogBody>
           <DialogFooter className="gap-2">
@@ -227,4 +227,3 @@ export default function ConsumableInventoryCreateDialog({
     </>
   );
 }
-

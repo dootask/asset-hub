@@ -39,6 +39,7 @@ import {
   OPERATION_TYPES,
   type AssetOperationType,
 } from "@/lib/types/operation";
+import { useAppFeedback } from "@/components/providers/feedback-provider";
 
 interface Props {
   assetId: string;
@@ -84,10 +85,10 @@ export default function OperationForm({
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [openDateField, setOpenDateField] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [actionConfigs, setActionConfigs] = useState<ActionConfig[]>([]);
   const [loadingConfigs, setLoadingConfigs] = useState(true);
   const [configError, setConfigError] = useState<string | null>(null);
+  const feedback = useAppFeedback();
 
   useEffect(() => {
     setFormState((prev) => {
@@ -157,13 +158,18 @@ export default function OperationForm({
       } catch (err) {
         if (!cancelled) {
           setActionConfigs([]);
-          setConfigError(
+          const message =
             err instanceof Error
               ? err.message
               : isChinese
                 ? "无法加载操作配置，请稍后重试。"
-                : "Failed to load operation configuration.",
-          );
+                : "Failed to load operation configuration.";
+          setConfigError(message);
+          feedback.error(message, {
+            blocking: true,
+            title: isChinese ? "加载失败" : "Load failed",
+            acknowledgeLabel: isChinese ? "知道了" : "Got it",
+          });
         }
       } finally {
         if (!cancelled) {
@@ -175,7 +181,7 @@ export default function OperationForm({
     return () => {
       cancelled = true;
     };
-  }, [isChinese]);
+  }, [feedback, isChinese]);
 
   const handleFieldChange = (key: string, value: string) => {
     setFieldValues((prev) => ({ ...prev, [key]: value }));
@@ -239,7 +245,6 @@ export default function OperationForm({
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitting(true);
-    setError(null);
 
     try {
       if (isInboundType && !inboundUnlocked) {
@@ -341,30 +346,35 @@ export default function OperationForm({
       );
 
       if (!response.ok) {
-        const payload = await response.json();
-        throw new Error(payload?.message ?? "提交失败");
-      }
-
-      setFormState((prev) => ({
-        ...prev,
-        actor: "",
-        description: "",
-      }));
-      resetFieldValues();
-      router.refresh();
-      onSuccess?.();
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : isChinese
-            ? "无法创建操作记录，请稍后重试。"
-            : "Failed to create operation, please try again.",
-      );
-    } finally {
-      setSubmitting(false);
+      const payload = await response.json();
+      throw new Error(payload?.message ?? "提交失败");
     }
-  };
+
+    setFormState((prev) => ({
+      ...prev,
+      actor: "",
+      description: "",
+    }));
+    resetFieldValues();
+    router.refresh();
+    onSuccess?.();
+    feedback.success(isChinese ? "操作记录已创建" : "Operation created");
+  } catch (err) {
+    const message =
+      err instanceof Error
+        ? err.message
+        : isChinese
+          ? "无法创建操作记录，请稍后重试。"
+          : "Failed to create operation, please try again.";
+    feedback.error(message, {
+      blocking: true,
+      title: isChinese ? "提交失败" : "Submit failed",
+      acknowledgeLabel: isChinese ? "知道了" : "Got it",
+    });
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   const renderField = (field: OperationTemplateField) => {
     const value = fieldValues[field.key] ?? "";
@@ -568,9 +578,6 @@ export default function OperationForm({
         />
       </div>
 
-      {error && <p className="text-xs text-destructive">{error}</p>}
-
     </form>
   );
 }
-

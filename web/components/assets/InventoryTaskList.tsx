@@ -17,6 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import type { InventoryTask, InventoryTaskStatus } from "@/lib/types/inventory";
 import { ASSET_STATUSES } from "@/lib/types/asset";
+import { useAppFeedback } from "@/components/providers/feedback-provider";
 
 interface Props {
   locale: string;
@@ -51,8 +52,8 @@ export default function InventoryTaskList({ locale, baseUrl, initialTasks }: Pro
   const [tasks, setTasks] = useState(initialTasks);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formState, setFormState] = useState<FormState>(DEFAULT_FORM);
-  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const feedback = useAppFeedback();
 
   const handleFilterToggle = (status: string) => {
     setFormState((prev) => {
@@ -97,15 +98,19 @@ export default function InventoryTaskList({ locale, baseUrl, initialTasks }: Pro
         setTasks((prev) => [payload.data as InventoryTask, ...prev]);
         setDialogOpen(false);
         setFormState(DEFAULT_FORM);
-        setError(null);
+        feedback.success(isChinese ? "盘点任务已创建" : "Inventory task created");
       } catch (err) {
-        setError(
+        const message =
           err instanceof Error
             ? err.message
             : isChinese
               ? "创建失败，请稍后重试。"
-              : "Failed to create task.",
-        );
+              : "Failed to create task.";
+        feedback.error(message, {
+          blocking: true,
+          title: isChinese ? "创建失败" : "Create failed",
+          acknowledgeLabel: isChinese ? "知道了" : "Got it",
+        });
       }
     });
   };
@@ -128,14 +133,19 @@ export default function InventoryTaskList({ locale, baseUrl, initialTasks }: Pro
         setTasks((prev) =>
           prev.map((item) => (item.id === task.id ? (payload.data as InventoryTask) : item)),
         );
+        feedback.success(isChinese ? "状态已更新" : "Status updated");
       } catch (err) {
-        setError(
+        const message =
           err instanceof Error
             ? err.message
             : isChinese
               ? "更新失败，请稍后重试。"
-              : "Failed to update task.",
-        );
+              : "Failed to update task.";
+        feedback.error(message, {
+          blocking: true,
+          title: isChinese ? "更新失败" : "Update failed",
+          acknowledgeLabel: isChinese ? "知道了" : "Got it",
+        });
       }
     });
   };
@@ -172,12 +182,6 @@ export default function InventoryTaskList({ locale, baseUrl, initialTasks }: Pro
           {isChinese ? "新建盘点任务" : "New Inventory Task"}
         </Button>
       </div>
-
-      {error && (
-        <div className="rounded-2xl border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm text-destructive">
-          {error}
-        </div>
-      )}
 
       {tasks.length === 0 ? (
         <div className="rounded-2xl border border-dashed bg-muted/30 p-12 text-center text-sm text-muted-foreground">
@@ -389,7 +393,6 @@ export default function InventoryTaskList({ locale, baseUrl, initialTasks }: Pro
               onClick={() => {
                 setDialogOpen(false);
                 setFormState(DEFAULT_FORM);
-                setError(null);
               }}
             >
               {isChinese ? "取消" : "Cancel"}
@@ -409,4 +412,3 @@ export default function InventoryTaskList({ locale, baseUrl, initialTasks }: Pro
     </div>
   );
 }
-

@@ -21,6 +21,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
+import { useAppFeedback } from "@/components/providers/feedback-provider";
 
 const CONFIG_MAP: Record<ConsumableOperationType, ConsumableActionConfig> =
   CONSUMABLE_ACTION_CONFIGS.reduce(
@@ -78,6 +79,7 @@ export default function ConsumableOperationForm({
   );
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const feedback = useAppFeedback();
 
   const requiresApproval = CONFIG_MAP[operationType]?.requiresApproval ?? false;
   const showQuantity = TYPES_USING_QUANTITY.includes(operationType);
@@ -174,14 +176,20 @@ export default function ConsumableOperationForm({
       setQuantityDelta(DEFAULT_DELTAS[operationType].quantityDelta.toString());
       setReservedDelta(DEFAULT_DELTAS[operationType].reservedDelta.toString());
       router.refresh();
+      feedback.success(isChinese ? "操作已创建" : "Operation created");
     } catch (err) {
-      setError(
+      const message =
         err instanceof Error
           ? err.message
           : isChinese
             ? "提交失败，请稍后再试。"
-            : "Something went wrong, please retry.",
-      );
+            : "Something went wrong, please retry.";
+      setError(message);
+      feedback.error(message, {
+        blocking: true,
+        title: isChinese ? "提交失败" : "Submit failed",
+        acknowledgeLabel: isChinese ? "知道了" : "Got it",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -310,4 +318,3 @@ export default function ConsumableOperationForm({
     </form>
   );
 }
-

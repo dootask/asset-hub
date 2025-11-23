@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import type { ConsumableCategory } from "@/lib/types/consumable";
+import { useAppFeedback } from "@/components/providers/feedback-provider";
 
 export interface ConsumableCategoryTableHandle {
   openCreateDialog: () => void;
@@ -61,14 +62,13 @@ const ConsumableCategoryTable = forwardRef<ConsumableCategoryTableHandle, Props>
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<ConsumableCategory | null>(null);
   const [formState, setFormState] = useState<FormState>(DEFAULT_FORM);
-  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const isChinese = locale === "zh";
+  const feedback = useAppFeedback();
 
   const openCreateDialog = useCallback(() => {
     setEditing(null);
     setFormState(DEFAULT_FORM);
-    setError(null);
     setDialogOpen(true);
   }, []);
 
@@ -89,7 +89,6 @@ const ConsumableCategoryTable = forwardRef<ConsumableCategoryTableHandle, Props>
       description: category.description ?? "",
       unit: category.unit ?? "",
     });
-    setError(null);
     setDialogOpen(true);
   }, []);
 
@@ -133,14 +132,27 @@ const ConsumableCategoryTable = forwardRef<ConsumableCategoryTableHandle, Props>
         });
         setDialogOpen(false);
         setEditing(null);
+        feedback.success(
+          isChinese
+            ? editing
+              ? "类别已更新"
+              : "类别已创建"
+            : editing
+              ? "Category updated"
+              : "Category created",
+        );
       } catch (err) {
-        setError(
+        const message =
           err instanceof Error
             ? err.message
             : isChinese
               ? "保存失败，请稍后重试。"
-              : "Failed to save category.",
-        );
+              : "Failed to save category.";
+        feedback.error(message, {
+          blocking: true,
+          title: isChinese ? "保存失败" : "Save failed",
+          acknowledgeLabel: isChinese ? "知道了" : "Got it",
+        });
       }
     });
   };
@@ -159,25 +171,25 @@ const ConsumableCategoryTable = forwardRef<ConsumableCategoryTableHandle, Props>
           throw new Error(message?.message ?? "删除失败");
         }
         setCategories((prev) => prev.filter((item) => item.id !== category.id));
+        feedback.success(isChinese ? "删除成功" : "Deleted successfully");
       } catch (err) {
-        setError(
+        const message =
           err instanceof Error
             ? err.message
             : isChinese
               ? "删除失败，请稍后重试。"
-              : "Failed to delete category.",
-        );
+              : "Failed to delete category.";
+        feedback.error(message, {
+          blocking: true,
+          title: isChinese ? "删除失败" : "Delete failed",
+          acknowledgeLabel: isChinese ? "知道了" : "Got it",
+        });
       }
     });
   };
 
   return (
     <>
-      {error && (
-        <div className="rounded-2xl border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm text-destructive">
-          {error}
-        </div>
-      )}
       <section className="overflow-hidden rounded-2xl border bg-card">
         <Table className="text-sm">
           <TableHeader className="bg-muted/30">
@@ -355,11 +367,6 @@ const ConsumableCategoryTable = forwardRef<ConsumableCategoryTableHandle, Props>
                   }
                 />
               </div>
-              {error && (
-                <div className="rounded-2xl border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm text-destructive">
-                  {error}
-                </div>
-              )}
             </form>
           </DialogBody>
           <DialogFooter className="gap-2">
@@ -394,4 +401,3 @@ const ConsumableCategoryTable = forwardRef<ConsumableCategoryTableHandle, Props>
 });
 
 export default ConsumableCategoryTable;
-

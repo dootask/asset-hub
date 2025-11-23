@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import type { CreateAssetPayload } from "@/lib/types/asset";
+import { useAppFeedback } from "@/components/providers/feedback-provider";
 
 type Props = {
   asset: Asset;
@@ -58,7 +59,6 @@ export default function EditAssetDialog({ asset, locale = "en", categories }: Pr
   const [open, setOpen] = useState(false);
   const [purchaseDateOpen, setPurchaseDateOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [formState, setFormState] = useState<CreateAssetPayload>({
     name: asset.name,
     category: asset.category,
@@ -67,6 +67,7 @@ export default function EditAssetDialog({ asset, locale = "en", categories }: Pr
     location: asset.location,
     purchaseDate: asset.purchaseDate,
   });
+  const feedback = useAppFeedback();
 
   const currentCategory = categoryOptions.find(
     (entry) => entry.code === formState.category,
@@ -100,7 +101,6 @@ export default function EditAssetDialog({ asset, locale = "en", categories }: Pr
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitting(true);
-    setError(null);
 
     try {
       const response = await fetch(`/apps/asset-hub/api/assets/${asset.id}`, {
@@ -116,14 +116,19 @@ export default function EditAssetDialog({ asset, locale = "en", categories }: Pr
 
       setOpen(false);
       router.refresh();
+      feedback.success(isChinese ? "资产已更新" : "Asset updated");
     } catch (err) {
-      setError(
+      const message =
         err instanceof Error
           ? err.message
           : isChinese
             ? "更新失败，请稍后重试。"
-            : "Failed to update asset.",
-      );
+            : "Failed to update asset.";
+      feedback.error(message, {
+        blocking: true,
+        title: isChinese ? "更新失败" : "Update failed",
+        acknowledgeLabel: isChinese ? "知道了" : "Got it",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -293,11 +298,6 @@ export default function EditAssetDialog({ asset, locale = "en", categories }: Pr
               </div>
             </div>
 
-            {error && (
-              <div className="rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm text-destructive">
-                {error}
-              </div>
-            )}
           </form>
         </DialogBody>
 
@@ -328,4 +328,3 @@ export default function EditAssetDialog({ asset, locale = "en", categories }: Pr
     </Dialog>
   );
 }
-

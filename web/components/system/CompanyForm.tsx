@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { Company } from "@/lib/types/system";
+import { useAppFeedback } from "@/components/providers/feedback-provider";
 
 interface CompanyFormProps {
   company?: Company;
@@ -22,7 +23,7 @@ export default function CompanyForm({ company, locale = "en" }: CompanyFormProps
     description: company?.description ?? "",
   });
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const feedback = useAppFeedback();
 
   useEffect(() => {
     if (company) {
@@ -39,7 +40,6 @@ export default function CompanyForm({ company, locale = "en" }: CompanyFormProps
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitting(true);
-    setError(null);
 
     try {
       const url = company
@@ -59,14 +59,27 @@ export default function CompanyForm({ company, locale = "en" }: CompanyFormProps
 
       router.replace(`/${locale}/system/company`);
       router.refresh();
+      feedback.success(
+        isChinese
+          ? company
+            ? "公司信息已更新"
+            : "公司已创建"
+          : company
+            ? "Company updated"
+            : "Company created",
+      );
     } catch (err) {
-      setError(
+      const message =
         err instanceof Error
           ? err.message
           : isChinese
             ? "提交失败，请稍后重试。"
-            : "Submission failed, please try again later.",
-      );
+            : "Submission failed, please try again later.";
+      feedback.error(message, {
+        blocking: true,
+        title: isChinese ? "提交失败" : "Submit failed",
+        acknowledgeLabel: isChinese ? "知道了" : "Got it",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -122,7 +135,6 @@ export default function CompanyForm({ company, locale = "en" }: CompanyFormProps
           }
         />
       </div>
-      {error && <p className="text-xs text-destructive">{error}</p>}
       <div className="flex items-center gap-2">
         <Button type="submit" disabled={submitting} className="rounded-2xl px-4 py-2 text-sm">
           {submitting
@@ -151,4 +163,3 @@ export default function CompanyForm({ company, locale = "en" }: CompanyFormProps
     </form>
   );
 }
-

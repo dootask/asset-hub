@@ -5,6 +5,7 @@ import { AlertSettings } from "@/lib/repositories/system-settings";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { useAppFeedback } from "@/components/providers/feedback-provider";
 
 interface Props {
   locale: string;
@@ -15,12 +16,9 @@ export default function AlertSettingsForm({ locale, initialSettings }: Props) {
   const isChinese = locale === "zh";
   const [settings, setSettings] = useState(initialSettings);
   const [pending, startTransition] = useTransition();
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const feedback = useAppFeedback();
 
   const handleSubmit = () => {
-    setError(null);
-    setMessage(null);
     startTransition(async () => {
       try {
         const response = await fetch("/apps/asset-hub/api/system/settings/alerts", {
@@ -34,15 +32,19 @@ export default function AlertSettingsForm({ locale, initialSettings }: Props) {
           const payload = await response.json().catch(() => null);
           throw new Error(payload?.message ?? "Failed to update settings.");
         }
-        setMessage(isChinese ? "已保存告警设置。" : "Alert settings saved.");
+        feedback.success(isChinese ? "已保存告警设置。" : "Alert settings saved.");
       } catch (err) {
-        setError(
+        const message =
           err instanceof Error
             ? err.message
             : isChinese
               ? "保存失败，请稍后再试。"
-              : "Failed to save settings. Please try again.",
-        );
+              : "Failed to save settings. Please try again.";
+        feedback.error(message, {
+          blocking: true,
+          title: isChinese ? "保存失败" : "Save failed",
+          acknowledgeLabel: isChinese ? "知道了" : "Got it",
+        });
       }
     });
   };
@@ -85,15 +87,8 @@ export default function AlertSettingsForm({ locale, initialSettings }: Props) {
             />
           </div>
         ))}
-      </div>
+    </div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-sm text-muted-foreground">
-          {pending
-            ? isChinese
-              ? "保存中..."
-              : "Saving..."
-            : message ?? error}
-        </div>
         <Button onClick={handleSubmit} disabled={pending}>
           {pending
             ? isChinese
@@ -107,5 +102,4 @@ export default function AlertSettingsForm({ locale, initialSettings }: Props) {
     </div>
   );
 }
-
 
