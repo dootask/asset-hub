@@ -13,7 +13,7 @@ function isSystemPath(path: string) {
   );
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { nextUrl } = request;
   if (!nextUrl.pathname.startsWith(BASE_PATH)) {
     return NextResponse.next();
