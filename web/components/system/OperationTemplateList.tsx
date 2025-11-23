@@ -89,8 +89,8 @@ export default function OperationTemplateList({
   );
   const [jsonDirtyMap, setJsonDirtyMap] = useState<Record<string, boolean>>({});
   const [jsonErrors, setJsonErrors] = useState<Record<string, string | null>>({});
-  const [jsonPanelOpen, setJsonPanelOpen] = useState<Record<string, boolean>>({});
   const [fieldPickerOpen, setFieldPickerOpen] = useState<Record<string, boolean>>({});
+  const [editorTabs, setEditorTabs] = useState<Record<string, "builder" | "json">>({});
 
   const configMap = useMemo(() => {
     const map = new Map<string, ActionConfig>();
@@ -199,10 +199,6 @@ export default function OperationTemplateList({
     }
     setError(null);
     applyDraftChange(type, drafts);
-  };
-
-  const handleJsonToggle = (type: OperationTemplate["type"]) => {
-    setJsonPanelOpen((prev) => ({ ...prev, [type]: !prev[type] }));
   };
 
   const handleJsonChange = (type: OperationTemplate["type"], value: string) => {
@@ -318,7 +314,7 @@ export default function OperationTemplateList({
             const jsonDraft = jsonDrafts[template.type] ?? "";
             const isJsonDirty = jsonDirtyMap[template.type] ?? false;
             const jsonError = jsonErrors[template.type];
-            const advancedOpen = jsonPanelOpen[template.type] ?? false;
+            const editorTab = editorTabs[template.type] ?? "builder";
             const pickerOpen = fieldPickerOpen[template.type] ?? false;
             const config = configMap.get(
               operationTypeToActionConfigId(template.type),
@@ -379,322 +375,340 @@ export default function OperationTemplateList({
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="px-2">
-                  <>
-                    <div className="grid gap-4 lg:grid-cols-2">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">
-                          {isChinese ? "说明（中文）" : "Description (ZH)"}
-                        </Label>
-                        <Textarea
-                          rows={3}
-                          value={template.descriptionZh ?? ""}
-                          onChange={(event) =>
-                            handleTemplateChange(template.type, {
-                              descriptionZh: event.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">
-                          {isChinese ? "说明（英文）" : "Description (EN)"}
-                        </Label>
-                        <Textarea
-                          rows={3}
-                          value={template.descriptionEn ?? ""}
-                          onChange={(event) =>
-                            handleTemplateChange(template.type, {
-                              descriptionEn: event.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                    </div>
-                    <div className="mt-4 grid gap-4 lg:grid-cols-[1fr,1fr,2fr]">
-                      <div className="rounded-2xl border bg-muted/20 px-4 py-3 text-sm">
-                        <p className="font-semibold">
-                          {isChinese ? "审批策略" : "Approval Policy"}
-                        </p>
-                        {config ? (
-                          <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-                            <p>
-                              {isChinese ? "需要审批：" : "Requires approval:"}{" "}
-                              {config.requiresApproval
-                                ? isChinese
-                                  ? "是"
-                                  : "Yes"
-                                : isChinese
-                                  ? "否"
-                                  : "No"}
-                            </p>
-                            <p>
-                              {isChinese ? "允许修改审批人：" : "Override allowed:"}{" "}
-                              {config.allowOverride
-                                ? isChinese
-                                  ? "是"
-                                  : "Yes"
-                                : isChinese
-                                  ? "否"
-                                  : "No"}
-                            </p>
-                            {config.defaultApproverType !== "none" && (
-                              <p>
-                                {isChinese ? "默认审批人：" : "Default approver:"}{" "}
-                                {config.defaultApproverRefs.join(", ") || "-"}
-                              </p>
-                            )}
-                          </div>
-                        ) : (
-                          <p className="text-xs text-muted-foreground">
-                            {isChinese ? "暂无配置" : "No configuration yet."}
-                          </p>
-                        )}
-                      </div>
-                      <div className="rounded-2xl border bg-muted/20 px-4 py-3 text-sm">
-                        <p className="font-semibold">
-                          {isChinese ? "使用统计（全部资产）" : "Usage (all assets)"}
-                        </p>
-                        {stat ? (
-                          <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-                            <p>
-                              {isChinese ? "累计操作：" : "Total operations:"}{" "}
-                              {stat.total}
-                            </p>
-                            <p>
-                              {isChinese ? "进行中：" : "Pending:"} {stat.pending}
-                            </p>
-                          </div>
-                        ) : (
-                          <p className="text-xs text-muted-foreground">
-                            {isChinese ? "暂无数据" : "No data yet."}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center justify-between rounded-2xl border bg-muted/30 px-4 py-3">
-                        <div>
-                          <p className="text-sm font-medium">
-                            {isChinese ? "需要附件" : "Require attachment"}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {isChinese
-                              ? "启用后在提交操作或审批时需要上传附件。"
-                              : "If enabled, attachments become mandatory when submitting operations or approvals."}
-                          </p>
+                  <div className="space-y-6">
+                    <section className="space-y-6">
+                      <div className="grid gap-4 lg:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">
+                            {isChinese ? "说明（中文）" : "Description (ZH)"}
+                          </Label>
+                          <Textarea
+                            rows={3}
+                            value={template.descriptionZh ?? ""}
+                            onChange={(event) =>
+                              handleTemplateChange(template.type, {
+                                descriptionZh: event.target.value,
+                              })
+                            }
+                          />
                         </div>
-                        <Switch
-                          checked={template.requireAttachment}
-                          onCheckedChange={(checked) =>
-                            handleTemplateChange(template.type, { requireAttachment: checked })
-                          }
-                        />
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">
+                            {isChinese ? "说明（英文）" : "Description (EN)"}
+                          </Label>
+                          <Textarea
+                            rows={3}
+                            value={template.descriptionEn ?? ""}
+                            onChange={(event) =>
+                              handleTemplateChange(template.type, {
+                                descriptionEn: event.target.value,
+                              })
+                            }
+                          />
+                        </div>
                       </div>
-                    </div>
-                    <div className="mt-4 space-y-4">
-                      <div className="space-y-3 rounded-3xl border bg-muted/30 p-4">
-                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                          <div>
-                            <p className="text-sm font-semibold">
-                              {isChinese ? "字段构建器" : "Field builder"}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {isChinese
-                                ? "从字段库选择或创建自定义字段，组成 OperationForm 表单。"
-                                : "Pick fields from the library or create custom ones for the OperationForm."}
-                            </p>
+                      <div className="grid gap-6 border-t pt-4 text-sm text-muted-foreground md:grid-cols-3">
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground/70">
+                            {isChinese ? "审批策略" : "Approval policy"}
+                          </p>
+                          <p className="text-sm text-foreground">
+                            {config
+                              ? config.requiresApproval
+                                ? isChinese
+                                  ? "需要审批"
+                                  : "Approval required"
+                                : isChinese
+                                  ? "无需审批"
+                                  : "Approval optional"
+                              : isChinese
+                                ? "暂未配置"
+                                : "Not configured"}
+                          </p>
+                          {config && (
+                            <>
+                              <p>
+                                {isChinese ? "允许改审批人：" : "Override approver:"}{" "}
+                                {config.allowOverride
+                                  ? isChinese
+                                    ? "允许"
+                                    : "Allowed"
+                                  : isChinese
+                                    ? "不允许"
+                                    : "Locked"}
+                              </p>
+                              {config.defaultApproverType !== "none" && (
+                                <p>
+                                  {isChinese ? "默认审批人：" : "Default approver:"}{" "}
+                                  {config.defaultApproverRefs.join(", ") || "-"}
+                                </p>
+                              )}
+                            </>
+                          )}
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground/70">
+                            {isChinese ? "使用情况" : "Usage"}
+                          </p>
+                          {stat ? (
+                            <>
+                              <p>
+                                {isChinese ? "累计操作：" : "Total operations:"} {stat.total}
+                              </p>
+                              <p>
+                                {isChinese ? "进行中：" : "In progress:"} {stat.pending}
+                              </p>
+                            </>
+                          ) : (
+                            <p>{isChinese ? "暂无数据" : "No data yet."}</p>
+                          )}
+                        </div>
+                        <div>
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div className="space-y-1">
+                              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground/70">
+                                {isChinese ? "附件要求" : "Attachments"}
+                              </p>
+                              <p>
+                                {isChinese
+                                  ? "启用后提交或审批需附带文件。"
+                                  : "Toggle to require uploads during submission or approval."}
+                              </p>
+                            </div>
+                            <Switch
+                              checked={template.requireAttachment}
+                              onCheckedChange={(checked) =>
+                                handleTemplateChange(template.type, { requireAttachment: checked })
+                              }
+                            />
                           </div>
-                          <div className="flex flex-wrap items-center gap-3">
+                        </div>
+                      </div>
+                    </section>
+                    <section className="space-y-4 pt-2">
+                      <div className="space-y-2">
+                        <p className="text-sm font-semibold">
+                          {isChinese ? "字段配置" : "Field configuration"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {isChinese
+                            ? "优先通过可视化构建器维护字段，需要时再切换至 JSON。"
+                            : "Use the visual builder for most changes and switch to JSON only when necessary."}
+                        </p>
+                      </div>
+                      <div className="mt-4 space-y-4">
+                        <div className="inline-flex flex-wrap gap-2 rounded-full border p-1">
+                          {(["builder", "json"] as const).map((mode) => (
                             <Button
+                              key={mode}
                               type="button"
-                              variant="outline"
                               size="sm"
-                              className="rounded-2xl"
-                              onClick={() => handleUseRecommended(template.type)}
-                            >
-                              {isChinese ? "使用推荐字段" : "Use recommended"}
-                            </Button>
-                            <Popover
-                              open={pickerOpen}
-                              onOpenChange={(nextOpen) =>
-                                setFieldPickerOpen((prev) => ({
-                                  ...prev,
-                                  [template.type]: nextOpen,
-                                }))
+                              variant={editorTab === mode ? "default" : "ghost"}
+                              className={`rounded-full px-4 py-2 text-xs font-medium ${
+                                editorTab === mode ? "" : "text-muted-foreground"
+                              }`}
+                              onClick={() =>
+                                setEditorTabs((prev) => ({ ...prev, [template.type]: mode }))
                               }
                             >
-                              <PopoverTrigger asChild>
-                                <Button type="button" size="sm" className="rounded-2xl">
-                                  <Plus className="mr-1 h-3.5 w-3.5" />
-                                  {isChinese ? "添加字段" : "Add field"}
+                              {mode === "builder"
+                                ? isChinese
+                                  ? "可视化构建"
+                                  : "Visual builder"
+                                : isChinese
+                                  ? "JSON 编辑"
+                                  : "JSON editor"}
+                            </Button>
+                          ))}
+                        </div>
+                        {editorTab === "builder" ? (
+                          <div className="space-y-3">
+                            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                              <div>
+                                <p className="text-sm font-semibold">
+                                  {isChinese ? "字段构建器" : "Field builder"}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {isChinese
+                                    ? "从字段库选择或创建自定义字段，组成 OperationForm 表单。"
+                                    : "Pick fields from the library or create custom ones for the OperationForm."}
+                                </p>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-3">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="rounded-2xl"
+                                  onClick={() => handleUseRecommended(template.type)}
+                                >
+                                  {isChinese ? "使用推荐字段" : "Use recommended"}
                                 </Button>
-                              </PopoverTrigger>
-                              <PopoverContent
-                                align="end"
-                                className="w-72 space-y-2 p-3"
-                              >
-                                <div className="text-xs font-medium text-muted-foreground">
-                                  {isChinese ? "选择内置字段" : "Select from library"}
-                                </div>
-                                <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
-                                  {FIELD_LIBRARY_OPTIONS.map((field) => {
-                                    const disabled = drafts.some(
-                                      (entry) => entry.key === field.key,
-                                    );
-                                    return (
-                                      <button
-                                        key={field.key}
+                                <Popover
+                                  open={pickerOpen}
+                                  onOpenChange={(nextOpen) =>
+                                    setFieldPickerOpen((prev) => ({
+                                      ...prev,
+                                      [template.type]: nextOpen,
+                                    }))
+                                  }
+                                >
+                                  <PopoverTrigger asChild>
+                                    <Button type="button" size="sm" className="rounded-2xl">
+                                      <Plus className="mr-1 h-3.5 w-3.5" />
+                                      {isChinese ? "添加字段" : "Add field"}
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent align="end" className="w-72 space-y-2 p-3">
+                                    <div className="text-xs font-medium text-muted-foreground">
+                                      {isChinese ? "选择内置字段" : "Select from library"}
+                                    </div>
+                                    <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
+                                      {FIELD_LIBRARY_OPTIONS.map((field) => {
+                                        const disabled = drafts.some(
+                                          (entry) => entry.key === field.key,
+                                        );
+                                        return (
+                                          <button
+                                            key={field.key}
+                                            type="button"
+                                            disabled={disabled}
+                                            onClick={() => {
+                                              handleAddLibraryField(template.type, field.key);
+                                              setFieldPickerOpen((prev) => ({
+                                                ...prev,
+                                                [template.type]: false,
+                                              }));
+                                            }}
+                                            className="flex w-full items-start justify-between rounded-xl border border-transparent bg-muted/40 px-3 py-2 text-left text-sm transition hover:border-primary hover:bg-background disabled:cursor-not-allowed disabled:opacity-60"
+                                          >
+                                            <span>
+                                              {(isChinese ? field.labelZh : field.labelEn) ??
+                                                field.key}
+                                              <span className="ml-1 text-[11px] text-muted-foreground">
+                                                {'·'} {field.key}
+                                              </span>
+                                            </span>
+                                            {disabled && (
+                                              <span className="text-[11px] text-muted-foreground">
+                                                {isChinese ? "已添加" : "Added"}
+                                              </span>
+                                            )}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                    <div className="border-t pt-2">
+                                      <Button
                                         type="button"
-                                        disabled={disabled}
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full rounded-2xl"
                                         onClick={() => {
-                                          handleAddLibraryField(template.type, field.key);
+                                          handleAddCustomField(template.type);
                                           setFieldPickerOpen((prev) => ({
                                             ...prev,
                                             [template.type]: false,
                                           }));
                                         }}
-                                        className="flex w-full items-start justify-between rounded-xl border border-transparent bg-muted/40 px-3 py-2 text-left text-sm transition hover:border-primary hover:bg-background disabled:cursor-not-allowed disabled:opacity-60"
                                       >
-                                        <span>
-                                          {(isChinese ? field.labelZh : field.labelEn) ??
-                                            field.key}
-                                          <span className="ml-1 text-[11px] text-muted-foreground">
-                                            {"·"} {field.key}
-                                          </span>
-                                        </span>
-                                        {disabled && (
-                                          <span className="text-[11px] text-muted-foreground">
-                                            {isChinese ? "已添加" : "Added"}
-                                          </span>
-                                        )}
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                                <div className="border-t pt-2">
+                                        {isChinese ? "新增自定义字段" : "Add custom field"}
+                                      </Button>
+                                    </div>
+                                  </PopoverContent>
+                                </Popover>
+                              </div>
+                            </div>
+                    {drafts.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-border/50 px-4 py-6 text-center text-sm text-muted-foreground">
+                        <p>
+                          {isChinese
+                            ? "尚未配置字段，可点击“使用推荐字段”快速开始。"
+                            : "No fields yet. Use the recommended template to get started quickly."}
+                        </p>
+                      </div>
+                    ) : (
+                      <Accordion type="multiple">
+                        {drafts.map((field, index) => (
+                          <AccordionItem
+                            key={`${template.id}-${field.key}-${index}`}
+                            value={`${template.id}-${field.key}-${index}`}
+                            className="border-border/40"
+                          >
+                            <AccordionTrigger className="py-3 hover:no-underline">
+                              <FieldSummary field={field} isChinese={isChinese} />
+                            </AccordionTrigger>
+                            <AccordionContent className="px-1">
+                              <div className="rounded-2xl border border-border/40 bg-background/60 p-4">
+                                <div className="mb-3 flex items-center justify-end gap-1">
                                   <Button
                                     type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="w-full rounded-2xl"
-                                    onClick={() => {
-                                      handleAddCustomField(template.type);
-                                      setFieldPickerOpen((prev) => ({
-                                        ...prev,
-                                        [template.type]: false,
-                                      }));
-                                    }}
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => handleMoveField(template.type, index, -1)}
+                                    disabled={index === 0}
                                   >
-                                    {isChinese ? "新增自定义字段" : "Add custom field"}
+                                    <ArrowUp className="h-4 w-4" />
+                                    <span className="sr-only">
+                                      {isChinese ? "上移字段" : "Move field up"}
+                                    </span>
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => handleMoveField(template.type, index, 1)}
+                                    disabled={index === drafts.length - 1}
+                                  >
+                                    <ArrowDown className="h-4 w-4" />
+                                    <span className="sr-only">
+                                      {isChinese ? "下移字段" : "Move field down"}
+                                    </span>
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-destructive"
+                                    onClick={() => handleRemoveField(template.type, index)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                    <span className="sr-only">
+                                      {isChinese ? "移除字段" : "Remove field"}
+                                    </span>
                                   </Button>
                                 </div>
-                              </PopoverContent>
-                            </Popover>
+                                <FieldForm
+                                  field={field}
+                                  isChinese={isChinese}
+                                  onChange={(patch) =>
+                                    handleFieldChange(template.type, index, patch)
+                                  }
+                                />
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        ))}
+                      </Accordion>
+                    )}
                           </div>
-                        </div>
-                {drafts.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-muted-foreground/50 bg-background/40 px-4 py-6 text-center text-sm text-muted-foreground">
-                    <p>
-                      {isChinese
-                        ? "尚未配置字段，可点击“使用推荐字段”快速开始。"
-                        : "No fields yet. Use the recommended template to get started quickly."}
-                    </p>
-                  </div>
-                ) : (
-                  <Accordion type="multiple">
-                    {drafts.map((field, index) => (
-                      <AccordionItem
-                        key={`${template.id}-${field.key}-${index}`}
-                        value={`${template.id}-${field.key}-${index}`}
-                      >
-                        <AccordionTrigger className="py-3 hover:no-underline">
-                          <FieldSummary field={field} isChinese={isChinese} />
-                        </AccordionTrigger>
-                        <AccordionContent className="px-1">
-                          <div className="rounded-2xl border bg-background/70 p-4">
-                            <div className="mb-3 flex items-center justify-end gap-1">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => handleMoveField(template.type, index, -1)}
-                                disabled={index === 0}
-                              >
-                                <ArrowUp className="h-4 w-4" />
-                                <span className="sr-only">
-                                  {isChinese ? "上移字段" : "Move field up"}
-                                </span>
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => handleMoveField(template.type, index, 1)}
-                                disabled={index === drafts.length - 1}
-                              >
-                                <ArrowDown className="h-4 w-4" />
-                                <span className="sr-only">
-                                  {isChinese ? "下移字段" : "Move field down"}
-                                </span>
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive"
-                                onClick={() => handleRemoveField(template.type, index)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                <span className="sr-only">
-                                  {isChinese ? "移除字段" : "Remove field"}
-                                </span>
-                              </Button>
+                        ) : (
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-semibold">
+                                  {isChinese ? "高级 JSON 配置" : "Advanced JSON editor"}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {isChinese
+                                    ? "仅在需要时编辑 JSON，修改后需点击“应用 JSON”同步。"
+                                    : "Edit JSON only when needed and click “Apply JSON” to sync changes."}
+                                </p>
+                              </div>
+                              <Code2 className="h-4 w-4 text-muted-foreground" />
                             </div>
-                            <FieldForm
-                              field={field}
-                              isChinese={isChinese}
-                              onChange={(patch) =>
-                                handleFieldChange(template.type, index, patch)
-                              }
-                            />
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
-                  </Accordion>
-                )}
-                      </div>
-                      <div className="rounded-3xl border bg-muted/20 p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-semibold">
-                              {isChinese ? "高级 JSON 配置" : "Advanced JSON editor"}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {isChinese
-                                ? "仅在需要时编辑 JSON，修改后需点击“应用 JSON”同步。"
-                                : "Edit JSON only when needed and click “Apply JSON” to sync changes."}
-                            </p>
-                          </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="rounded-2xl"
-                            onClick={() => handleJsonToggle(template.type)}
-                          >
-                            <Code2 className="mr-1.5 h-4 w-4" />
-                            {advancedOpen
-                              ? isChinese
-                                ? "收起"
-                                : "Collapse"
-                              : isChinese
-                                ? "展开"
-                                : "Expand"}
-                          </Button>
-                        </div>
-                        {advancedOpen && (
-                          <div className="mt-3 space-y-3">
                             <Textarea
                               rows={8}
                               spellCheck={false}
@@ -737,8 +751,8 @@ export default function OperationTemplateList({
                           </div>
                         )}
                       </div>
-                    </div>
-                    <div className="mt-4 flex justify-end">
+                    </section>
+                    <div className="flex justify-end border-t pt-4">
                       <Button
                         type="button"
                         className="rounded-2xl px-4 py-2 text-sm"
@@ -754,7 +768,7 @@ export default function OperationTemplateList({
                             : "Save"}
                       </Button>
                     </div>
-                  </>
+                  </div>
                 </AccordionContent>
               </AccordionItem>
             );

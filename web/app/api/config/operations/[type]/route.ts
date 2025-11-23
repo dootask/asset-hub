@@ -22,12 +22,16 @@ function sanitizeType(value: string | undefined): OperationTemplateId {
   return value as OperationTemplateId;
 }
 
-export async function GET(
-  _request: Request,
-  { params }: { params: { type: string } },
-) {
+type RouteContext = { params: Promise<{ type: string }> };
+
+async function resolveType(params: RouteContext["params"]) {
+  const { type } = await params;
+  return sanitizeType(type);
+}
+
+export async function GET(_request: Request, { params }: RouteContext) {
   try {
-    const type = sanitizeType(params.type);
+    const type = await resolveType(params);
     const template = getOperationTemplateByType(type);
     if (!template) {
       return NextResponse.json(
@@ -50,9 +54,9 @@ export async function GET(
   }
 }
 
-export async function PUT(request: Request, { params }: { params: { type: string } }) {
+export async function PUT(request: Request, { params }: RouteContext) {
   try {
-    const type = sanitizeType(params.type);
+    const type = await resolveType(params);
     const payload = await request.json();
     const template = updateOperationTemplate(type, {
       descriptionZh:
