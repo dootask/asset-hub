@@ -224,6 +224,7 @@ export default function ConsumableInventoryEntriesTable({
                         handleChange(entry.id, "note", event.target.value)
                       }
                       placeholder={isChinese ? "备注" : "Note"}
+                      className="min-h-9"
                     />
                   </TableCell>
                   <TableCell>
