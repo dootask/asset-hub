@@ -5,9 +5,22 @@ import type { ActionConfig, ActionConfigId } from "@/lib/types/action-config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
 
 interface Props {
   initialConfigs: ActionConfig[];
@@ -112,109 +125,214 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-6">
-        {sortedConfigs.map((config) => (
-          <div
-            key={config.id}
-            data-testid={`action-config-card-${config.id}`}
-            className="rounded-2xl border bg-card/70 p-4 shadow-sm"
-          >
-            <div className="flex flex-col gap-2 pb-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground uppercase">
-                  {config.id}
-                </p>
-                <h2 className="text-lg font-semibold">
-                  {isChinese
-                    ? config.labelZh ?? config.id
-                    : config.labelEn ?? config.id}
-                </h2>
-              </div>
-              <Button
-                variant="default"
-                disabled={pending || savingId === config.id}
-                onClick={() => handleSave(config)}
-              >
-                {savingId === config.id
-                  ? isChinese
-                    ? "保存中..."
-                    : "Saving..."
-                  : isChinese
-                    ? "保存配置"
-                    : "Save"}
-              </Button>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">
-                  {isChinese ? "需要审批" : "Requires approval"}
-                </Label>
-                <Switch
-                  checked={config.requiresApproval}
-                  onCheckedChange={(checked) =>
-                    handleChange(config.id, { requiresApproval: checked })
-                  }
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">
-                  {isChinese ? "允许申请人修改审批人" : "Allow override"}
-                </Label>
-                <Switch
-                  checked={config.allowOverride}
-                  onCheckedChange={(checked) =>
-                    handleChange(config.id, { allowOverride: checked })
-                  }
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">
-                  {isChinese ? "默认审批人类型" : "Default approver type"}
-                </Label>
-                <Select
-                  value={config.defaultApproverType}
-                  onValueChange={(value) =>
-                    handleChange(config.id, {
-                      defaultApproverType: value as ActionConfig["defaultApproverType"],
-                      defaultApproverRefs: [],
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {APPROVER_TYPE_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {isChinese ? option.labelZh : option.labelEn}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              {config.defaultApproverType !== "none" && (
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">
-                    {config.defaultApproverType === "user"
-                      ? isChinese
-                        ? "默认审批人 ID（逗号分隔）"
-                        : "Default user IDs (comma separated)"
-                      : isChinese
-                        ? "默认角色 ID（逗号分隔）"
-                        : "Default role IDs (comma separated)"}
-                  </Label>
-                  <Input
-                    value={config.defaultApproverRefs.join(", ")}
-                    onChange={(event) => handleRefsChange(config.id, event.target.value)}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
+    <div className="space-y-6">
+      {sortedConfigs.length === 0 && (
+        <div className="rounded-3xl border border-dashed border-muted-foreground/40 bg-muted/20 p-6 text-sm text-muted-foreground">
+          {isChinese
+            ? "暂无可用的审批配置。"
+            : "No approval configurations available yet."}
+        </div>
+      )}
+      {sortedConfigs.length > 0 && (
+        <Accordion
+          type="multiple"
+          defaultValue={[]}
+          className="divide-y divide-border/60 overflow-hidden rounded-3xl border border-border/60 bg-card/20"
+        >
+          {sortedConfigs.map((config) => {
+            const approverTypeLabel =
+              APPROVER_TYPE_OPTIONS.find(
+                (option) => option.value === config.defaultApproverType,
+              ) ??
+              APPROVER_TYPE_OPTIONS[0];
+            const approverRefs =
+              config.defaultApproverRefs.length > 0
+                ? config.defaultApproverRefs.join(", ")
+                : isChinese
+                  ? "未设置"
+                  : "Not set";
+            const updatedLabel = config.updatedAt
+              ? new Date(config.updatedAt).toLocaleString()
+              : isChinese
+                ? "尚未保存"
+                : "Not saved yet";
+
+            return (
+              <AccordionItem key={config.id} value={config.id} className="px-4">
+                <AccordionTrigger className="py-4 hover:no-underline">
+                  <div className="flex w-full flex-col gap-3 text-left sm:flex-row sm:items-center sm:justify-between">
+                    <div className="space-y-1.5">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                        {config.id}
+                      </p>
+                      <p className="text-base font-semibold">
+                        {isChinese
+                          ? config.labelZh ?? config.id
+                          : config.labelEn ?? config.id}
+                      </p>
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        <Badge variant={config.requiresApproval ? "default" : "secondary"}>
+                          {config.requiresApproval
+                            ? isChinese
+                              ? "需要审批"
+                              : "Approval required"
+                            : isChinese
+                              ? "无需审批"
+                              : "No approval"}
+                        </Badge>
+                        <Badge variant={config.allowOverride ? "outline" : "secondary"}>
+                          {config.allowOverride
+                            ? isChinese
+                              ? "允许申请人调整审批人"
+                              : "Override allowed"
+                            : isChinese
+                              ? "审批人不可修改"
+                              : "Approver locked"}
+                        </Badge>
+                        <Badge variant="outline">
+                          {isChinese ? "审批人类型" : "Approver type"} ·{" "}
+                          {isChinese ? approverTypeLabel.labelZh : approverTypeLabel.labelEn}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1 text-xs text-muted-foreground sm:text-right">
+                      <span>
+                        {isChinese ? "默认审批人：" : "Default approvers:"} {approverRefs}
+                      </span>
+                      <span>
+                        {isChinese ? "最近更新：" : "Last updated:"} {updatedLabel}
+                      </span>
+                    </div>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-2">
+                  <div className="space-y-6 py-2" data-testid={`action-config-card-${config.id}`}>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">
+                          {isChinese ? "需要审批" : "Requires approval"}
+                        </Label>
+                        <div className="flex items-center justify-between rounded-xl bg-muted/40 px-3 py-2">
+                          <p className="text-sm text-muted-foreground">
+                            {config.requiresApproval
+                              ? isChinese
+                                ? "启用后该操作会触发审批流程。"
+                                : "If enabled, every submission must go through approval."
+                              : isChinese
+                                ? "关闭后该操作不再需要审批。"
+                                : "Disable to allow direct submissions without approval."}
+                          </p>
+                          <Switch
+                            checked={config.requiresApproval}
+                            onCheckedChange={(checked) =>
+                              handleChange(config.id, { requiresApproval: checked })
+                            }
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">
+                          {isChinese ? "允许申请人修改审批人" : "Allow applicant override"}
+                        </Label>
+                        <div className="flex items-center justify-between rounded-xl bg-muted/40 px-3 py-2">
+                          <p className="text-sm text-muted-foreground">
+                            {config.allowOverride
+                              ? isChinese
+                                ? "申请人可以在表单中调换审批人。"
+                                : "Applicants may select a different approver."
+                              : isChinese
+                                ? "审批人固定，由系统配置控制。"
+                                : "Approver stays fixed per configuration."}
+                          </p>
+                          <Switch
+                            checked={config.allowOverride}
+                            onCheckedChange={(checked) =>
+                              handleChange(config.id, { allowOverride: checked })
+                            }
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">
+                          {isChinese ? "默认审批人类型" : "Default approver type"}
+                        </Label>
+                        <Select
+                          value={config.defaultApproverType}
+                          onValueChange={(value) =>
+                            handleChange(config.id, {
+                              defaultApproverType: value as ActionConfig["defaultApproverType"],
+                              defaultApproverRefs: [],
+                            })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder={isChinese ? "选择类型" : "Select type"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {APPROVER_TYPE_OPTIONS.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {isChinese ? option.labelZh : option.labelEn}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {config.defaultApproverType !== "none" && (
+                        <div className="space-y-2">
+                          <Label className="text-xs text-muted-foreground">
+                            {config.defaultApproverType === "user"
+                              ? isChinese
+                                ? "默认审批人 ID（逗号分隔）"
+                                : "Default user IDs (comma separated)"
+                              : isChinese
+                                ? "默认角色 ID（逗号分隔）"
+                                : "Default role IDs (comma separated)"}
+                          </Label>
+                          <Input
+                            value={config.defaultApproverRefs.join(", ")}
+                            onChange={(event) =>
+                              handleRefsChange(config.id, event.target.value)
+                            }
+                            placeholder={
+                              config.defaultApproverType === "user"
+                                ? isChinese
+                                  ? "示例：user-1, user-2"
+                                  : "e.g. user-1, user-2"
+                                : isChinese
+                                  ? "示例：role-asset-admin"
+                                  : "e.g. role-asset-admin"
+                            }
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-3 border-t pt-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                      <p>
+                        {isChinese
+                          ? "保存后，新审批请求会立即应用最新策略。"
+                          : "After saving, new approval requests inherit the latest policy."}
+                      </p>
+                      <Button
+                        variant="default"
+                        disabled={pending || savingId === config.id}
+                        onClick={() => handleSave(config)}
+                      >
+                        {savingId === config.id
+                          ? isChinese
+                            ? "保存中..."
+                            : "Saving..."
+                          : isChinese
+                            ? "保存配置"
+                            : "Save configuration"}
+                      </Button>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
+        </Accordion>
+      )}
     </div>
   );
 }
-
