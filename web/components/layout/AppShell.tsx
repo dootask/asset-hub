@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl";
 import { isMicroApp } from "@dootask/tools";
 import DooTaskBridge from "@/components/providers/DooTaskBridge";
 import { normalizeUserId } from "@/lib/utils/user-id";
+import { Spinner } from "@/components/ui/spinner";
 
 const BASE_PATH = "/apps/asset-hub";
 const USER_STORAGE_KEY = "asset-hub:dootask-user";
@@ -142,6 +143,15 @@ export default function AppShell({ children, locale, adminUserIds }: Props) {
 
   const loadingEnv = isMicroEnv === null;
   const isGuest = userReady && !sessionUser;
+  const waitingUserReady = isMicroEnv === true && !userReady;
+
+  if (loadingEnv || waitingUserReady) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-6">
+        <Spinner className="h-8 w-8 text-primary" />
+      </div>
+    );
+  }
 
   if (!loadingEnv && isMicroEnv === false) {
     return (
