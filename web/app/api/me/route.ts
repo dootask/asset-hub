@@ -7,24 +7,11 @@ function parseNumber(value: string | null) {
 }
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-
-  const userId =
-    searchParams.get("user_id") ??
-    request.headers.get("x-user-id") ??
-    request.headers.get("x-dootask-user-id");
-  const token =
-    searchParams.get("user_token") ??
-    request.headers.get("x-user-token") ??
-    request.headers.get("x-dootask-user-token");
-  const nickname =
-    searchParams.get("user_nickname") ??
-    request.headers.get("x-user-nickname") ??
-    "";
-  const email =
-    searchParams.get("user_email") ??
-    request.headers.get("x-user-email") ??
-    "";
+  const headers = request.headers;
+  const userId = headers.get("x-user-id");
+  const token = headers.get("x-user-token") ?? "";
+  const nickname = headers.get("x-user-nickname") ?? "";
+  const email = headers.get("x-user-email") ?? "";
 
   if (!userId) {
     return NextResponse.json(
@@ -45,4 +32,3 @@ export async function GET(request: Request) {
     },
   });
 }
-

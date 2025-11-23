@@ -6,6 +6,7 @@ const DEFAULT_HEADERS = {
   "Content-Type": "application/json",
   "x-user-id": MICRO_APP_CONFIG.userId,
   "x-user-nickname": "Playwright E2E",
+  "x-user-token": MICRO_APP_CONFIG.token,
 };
 
 type ApprovalStatus = "pending" | "approved" | "rejected" | "cancelled";
@@ -204,5 +205,3 @@ export async function restoreActionConfig(
     },
   });
 }
-
-
