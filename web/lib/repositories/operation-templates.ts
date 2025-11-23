@@ -34,6 +34,11 @@ function mapRow(row: OperationTemplateRow): OperationTemplate {
   };
 }
 
+// Preserve the seed-defined ordering for deterministic UI display.
+const TEMPLATE_ORDER = new Map<OperationTemplateId, number>(
+  seedOperationTemplates.map((tpl, index) => [tpl.type as OperationTemplateId, index]),
+);
+
 function ensureSeeded(db: ReturnType<typeof getDb>) {
   const { count } = db
     .prepare(`SELECT COUNT(1) as count FROM asset_operation_templates`)
@@ -86,12 +91,19 @@ export function listOperationTemplates(): OperationTemplate[] {
   const db = getDb();
   ensureSeeded(db);
   const rows = db
-    .prepare(
-      `SELECT * FROM asset_operation_templates
-       ORDER BY type`,
-    )
+    .prepare(`SELECT * FROM asset_operation_templates`)
     .all() as OperationTemplateRow[];
-  return rows.map(mapRow);
+
+  const sortedRows = [...rows].sort((a, b) => {
+    const orderA = TEMPLATE_ORDER.get(a.type) ?? Number.MAX_SAFE_INTEGER;
+    const orderB = TEMPLATE_ORDER.get(b.type) ?? Number.MAX_SAFE_INTEGER;
+    if (orderA !== orderB) {
+      return orderA - orderB;
+    }
+    return a.type.localeCompare(b.type);
+  });
+
+  return sortedRows.map(mapRow);
 }
 
 export function getOperationTemplateByType(
@@ -151,6 +163,4 @@ export function updateOperationTemplate(
 
   return getOperationTemplateByType(type)!;
 }
-
-
 
