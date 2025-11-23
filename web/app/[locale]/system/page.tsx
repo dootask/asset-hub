@@ -60,9 +60,9 @@ const CARDS = [
     href: "operation",
     titleZh: "操作管理",
     titleEn: "Operation Management",
-    descriptionZh: "配置各类资产操作的字段、附件要求与审批说明（即将上线）。",
+    descriptionZh: "配置各类资产操作的字段、附件要求与审批说明。",
     descriptionEn:
-      "Configure asset operation templates and requirements (coming soon).",
+      "Configure asset operation templates and requirements for forms and approvals.",
   },
   {
     id: "upgrade",
@@ -113,4 +113,3 @@ export default async function SystemOverviewPage({ params }: PageProps) {
     </div>
   );
 }
-
