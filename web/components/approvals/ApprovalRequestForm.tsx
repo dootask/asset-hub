@@ -46,6 +46,7 @@ import {
   deriveOperationTemplateFields,
   mapApprovalTypeToTemplateType,
 } from "@/lib/config/operation-template-fields";
+import { useAppFeedback } from "@/components/providers/feedback-provider";
 
 type Applicant = {
   id: string;
@@ -296,7 +297,6 @@ export default function ApprovalRequestForm({
   };
 
   const handleTypeChange = (value: ApprovalType) => {
-    setSelectError(null);
     setFormState((prev) => ({
       ...prev,
       type: value,

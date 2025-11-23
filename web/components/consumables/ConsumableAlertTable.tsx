@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,33 +21,39 @@ interface Props {
 
 export default function ConsumableAlertTable({ locale, alerts }: Props) {
   const isChinese = locale === "zh";
-  const [pendingId, startTransition] = useTransition();
+  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   const resolveAlert = (alertId: string) => {
-    startTransition(async () => {
-      try {
-        const response = await fetch(
-          `/apps/asset-hub/api/consumables/alerts/${alertId}`,
-          {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status: "resolved" }),
-          },
-        );
-        if (!response.ok) {
-          const payload = await response.json().catch(() => null);
-          throw new Error(payload?.message ?? "更新失败");
+    setPendingId(alertId);
+    startTransition(() => {
+      void (async () => {
+        try {
+          const response = await fetch(
+            `/apps/asset-hub/api/consumables/alerts/${alertId}`,
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ status: "resolved" }),
+            },
+          );
+          if (!response.ok) {
+            const payload = await response.json().catch(() => null);
+            throw new Error(payload?.message ?? "更新失败");
+          }
+          window.location.reload();
+        } catch (error) {
+          alert(
+            error instanceof Error
+              ? error.message
+              : isChinese
+                ? "操作失败，请稍后再试。"
+                : "Failed to resolve alert.",
+          );
+        } finally {
+          setPendingId(null);
         }
-        window.location.reload();
-      } catch (error) {
-        alert(
-          error instanceof Error
-            ? error.message
-            : isChinese
-              ? "操作失败，请稍后再试。"
-              : "Failed to resolve alert.",
-        );
-      }
+      })();
     });
   };
 
@@ -120,9 +126,9 @@ export default function ConsumableAlertTable({ locale, alerts }: Props) {
                   size="sm"
                   variant="outline"
                   onClick={() => resolveAlert(alert.id)}
-                  disabled={pendingId === alert.id}
+                  disabled={isPending && pendingId === alert.id}
                 >
-                  {pendingId === alert.id
+                  {isPending && pendingId === alert.id
                     ? isChinese
                       ? "处理中..."
                       : "Resolving..."
@@ -138,4 +144,3 @@ export default function ConsumableAlertTable({ locale, alerts }: Props) {
     </div>
   );
 }
-

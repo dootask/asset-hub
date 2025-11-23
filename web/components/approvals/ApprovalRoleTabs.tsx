@@ -56,11 +56,18 @@ export default function ApprovalRoleTabs({ locale = "en" }: Props) {
       setLoadingRole(role);
       try {
         const userInfo = await getUserInfo();
+        type GenericUserId = {
+          userid?: string | number;
+          id?: string | number;
+          user_id?: string | number;
+          userId?: string | number;
+        };
+        const normalized = userInfo as GenericUserId;
         const resolvedUserId =
-          (userInfo as { userid?: string })?.userid ??
-          (userInfo as { id?: string })?.id ??
-          (userInfo as { user_id?: string })?.user_id ??
-          (userInfo as { userId?: string })?.userId ??
+          normalized.userid ??
+          normalized.id ??
+          normalized.user_id ??
+          normalized.userId ??
           "";
         if (!resolvedUserId) {
           throw new Error(

@@ -9,7 +9,7 @@ import {
   listConsumables,
   type ConsumableListResult,
 } from "@/lib/repositories/consumables";
-import { CONSUMABLE_STATUSES } from "@/lib/types/consumable";
+import { CONSUMABLE_STATUSES, type ConsumableStatus } from "@/lib/types/consumable";
 
 type PageParams = {
   locale: string;
@@ -34,8 +34,9 @@ function ensureSingle(value?: string | string[] | null) {
 function parseStatus(value?: string | null) {
   if (!value) return undefined;
   const normalized = value.split(",").map((entry) => entry.trim());
-  const filtered = normalized.filter((entry) =>
-    CONSUMABLE_STATUSES.includes(entry as (typeof CONSUMABLE_STATUSES)[number]),
+  const filtered = normalized.filter(
+    (entry): entry is ConsumableStatus =>
+      CONSUMABLE_STATUSES.includes(entry as ConsumableStatus),
   );
   return filtered.length ? filtered : undefined;
 }
