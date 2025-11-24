@@ -195,12 +195,20 @@ export default async function ApprovalsPage({ params, searchParams }: PageProps)
             : "Track all approval requests and their progress."
         }
         actions={
-          <a
-            href={exportHref}
-            className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-          >
-            {isChinese ? "导出 CSV" : "Export CSV"}
-          </a>
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/${locale}/approvals/new`}
+              className="inline-flex items-center justify-center rounded-2xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              {isChinese ? "发起采购" : "New Purchase"}
+            </Link>
+            <a
+              href={exportHref}
+              className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+            >
+              {isChinese ? "导出 CSV" : "Export CSV"}
+            </a>
+          </div>
         }
       />
 

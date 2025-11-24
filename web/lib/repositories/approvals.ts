@@ -15,7 +15,11 @@ import {
   listOperationsForAsset,
   updateAssetOperationStatus,
 } from "@/lib/repositories/asset-operations";
-import { getAssetById, updateAsset } from "@/lib/repositories/assets";
+import {
+  getAssetById,
+  updateAsset,
+  createAsset,
+} from "@/lib/repositories/assets";
 import {
   getConsumableOperationById,
   updateConsumableOperationStatus,
@@ -334,6 +338,57 @@ function linkApprovalToAssetOperation(approvalId: string, operationId: string) {
   ).run({ approvalId, operationId });
 }
 
+function linkApprovalToAsset(approvalId: string, assetId: string) {
+  const db = getDb();
+  db.prepare(
+    `UPDATE asset_approval_requests
+     SET asset_id = @assetId,
+         updated_at = datetime('now')
+     WHERE id = @approvalId`,
+  ).run({ approvalId, assetId });
+}
+
+function ensureAssetCreatedForPurchase(approval: ApprovalRequest): ApprovalRequest {
+  if (approval.assetId || approval.type !== "purchase") {
+    return approval;
+  }
+
+  // Try to extract new asset info from metadata
+  // The frontend should send something like metadata: { newAsset: { name, category, ... } }
+  const metadata = approval.metadata ?? {};
+  const newAssetData = (metadata.newAsset as Record<string, unknown>) ?? {};
+
+  if (Object.keys(newAssetData).length === 0) {
+    // If no asset data found, we cannot create an asset
+    return approval;
+  }
+
+  const name = typeof newAssetData.name === "string" ? newAssetData.name : `New Asset - ${approval.title}`;
+  const category = typeof newAssetData.category === "string" ? newAssetData.category : "general";
+  const companyCode = typeof newAssetData.companyCode === "string" ? newAssetData.companyCode : "DEFAULT";
+  // Default owner to applicant if not specified
+  const owner = typeof newAssetData.owner === "string" ? newAssetData.owner : approval.applicantId;
+  
+  // Create the asset with "pending" status
+  try {
+    const asset = createAsset({
+      name,
+      category,
+      status: "pending", 
+      companyCode,
+      owner,
+      location: typeof newAssetData.location === "string" ? newAssetData.location : "To Be Assigned",
+      purchaseDate: new Date().toISOString(),
+    });
+
+    linkApprovalToAsset(approval.id, asset.id);
+    return getApprovalRequestById(approval.id)!;
+  } catch (e) {
+    console.error("Failed to auto-create asset for purchase approval:", e);
+    return approval;
+  }
+}
+
 function ensurePendingInboundOperation(
   approval: ApprovalRequest,
   metadata: OperationTemplateMetadata | null,
@@ -558,6 +613,9 @@ export function applyApprovalAction(
 
   let updated = getApprovalRequestById(id)!;
   if (updated.status === "approved") {
+    // Try to create asset for Purchase requests if missing
+    updated = ensureAssetCreatedForPurchase(updated);
+    
     updated = ensureOperationRecordForApproval(updated, payload.actor);
     applyApprovalSuccessEffects(updated, payload.actor);
   }
@@ -565,5 +623,3 @@ export function applyApprovalAction(
 
   return updated;
 }
-
-

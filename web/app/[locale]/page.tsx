@@ -217,6 +217,10 @@ export default async function LocaleDashboard({
       label: isChinese ? "版本信息" : "Version Info",
       href: "/system/upgrade",
     },
+    {
+      label: isChinese ? "关于 / 帮助" : "About / Help",
+      href: "/about",
+    },
   ];
 
   const assetStatusDistribution = overview.assetsByStatus.map((item) => ({

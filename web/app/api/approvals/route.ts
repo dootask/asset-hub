@@ -139,12 +139,23 @@ function sanitizeCreatePayload(
     cleaned.consumableOperationId = payload.consumableOperationId;
   }
 
+  if (payload.metadata && isRecord(payload.metadata)) {
+    cleaned.metadata = payload.metadata;
+  }
+
   if (cleaned.assetId && cleaned.consumableId) {
     throw new Error("审批请求不能同时关联资产与耗材");
   }
 
   if (cleaned.operationId && !cleaned.assetId) {
     throw new Error("资产操作审批必须提供资产 ID");
+  }
+
+  if (cleaned.type === "purchase" && !cleaned.assetId) {
+    const newAssetMeta = (cleaned.metadata?.newAsset as any);
+    if (!newAssetMeta || !newAssetMeta.name || !newAssetMeta.category) {
+      throw new Error("新资产采购必须提供资产名称和类别");
+    }
   }
 
   if (cleaned.consumableOperationId && !cleaned.consumableId) {
@@ -162,10 +173,6 @@ function sanitizeCreatePayload(
           ? payload.approver.name
           : undefined,
     };
-  }
-
-  if (payload.metadata && isRecord(payload.metadata)) {
-    cleaned.metadata = payload.metadata;
   }
 
   return cleaned;
@@ -367,5 +374,4 @@ export async function POST(request: Request) {
     );
   }
 }
-
 
