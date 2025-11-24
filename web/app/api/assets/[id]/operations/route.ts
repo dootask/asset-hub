@@ -130,9 +130,9 @@ function applyOperationSideEffects(asset: NonNullable<ReturnType<typeof getAsset
     name: asset.name,
     category: asset.category,
     status: targetStatus,
+    companyCode: asset.companyCode ?? "DEFAULT",
     owner: nextOwner,
     location: asset.location,
     purchaseDate: asset.purchaseDate,
   });
 }
-

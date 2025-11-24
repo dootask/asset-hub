@@ -38,6 +38,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       name: asset.name,
       category: asset.category,
       status: "retired",
+      companyCode: asset.companyCode ?? "DEFAULT",
       owner: asset.owner,
       location: asset.location,
       purchaseDate: asset.purchaseDate,
@@ -71,5 +72,4 @@ export async function POST(request: Request, { params }: RouteParams) {
     );
   }
 }
-
 
