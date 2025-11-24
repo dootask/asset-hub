@@ -24,18 +24,27 @@ export default function DooTaskBridge() {
 
         const user = await getUserInfo();
         const normalizedId = normalizeUserId((user as { userid?: unknown })?.userid);
-        if (normalizedId === null) return;
+        const payload =
+          normalizedId === null
+            ? null
+            : {
+                id: normalizedId,
+                nickname: (user as { nickname?: string })?.nickname,
+                email: (user as { email?: string })?.email,
+                token:
+                  (user as { token?: string })?.token ??
+                  (user as { user_token?: string })?.user_token,
+              };
 
-        const payload = {
-          id: normalizedId,
-          nickname: (user as { nickname?: string })?.nickname,
-          email: (user as { email?: string })?.email,
-          token:
-            (user as { token?: string })?.token ??
-            (user as { user_token?: string })?.user_token,
-        };
-        sessionStorage.setItem("asset-hub:dootask-user", JSON.stringify(payload));
-        window.dispatchEvent(new CustomEvent("asset-hub:user-updated", { detail: payload }));
+        if (payload) {
+          sessionStorage.setItem("asset-hub:dootask-user", JSON.stringify(payload));
+        } else {
+          sessionStorage.removeItem("asset-hub:dootask-user");
+        }
+
+        window.dispatchEvent(
+          new CustomEvent("asset-hub:user-updated", { detail: payload }),
+        );
       } catch {
         // Ignore errors when运行在独立模式
       }
