@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, FormEvent, useId, useEffect } from "react";
+import { useState, FormEvent, useId, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,7 +26,22 @@ import {
 } from "@dootask/tools";
 import type { ActionConfig } from "@/lib/types/action-config";
 import { approvalTypeToActionConfigId } from "@/lib/utils/action-config";
-import { X as XICon } from "lucide-react";
+import { deriveOperationTemplateFields } from "@/lib/config/operation-template-fields";
+import type {
+  OperationTemplate,
+  OperationTemplateField,
+  OperationTemplateFieldValue,
+  OperationTemplateMetadata,
+  OperationTemplateSnapshot,
+} from "@/lib/types/operation-template";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { Calendar as CalendarIcon, X as XICon } from "lucide-react";
 
 type Props = {
   locale?: string;
@@ -72,13 +87,23 @@ export default function NewPurchaseForm({
     Array<{ id: string; name: string }>
   >([]);
 
+  // Operation template state
+  const [templates, setTemplates] = useState<OperationTemplate[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
+  const [templateError, setTemplateError] = useState<string | null>(null);
+  const [operationFieldValues, setOperationFieldValues] = useState<
+    Record<string, string>
+  >({});
+  const [operationDatePicker, setOperationDatePicker] = useState<string | null>(
+    null,
+  );
+
   const [formState, setFormState] = useState({
     title: "",
     reason: "",
     assetName: "",
     assetCategory: categories[0]?.code ?? "",
     assetCompany: companies[0]?.code ?? "",
-    estimatedCost: "",
     approverId: "",
     approverName: "",
   });
@@ -91,7 +116,6 @@ export default function NewPurchaseForm({
     assetName: useId(),
     assetCategory: useId(),
     assetCompany: useId(),
-    estimatedCost: useId(),
     approverId: useId(),
     approverName: useId(),
   };
@@ -143,6 +167,44 @@ export default function NewPurchaseForm({
     }
     loadConfig();
   }, []);
+
+  // Load operation templates (for purchase)
+  useEffect(() => {
+    let cancelled = false;
+    async function loadTemplates() {
+      setLoadingTemplates(true);
+      try {
+        const client = await getApiClient();
+        const { data } = await client.get<{ data: OperationTemplate[] }>(
+          "/apps/asset-hub/api/config/operations",
+          { headers: { "Cache-Control": "no-cache" } },
+        );
+        if (!cancelled) {
+          setTemplates(data.data);
+          setTemplateError(null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          const message =
+            err instanceof Error
+              ? err.message
+              : isChinese
+                ? "无法加载操作模板，请稍后再试。"
+                : "Failed to load operation templates.";
+          setTemplateError(message);
+          feedback.error(message);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingTemplates(false);
+        }
+      }
+    }
+    loadTemplates();
+    return () => {
+      cancelled = true;
+    };
+  }, [feedback, isChinese]);
 
   const defaultApproverId =
     config?.defaultApproverType === "user" &&
@@ -268,6 +330,186 @@ export default function NewPurchaseForm({
     }
   }, [formState.assetName, isTitleModified, isChinese]);
 
+  // Operation template derived state
+  const templateMap = useMemo(() => {
+    return templates.reduce((map, tpl) => {
+      map.set(tpl.type, tpl);
+      return map;
+    }, new Map<OperationTemplate["type"], OperationTemplate>());
+  }, [templates]);
+
+  const operationTemplateType = "purchase";
+  const currentOperationTemplate =
+    templateMap.get(operationTemplateType) ?? null;
+  const operationTemplateFields = useMemo(
+    () =>
+      deriveOperationTemplateFields(
+        operationTemplateType,
+        currentOperationTemplate,
+      ),
+    [operationTemplateType, currentOperationTemplate],
+  );
+
+  useEffect(() => {
+    setOperationFieldValues((prev) => {
+      const next: Record<string, string> = {};
+      operationTemplateFields.forEach((field) => {
+        next[field.key] = prev[field.key] ?? "";
+      });
+      return next;
+    });
+  }, [operationTemplateFields]);
+
+  const formatOperationDateLabel = (value?: string) => {
+    if (!value) {
+      return isChinese ? "选择日期" : "Pick a date";
+    }
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return value;
+    }
+    return parsed.toLocaleDateString(isChinese ? "zh-CN" : "en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const normalizeOperationFieldValue = (
+    field: OperationTemplateField,
+    raw: string,
+  ): OperationTemplateFieldValue | undefined => {
+    const value = raw.trim();
+    if (!value) return undefined;
+    if (field.widget === "number") {
+      const asNumber = Number(value);
+      if (Number.isNaN(asNumber)) {
+        throw new Error(
+          isChinese
+            ? `${field.labelZh} 需输入数字`
+            : `${field.labelEn} must be a number`,
+        );
+      }
+      return asNumber;
+    }
+    if (field.widget === "attachments") {
+      return value
+        .split(/\r?\n|,/)
+        .map((entry) => entry.trim())
+        .filter(Boolean);
+    }
+    return value;
+  };
+
+  const hasOperationAttachmentValue = () =>
+    operationTemplateFields
+      .filter((field) => field.widget === "attachments")
+      .some((field) => operationFieldValues[field.key]?.trim());
+
+  const renderOperationField = (field: OperationTemplateField) => {
+    const value = operationFieldValues[field.key] ?? "";
+    const label = isChinese ? field.labelZh : field.labelEn;
+    const placeholder = isChinese
+      ? field.placeholderZh ?? field.placeholderEn
+      : field.placeholderEn ?? field.placeholderZh;
+    const helper = isChinese
+      ? field.helperZh ?? field.helperEn
+      : field.helperEn ?? field.helperZh;
+
+    if (field.widget === "date") {
+      return (
+        <div key={field.key} className="space-y-1.5">
+          <Label className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+            {label}
+            {field.required && <span className="text-destructive">*</span>}
+          </Label>
+          <Popover
+            open={operationDatePicker === field.key}
+            onOpenChange={(open) =>
+              setOperationDatePicker(open ? field.key : null)
+            }
+          >
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !value && "text-muted-foreground",
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {formatOperationDateLabel(value)}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={value ? new Date(value) : undefined}
+                initialFocus
+                onSelect={(date) => {
+                  if (!date) return;
+                  setOperationFieldValues((prev) => ({
+                    ...prev,
+                    [field.key]: date.toISOString().slice(0, 10),
+                  }));
+                  setOperationDatePicker(null);
+                }}
+              />
+            </PopoverContent>
+          </Popover>
+          {helper && <p className="text-xs text-muted-foreground">{helper}</p>}
+        </div>
+      );
+    }
+
+    if (field.widget === "textarea" || field.widget === "attachments") {
+      return (
+        <div key={field.key} className="space-y-1.5">
+          <Label className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+            {label}
+            {field.required && <span className="text-destructive">*</span>}
+          </Label>
+          <Textarea
+            rows={field.widget === "attachments" ? 4 : 3}
+            value={value}
+            placeholder={placeholder}
+            required={field.required}
+            onChange={(event) =>
+              setOperationFieldValues((prev) => ({
+                ...prev,
+                [field.key]: event.target.value,
+              }))
+            }
+          />
+          {helper && <p className="text-xs text-muted-foreground">{helper}</p>}
+        </div>
+      );
+    }
+
+    return (
+      <div key={field.key} className="space-y-1.5">
+        <Label className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+          {label}
+          {field.required && <span className="text-destructive">*</span>}
+        </Label>
+        <Input
+          type={field.widget === "number" ? "number" : "text"}
+          value={value}
+          placeholder={placeholder}
+          required={field.required}
+          onChange={(event) =>
+            setOperationFieldValues((prev) => ({
+              ...prev,
+              [field.key]: event.target.value,
+            }))
+          }
+        />
+        {helper && <p className="text-xs text-muted-foreground">{helper}</p>}
+      </div>
+    );
+  };
+
   const resolveSelectedApprover = async (entry: DootaskUser | null) => {
     if (!entry) return null;
     let id = "";
@@ -335,6 +577,106 @@ export default function NewPurchaseForm({
         throw new Error(isChinese ? "缺少申请人信息" : "Missing applicant info");
       }
 
+      for (const field of operationTemplateFields) {
+        if (field.required && !operationFieldValues[field.key]?.trim()) {
+          throw new Error(
+            isChinese
+              ? `${field.labelZh} 为必填项`
+              : `${field.labelEn} is required`,
+          );
+        }
+      }
+
+      if (
+        currentOperationTemplate?.requireAttachment &&
+        !hasOperationAttachmentValue()
+      ) {
+        throw new Error(
+          isChinese
+            ? "该审批类型需要至少一个附件。"
+            : "This approval requires at least one attachment.",
+        );
+      }
+
+      const operationFieldEntries: [string, OperationTemplateFieldValue][] = [];
+      operationTemplateFields.forEach((field) => {
+        const raw = operationFieldValues[field.key];
+        if (!raw || !raw.trim()) return;
+        const normalized = normalizeOperationFieldValue(field, raw);
+        if (normalized !== undefined) {
+          operationFieldEntries.push([field.key, normalized]);
+        }
+      });
+
+      const shouldAttachTemplateMetadata =
+        operationFieldEntries.length > 0 || !!currentOperationTemplate;
+      const operationTemplateSnapshot: OperationTemplateSnapshot | undefined =
+        shouldAttachTemplateMetadata
+          ? {
+              ...(currentOperationTemplate
+                ? {
+                    id: currentOperationTemplate.id,
+                    type: currentOperationTemplate.type,
+                    labelZh: currentOperationTemplate.labelZh,
+                    labelEn: currentOperationTemplate.labelEn,
+                    requireAttachment:
+                      currentOperationTemplate.requireAttachment,
+                  }
+                : {
+                    type: operationTemplateType,
+                    labelZh: isChinese ? "采购" : "Purchase",
+                    labelEn: "Purchase",
+                    requireAttachment: false,
+                  }),
+              fields: operationTemplateFields.map((field) => ({
+                key: field.key,
+                labelZh: field.labelZh,
+                labelEn: field.labelEn,
+                widget: field.widget,
+              })),
+            }
+          : undefined;
+
+      const operationTemplateMetadata: OperationTemplateMetadata | undefined =
+        operationTemplateSnapshot !== undefined
+          ? {
+              snapshot: operationTemplateSnapshot,
+              values:
+                operationFieldEntries.length > 0
+                  ? (Object.fromEntries(
+                      operationFieldEntries,
+                    ) as Record<string, OperationTemplateFieldValue>)
+                  : undefined,
+            }
+          : undefined;
+
+      const configSnapshot = config
+        ? {
+            id: config.id,
+            requiresApproval: config.requiresApproval,
+            allowOverride: config.allowOverride,
+            defaultApproverType: config.defaultApproverType,
+          }
+        : undefined;
+
+      const metadataBase: Record<string, unknown> = {
+        newAsset: {
+          name: formState.assetName,
+          category: formState.assetCategory,
+          companyCode: formState.assetCompany,
+        },
+        initiatedFrom: "approvals-new",
+        ...(configSnapshot ? { configSnapshot } : {}),
+      };
+
+      const metadata =
+        operationTemplateMetadata !== undefined
+          ? {
+              ...metadataBase,
+              operationTemplate: operationTemplateMetadata,
+            }
+          : metadataBase;
+
       const client = await getApiClient();
       await client.post("/apps/asset-hub/api/approvals", {
         type: "purchase",
@@ -344,14 +686,7 @@ export default function NewPurchaseForm({
         approver: formState.approverId
           ? { id: formState.approverId, name: formState.approverName }
           : undefined,
-        metadata: {
-          newAsset: {
-            name: formState.assetName,
-            category: formState.assetCategory,
-            companyCode: formState.assetCompany,
-            estimatedCost: formState.estimatedCost,
-          },
-        },
+        metadata,
       });
 
       feedback.success(
@@ -390,6 +725,27 @@ export default function NewPurchaseForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label
+            htmlFor={fieldIds.assetName}
+            className="text-xs font-medium text-muted-foreground"
+          >
+            {isChinese ? "资产名称" : "Asset Name"}{" "}
+            <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            id={fieldIds.assetName}
+            required
+            value={formState.assetName}
+            onChange={(e) =>
+              setFormState({ ...formState, assetName: e.target.value })
+            }
+            placeholder={
+              isChinese ? "例如：MacBook Pro M3" : "e.g. MacBook Pro M3"
+            }
+          />
+        </div>
+
         <div className="space-y-1.5">
           <Label
             htmlFor={fieldIds.assetCompany}
@@ -419,27 +775,6 @@ export default function NewPurchaseForm({
 
         <div className="space-y-1.5">
           <Label
-            htmlFor={fieldIds.assetName}
-            className="text-xs font-medium text-muted-foreground"
-          >
-            {isChinese ? "资产名称" : "Asset Name"}{" "}
-            <span className="text-destructive">*</span>
-          </Label>
-          <Input
-            id={fieldIds.assetName}
-            required
-            value={formState.assetName}
-            onChange={(e) =>
-              setFormState({ ...formState, assetName: e.target.value })
-            }
-            placeholder={
-              isChinese ? "例如：MacBook Pro M3" : "e.g. MacBook Pro M3"
-            }
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <Label
             htmlFor={fieldIds.assetCategory}
             className="text-xs font-medium text-muted-foreground"
           >
@@ -464,24 +799,45 @@ export default function NewPurchaseForm({
             </SelectContent>
           </Select>
         </div>
+      </div>
 
-        <div className="space-y-1.5">
-          <Label
-            htmlFor={fieldIds.estimatedCost}
-            className="text-xs font-medium text-muted-foreground"
-          >
-            {isChinese ? "预估单价 (元)" : "Estimated Cost"}
-          </Label>
-          <Input
-            id={fieldIds.estimatedCost}
-            type="number"
-            value={formState.estimatedCost}
-            onChange={(e) =>
-              setFormState({ ...formState, estimatedCost: e.target.value })
-            }
-            placeholder="0.00"
-          />
+      <div className="space-y-2 rounded-2xl border bg-muted/20 p-4">
+        <div>
+          <p className="text-sm font-semibold">
+            {isChinese ? "操作详情" : "Operation Details"}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {isChinese
+              ? "字段来自系统管理的操作模板配置，提交后会随审批一并保存。"
+              : "Fields come from the system operation template and will be saved with this approval."}
+          </p>
         </div>
+
+        {templateError && (
+          <p className="rounded-2xl border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
+            {templateError}
+          </p>
+        )}
+
+        {loadingTemplates && !templateError && (
+          <p className="text-xs text-muted-foreground">
+            {isChinese ? "正在加载操作模板..." : "Loading operation template..."}
+          </p>
+        )}
+
+        {!loadingTemplates && !templateError && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {operationTemplateFields.map((field) => renderOperationField(field))}
+          </div>
+        )}
+
+        {currentOperationTemplate?.requireAttachment && (
+          <p className="text-xs text-destructive">
+            {isChinese
+              ? "当前操作需要至少上传一个附件（使用逗号或换行分隔）。"
+              : "At least one attachment is required (separate by comma or newline)."}
+          </p>
+        )}
       </div>
 
       <div className="space-y-4 border-t pt-4 border-dashed">
@@ -678,6 +1034,7 @@ export default function NewPurchaseForm({
             submitting ||
             loadingConfig ||
             loadingUser ||
+            loadingTemplates ||
             !formState.approverId ||
             !formState.assetName ||
             !formState.title

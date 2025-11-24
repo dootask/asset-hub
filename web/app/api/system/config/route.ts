@@ -1,8 +1,16 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db/client";
 import { getConsumableStockStats } from "@/lib/repositories/consumables";
+import { ensureAdminApiAccess } from "@/lib/server/api-guards";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const forbidden = ensureAdminApiAccess(
+    request,
+    "只有系统管理员可以查看系统概览数据。",
+  );
+  if (forbidden) {
+    return forbidden;
+  }
   const db = getDb();
 
   const { assets } = db

@@ -4,6 +4,7 @@ import {
   listReportViews,
 } from "@/lib/repositories/report-views";
 import type { CreateReportViewPayload } from "@/lib/types/report";
+import { ensureAdminApiAccess } from "@/lib/server/api-guards";
 
 const DATA_SOURCES = new Set(["assets", "approvals"]);
 
@@ -37,12 +38,26 @@ function sanitizePayload(payload: unknown): CreateReportViewPayload {
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const forbidden = ensureAdminApiAccess(
+    request,
+    "只有系统管理员可以查看自定义报表。",
+  );
+  if (forbidden) {
+    return forbidden;
+  }
   const views = listReportViews();
   return NextResponse.json({ data: views });
 }
 
 export async function POST(request: Request) {
+  const forbidden = ensureAdminApiAccess(
+    request,
+    "只有系统管理员可以创建或编辑自定义报表。",
+  );
+  if (forbidden) {
+    return forbidden;
+  }
   try {
     const body = await request.json();
     const payload = sanitizePayload(body);

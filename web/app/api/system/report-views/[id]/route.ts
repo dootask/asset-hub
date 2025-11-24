@@ -5,6 +5,7 @@ import {
   updateReportView,
 } from "@/lib/repositories/report-views";
 import type { CreateReportViewPayload } from "@/lib/types/report";
+import { ensureAdminApiAccess } from "@/lib/server/api-guards";
 
 const DATA_SOURCES = new Set(["assets", "approvals"]);
 
@@ -43,6 +44,13 @@ interface RouteContext {
 }
 
 export async function PUT(request: Request, { params }: RouteContext) {
+  const forbidden = ensureAdminApiAccess(
+    request,
+    "只有系统管理员可以更新自定义报表。",
+  );
+  if (forbidden) {
+    return forbidden;
+  }
   try {
     const { id } = await params;
     const payload = sanitizePayload(await request.json());
@@ -69,7 +77,14 @@ export async function PUT(request: Request, { params }: RouteContext) {
   }
 }
 
-export async function DELETE(_request: Request, { params }: RouteContext) {
+export async function DELETE(request: Request, { params }: RouteContext) {
+  const forbidden = ensureAdminApiAccess(
+    request,
+    "只有系统管理员可以删除自定义报表。",
+  );
+  if (forbidden) {
+    return forbidden;
+  }
   const { id } = await params;
   const existing = getReportViewById(id);
   if (!existing) {

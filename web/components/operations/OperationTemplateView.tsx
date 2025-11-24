@@ -43,8 +43,11 @@ function renderValue(entry: TemplateEntry, locale: string): ReactNode {
     }
     return (
       <ul className="list-disc space-y-1 pl-4 text-xs text-muted-foreground">
-        {entry.value.map((item) => (
-          <li key={item} className="break-all">
+        {entry.value.map((item, index) => (
+          <li
+            key={`${entry.key}-${index}`}
+            className="break-all"
+          >
             {item}
           </li>
         ))}

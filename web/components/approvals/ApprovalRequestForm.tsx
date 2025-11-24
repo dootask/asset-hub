@@ -55,6 +55,8 @@ type Applicant = {
   name?: string;
 };
 
+const MIN_INBOUND_ATTACHMENTS = 3;
+
 type DootaskUser =
   | string
   | number
@@ -559,10 +561,20 @@ export default function ApprovalRequestForm({
     return value;
   };
 
-  const hasOperationAttachmentValue = () =>
+  const countAttachmentEntries = () =>
     operationTemplateFields
       .filter((field) => field.widget === "attachments")
-      .some((field) => operationFieldValues[field.key]?.trim());
+      .reduce((total, field) => {
+        const raw = operationFieldValues[field.key];
+        if (!raw || !raw.trim()) {
+          return total;
+        }
+        const entries = raw
+          .split(/\r?\n|,/)
+          .map((entry) => entry.trim())
+          .filter(Boolean);
+        return total + entries.length;
+      }, 0);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -580,12 +592,25 @@ export default function ApprovalRequestForm({
         }
       }
 
-      if (currentOperationTemplate?.requireAttachment && !hasOperationAttachmentValue()) {
-        throw new Error(
-          isChinese
-            ? "该审批类型需要至少一个附件。"
-            : "This approval requires at least one attachment.",
-        );
+      if (currentOperationTemplate?.requireAttachment) {
+        const attachmentCount = countAttachmentEntries();
+        if (attachmentCount === 0) {
+          throw new Error(
+            isChinese
+              ? "该审批类型需要至少一个附件。"
+              : "This approval requires at least one attachment.",
+          );
+        }
+        if (
+          operationTemplateType === "inbound" &&
+          attachmentCount < MIN_INBOUND_ATTACHMENTS
+        ) {
+          throw new Error(
+            isChinese
+              ? `入库审批需至少上传 ${MIN_INBOUND_ATTACHMENTS} 张照片或附件链接。`
+              : `Inbound approvals require at least ${MIN_INBOUND_ATTACHMENTS} photo attachments.`,
+          );
+        }
       }
 
       const operationFieldEntries: [string, OperationTemplateFieldValue][] =
@@ -795,6 +820,10 @@ export default function ApprovalRequestForm({
     }
 
     if (field.widget === "textarea" || field.widget === "attachments") {
+      const showInboundAttachmentHint =
+        field.widget === "attachments" &&
+        currentOperationTemplate?.requireAttachment &&
+        operationTemplateType === "inbound";
       return (
         <div key={field.key} className="space-y-1.5">
           <Label className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
@@ -811,6 +840,13 @@ export default function ApprovalRequestForm({
             }
           />
           {helper && <p className="text-xs text-muted-foreground">{helper}</p>}
+          {showInboundAttachmentHint && (
+            <p className="text-xs font-medium text-amber-600">
+              {isChinese
+                ? `请至少上传 ${MIN_INBOUND_ATTACHMENTS} 张不同角度的入库照片。`
+                : `Upload at least ${MIN_INBOUND_ATTACHMENTS} inbound photos from different angles.`}
+            </p>
+          )}
         </div>
       );
     }
@@ -976,9 +1012,13 @@ export default function ApprovalRequestForm({
             </p>
             {currentOperationTemplate?.requireAttachment && (
               <p className="text-xs font-medium text-amber-600">
-                {isChinese
-                  ? "需要至少上传或填写一个附件凭证。"
-                  : "At least one attachment entry is required."}
+                {operationTemplateType === "inbound"
+                  ? isChinese
+                    ? `需要至少上传 ${MIN_INBOUND_ATTACHMENTS} 张入库照片（不同角度）。`
+                    : `Upload at least ${MIN_INBOUND_ATTACHMENTS} inbound photos (different angles).`
+                  : isChinese
+                    ? "需要至少上传或填写一个附件凭证。"
+                    : "At least one attachment entry is required."}
               </p>
             )}
           </div>

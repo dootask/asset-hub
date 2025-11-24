@@ -54,6 +54,8 @@ interface Props {
   }) => void;
 }
 
+const MIN_INBOUND_ATTACHMENTS = 3;
+
 export default function OperationForm({
   assetId,
   locale = "en",
@@ -227,10 +229,20 @@ export default function OperationForm({
     return value;
   };
 
-  const hasAttachmentValue = () =>
+  const countAttachmentEntries = () =>
     templateFields
       .filter((field) => field.widget === "attachments")
-      .some((field) => fieldValues[field.key]?.trim());
+      .reduce((total, field) => {
+        const raw = fieldValues[field.key];
+        if (!raw || !raw.trim()) {
+          return total;
+        }
+        const entries = raw
+          .split(/\r?\n|,/)
+          .map((entry) => entry.trim())
+          .filter(Boolean);
+        return total + entries.length;
+      }, 0);
 
   const resetFieldValues = () => {
     setFieldValues(
@@ -274,12 +286,25 @@ export default function OperationForm({
         }
       }
 
-      if (currentTemplate?.requireAttachment && !hasAttachmentValue()) {
-        throw new Error(
-          isChinese
-            ? "该操作需要至少上传或填写一个附件。"
-            : "This operation requires at least one attachment.",
-        );
+      if (currentTemplate?.requireAttachment) {
+        const attachmentCount = countAttachmentEntries();
+        if (attachmentCount === 0) {
+          throw new Error(
+            isChinese
+              ? "该操作需要至少上传或填写一个附件。"
+              : "This operation requires at least one attachment.",
+          );
+        }
+        if (
+          templateType === "inbound" &&
+          attachmentCount < MIN_INBOUND_ATTACHMENTS
+        ) {
+          throw new Error(
+            isChinese
+              ? `入库操作需至少上传 ${MIN_INBOUND_ATTACHMENTS} 张照片或附件链接。`
+              : `Inbound operations require at least ${MIN_INBOUND_ATTACHMENTS} photo attachments.`,
+          );
+        }
       }
 
       const metadataEntries: [string, OperationTemplateFieldValue][] = [];
@@ -418,6 +443,10 @@ export default function OperationForm({
     }
 
     if (field.widget === "textarea" || field.widget === "attachments") {
+      const showInboundAttachmentHint =
+        field.widget === "attachments" &&
+        currentTemplate?.requireAttachment &&
+        templateType === "inbound";
       return (
         <div key={field.key} className="space-y-1.5">
           <Label className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
@@ -432,6 +461,13 @@ export default function OperationForm({
             onChange={(event) => handleFieldChange(field.key, event.target.value)}
           />
           {helper && <p className="text-xs text-muted-foreground">{helper}</p>}
+          {showInboundAttachmentHint && (
+            <p className="text-xs font-medium text-amber-600">
+              {isChinese
+                ? `请至少上传 ${MIN_INBOUND_ATTACHMENTS} 张不同角度的入库照片。`
+                : `Upload at least ${MIN_INBOUND_ATTACHMENTS} inbound photos from different angles.`}
+            </p>
+          )}
         </div>
       );
     }
@@ -541,9 +577,13 @@ export default function OperationForm({
             </p>
             {currentTemplate?.requireAttachment && (
               <p className="text-xs font-medium text-amber-600">
-                {isChinese
-                  ? "该类型需至少包含一个附件链接或凭证。"
-                  : "At least one attachment entry is required."}
+                {templateType === "inbound"
+                  ? isChinese
+                    ? `该类型需至少包含 ${MIN_INBOUND_ATTACHMENTS} 张入库照片（不同角度）。`
+                    : `Provide at least ${MIN_INBOUND_ATTACHMENTS} inbound photos (different angles).`
+                  : isChinese
+                    ? "该类型需至少包含一个附件链接或凭证。"
+                    : "At least one attachment entry is required."}
               </p>
             )}
           </div>
