@@ -105,6 +105,17 @@ export default function NewAssetForm({ locale = "en", categories, companies }: P
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
+          <Label htmlFor="asset-name" className="text-sm font-medium text-muted-foreground">
+            {isChinese ? "资产名称" : "Asset Name"}
+          </Label>
+          <Input
+            id="asset-name"
+            required
+            value={formState.name}
+            onChange={(event) => handleChange("name", event.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
           <Label htmlFor="asset-company" className="text-sm font-medium text-muted-foreground">
             {isChinese ? "所属公司" : "Company"}
           </Label>
@@ -140,18 +151,6 @@ export default function NewAssetForm({ locale = "en", categories, companies }: P
               )}
             </SelectContent>
           </Select>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="asset-name" className="text-sm font-medium text-muted-foreground">
-            {isChinese ? "资产名称" : "Asset Name"}
-          </Label>
-          <Input
-            id="asset-name"
-            required
-            value={formState.name}
-            onChange={(event) => handleChange("name", event.target.value)}
-          />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="asset-category" className="text-sm font-medium text-muted-foreground">
