@@ -43,6 +43,7 @@ export const appConfig = {
   },
   permissions: {
     adminUserIds: parseNumberCsv(process.env.ASSET_HUB_ADMIN_USER_IDS),
+    approverUserIds: parseNumberCsv(process.env.ASSET_HUB_APPROVER_USER_IDS),
   },
   release: {
     version: process.env.ASSET_HUB_VERSION ?? "0.1.0",

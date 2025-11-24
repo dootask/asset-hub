@@ -40,6 +40,17 @@ function encodeHeaderValue(value: string) {
   }
 }
 
+function decodeHeaderValue(value?: string | null) {
+  if (!value) {
+    return undefined;
+  }
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 function attachUserHeaders(
   config: InternalAxiosRequestConfig,
   context: UserContext,
@@ -79,8 +90,15 @@ function createBrowserClient(): AxiosInstance {
 async function createServerClient(): Promise<AxiosInstance> {
   const { getRequestBaseUrl } = await import("@/lib/utils/server-url");
   const baseURL = await getRequestBaseUrl();
+  const { headers } = await import("next/headers");
+  const incomingHeaders = headers();
+  const context: UserContext = {
+    userId: incomingHeaders.get("x-user-id") ?? undefined,
+    token: incomingHeaders.get("x-user-token") ?? undefined,
+    nickname: decodeHeaderValue(incomingHeaders.get("x-user-nickname")),
+  };
   const client = axios.create({ baseURL });
-  client.interceptors.request.use((config) => attachUserHeaders(config, {}));
+  client.interceptors.request.use((config) => attachUserHeaders(config, context));
   return client;
 }
 

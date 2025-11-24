@@ -7,6 +7,7 @@
 1. 复制 `env.example` 为 `.env.local`（或其他 `.env*` 文件），按需要修改：
    - `ASSET_HUB_DB_PATH`：SQLite 文件位置，默认 `./data/asset-hub.db`。
    - `ASSET_HUB_BASE_URL`：可选，用于在服务端生成绝对地址。
+   - `ASSET_HUB_ADMIN_USER_IDS` / `ASSET_HUB_APPROVER_USER_IDS`：逗号分隔的宿主用户 ID，分别用于声明“系统/资产管理员”与“审批人”白名单。
 2. `.env*` 文件已被 `.gitignore` 忽略，避免泄露敏感信息。
 
 ## 数据库迁移
@@ -61,7 +62,7 @@ PLAYWRIGHT_USER_TOKEN=demo-token
 - `@dootask/tools` 由 `components/providers/DooTaskBridge.tsx` 统一初始化，将宿主注入的用户上下文缓存到浏览器 `sessionStorage`，供审批/资产表单复用。
 - 前端在完成审批、通知等业务动作时，应通过 `@dootask/tools` 暴露的接口与宿主进行通信（例如创建/完成待办、推送通知），不再需要服务器端调用宿主 API。
 - 审批创建/状态更新后，前端会在宿主内调用 `requestAPI("dialog/msg/sendbot")` 发送 `approval-alert` Bot 消息，提醒内容直接提示“请在应用中心查看”，不再附带外部链接；当检测到不在 DooTask 宿主环境时会自动跳过。
-- `ASSET_HUB_ADMIN_USER_IDS`（逗号分隔）可指定拥有“审批一切”权限的宿主用户 ID，其它用户只能处理与自己相关的审批。
+- `ASSET_HUB_ADMIN_USER_IDS`（逗号分隔）用于定义系统/资产管理员，可访问 `/system/**`、管理公司/角色/审批配置并拥有审批一切的权限；`ASSET_HUB_APPROVER_USER_IDS` 可额外指定只具备审批权限的用户，其它用户仅能处理与自己相关的申请。
 - 审批默认策略由 `asset_action_configs` 表驱动，可在系统页的“审批配置”中调整是否需要审批、默认审批人以及是否允许发起人覆盖。
 
 ## Docker 部署

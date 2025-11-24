@@ -4,6 +4,8 @@ import {
   listCompanies,
 } from "@/lib/repositories/companies";
 import type { CreateCompanyPayload } from "@/lib/types/system";
+import { extractUserFromRequest } from "@/lib/utils/request-user";
+import { isAdminUser } from "@/lib/utils/permissions";
 
 function sanitizePayload(payload: unknown): CreateCompanyPayload {
   if (typeof payload !== "object" || payload === null) {
@@ -35,6 +37,16 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const user = extractUserFromRequest(request);
+  if (!isAdminUser(user?.id)) {
+    return NextResponse.json(
+      {
+        error: "FORBIDDEN",
+        message: "只有系统管理员可以创建公司。",
+      },
+      { status: 403 },
+    );
+  }
   try {
     const body = await request.json();
     const payload = sanitizePayload(body);
@@ -56,49 +68,3 @@ export async function POST(request: Request) {
     );
   }
 }
-import { NextResponse } from "next/server";
-import {
-  createCompany,
-  listCompanies,
-} from "@/lib/repositories/companies";
-import type { CreateCompanyPayload } from "@/lib/types/system";
-
-function sanitizePayload(
-  payload: Partial<CreateCompanyPayload>,
-): CreateCompanyPayload {
-  if (!payload.name || !payload.code) {
-    throw new Error("Company name and code are required");
-  }
-
-  return {
-    name: payload.name.trim(),
-    code: payload.code.trim().toUpperCase(),
-    description: payload.description?.trim(),
-  };
-}
-
-export async function GET() {
-  return NextResponse.json({
-    data: listCompanies(),
-  });
-}
-
-export async function POST(request: Request) {
-  try {
-    const payload = sanitizePayload(
-      (await request.json()) as Partial<CreateCompanyPayload>,
-    );
-    const company = createCompany(payload);
-    return NextResponse.json({ data: company }, { status: 201 });
-  } catch (error) {
-    return NextResponse.json(
-      {
-        error: "INVALID_PAYLOAD",
-        message:
-          error instanceof Error ? error.message : "请求参数不合法。",
-      },
-      { status: 400 },
-    );
-  }
-}
-

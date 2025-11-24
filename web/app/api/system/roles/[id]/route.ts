@@ -5,6 +5,26 @@ import {
   updateRole,
 } from "@/lib/repositories/roles";
 import type { CreateRolePayload } from "@/lib/types/system";
+import { extractUserFromRequest } from "@/lib/utils/request-user";
+import { isAdminUser } from "@/lib/utils/permissions";
+
+function sanitizeMembers(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const normalized = value
+    .map((entry) => {
+      if (typeof entry === "string") {
+        return entry.trim();
+      }
+      if (typeof entry === "number" && Number.isFinite(entry)) {
+        return String(entry);
+      }
+      return "";
+    })
+    .filter(Boolean);
+  return Array.from(new Set(normalized));
+}
 
 function sanitizePayload(
   payload: Partial<CreateRolePayload>,
@@ -16,6 +36,7 @@ function sanitizePayload(
     name: payload.name.trim(),
     scope: payload.scope.trim(),
     description: payload.description?.trim(),
+    members: sanitizeMembers(payload.members),
   };
 }
 
@@ -23,7 +44,22 @@ interface RouteParams {
   params: { id: string };
 }
 
-export async function GET(_: Request, { params }: RouteParams) {
+function ensureAdmin(request: Request) {
+  const user = extractUserFromRequest(request);
+  if (!isAdminUser(user?.id)) {
+    return NextResponse.json(
+      { error: "FORBIDDEN", message: "只有系统管理员可以管理角色。" },
+      { status: 403 },
+    );
+  }
+  return null;
+}
+
+export async function GET(request: Request, { params }: RouteParams) {
+  const forbidden = ensureAdmin(request);
+  if (forbidden) {
+    return forbidden;
+  }
   const role = getRoleById(params.id);
   if (!role) {
     return NextResponse.json(
@@ -35,10 +71,12 @@ export async function GET(_: Request, { params }: RouteParams) {
 }
 
 export async function PUT(request: Request, { params }: RouteParams) {
+  const forbidden = ensureAdmin(request);
+  if (forbidden) {
+    return forbidden;
+  }
   try {
-    const payload = sanitizePayload(
-      (await request.json()) as Partial<CreateRolePayload>,
-    );
+    const payload = sanitizePayload(await request.json());
     const updated = updateRole(params.id, payload);
     if (!updated) {
       return NextResponse.json(
@@ -59,7 +97,11 @@ export async function PUT(request: Request, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(_: Request, { params }: RouteParams) {
+export async function DELETE(request: Request, { params }: RouteParams) {
+  const forbidden = ensureAdmin(request);
+  if (forbidden) {
+    return forbidden;
+  }
   const removed = deleteRole(params.id);
   if (!removed) {
     return NextResponse.json(

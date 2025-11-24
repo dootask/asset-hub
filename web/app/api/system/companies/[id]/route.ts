@@ -5,6 +5,8 @@ import {
   updateCompany,
 } from "@/lib/repositories/companies";
 import type { CreateCompanyPayload } from "@/lib/types/system";
+import { extractUserFromRequest } from "@/lib/utils/request-user";
+import { isAdminUser } from "@/lib/utils/permissions";
 
 function sanitizePayload(payload: unknown): CreateCompanyPayload {
   if (typeof payload !== "object" || payload === null) {
@@ -27,14 +29,45 @@ function sanitizePayload(payload: unknown): CreateCompanyPayload {
   };
 }
 
-interface RouteContext {
+type RouteContext = {
   params: Promise<{ id: string }>;
+};
+
+function ensureAdmin(request: Request) {
+  const user = extractUserFromRequest(request);
+  if (!isAdminUser(user?.id)) {
+    return NextResponse.json(
+      { error: "FORBIDDEN", message: "只有系统管理员可以管理公司。" },
+      { status: 403 },
+    );
+  }
+  return null;
+}
+
+export async function GET(request: Request, { params }: RouteContext) {
+  const forbidden = ensureAdmin(request);
+  if (forbidden) {
+    return forbidden;
+  }
+  const { id } = await params;
+  const company = getCompanyById(id);
+  if (!company) {
+    return NextResponse.json(
+      { error: "NOT_FOUND", message: "公司不存在" },
+      { status: 404 },
+    );
+  }
+  return NextResponse.json({ data: company });
 }
 
 export async function PUT(request: Request, { params }: RouteContext) {
+  const forbidden = ensureAdmin(request);
+  if (forbidden) {
+    return forbidden;
+  }
   try {
-    const { id } = await params;
     const payload = sanitizePayload(await request.json());
+    const { id } = await params;
     const updated = updateCompany(id, payload);
     if (!updated) {
       return NextResponse.json(
@@ -63,7 +96,11 @@ export async function PUT(request: Request, { params }: RouteContext) {
   }
 }
 
-export async function DELETE(_request: Request, { params }: RouteContext) {
+export async function DELETE(request: Request, { params }: RouteContext) {
+  const forbidden = ensureAdmin(request);
+  if (forbidden) {
+    return forbidden;
+  }
   const { id } = await params;
   const existing = getCompanyById(id);
   if (!existing) {
@@ -80,79 +117,5 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
     );
   }
   return NextResponse.json({ data: { success: true } });
-}
-import { NextResponse } from "next/server";
-import {
-  deleteCompany,
-  getCompanyById,
-  updateCompany,
-} from "@/lib/repositories/companies";
-import type { CreateCompanyPayload } from "@/lib/types/system";
-
-function sanitizePayload(
-  payload: Partial<CreateCompanyPayload>,
-): CreateCompanyPayload {
-  if (!payload.name || !payload.code) {
-    throw new Error("Company name and code are required");
-  }
-  return {
-    name: payload.name.trim(),
-    code: payload.code.trim().toUpperCase(),
-    description: payload.description?.trim(),
-  };
-}
-
-type RouteContext = {
-  params: Promise<{ id: string }>;
-};
-
-export async function GET(_: Request, { params }: RouteContext) {
-  const { id } = await params;
-  const company = getCompanyById(id);
-  if (!company) {
-    return NextResponse.json(
-      { error: "NOT_FOUND", message: "公司不存在" },
-      { status: 404 },
-    );
-  }
-  return NextResponse.json({ data: company });
-}
-
-export async function PUT(request: Request, { params }: RouteContext) {
-  try {
-    const payload = sanitizePayload(
-      (await request.json()) as Partial<CreateCompanyPayload>,
-    );
-    const { id } = await params;
-    const updated = updateCompany(id, payload);
-    if (!updated) {
-      return NextResponse.json(
-        { error: "NOT_FOUND", message: "公司不存在" },
-        { status: 404 },
-      );
-    }
-    return NextResponse.json({ data: updated });
-  } catch (error) {
-    return NextResponse.json(
-      {
-        error: "INVALID_PAYLOAD",
-        message:
-          error instanceof Error ? error.message : "请求参数不合法。",
-      },
-      { status: 400 },
-    );
-  }
-}
-
-export async function DELETE(_: Request, { params }: RouteContext) {
-  const { id } = await params;
-  const removed = deleteCompany(id);
-  if (!removed) {
-    return NextResponse.json(
-      { error: "NOT_FOUND", message: "公司不存在" },
-      { status: 404 },
-    );
-  }
-  return NextResponse.json({ success: true });
 }
 

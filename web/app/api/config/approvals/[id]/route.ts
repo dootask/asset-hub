@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
-import { ActionConfigId, ActionConfigInput, ApproverType } from "@/lib/types/action-config";
+import {
+  ActionConfigId,
+  ActionConfigInput,
+  ApproverType,
+} from "@/lib/types/action-config";
 import { getActionConfig, upsertActionConfig } from "@/lib/repositories/action-configs";
+import { extractUserFromRequest } from "@/lib/utils/request-user";
+import { isAdminUser } from "@/lib/utils/permissions";
 
 interface RouteParams {
   params: Promise<{ id: ActionConfigId }>;
@@ -44,13 +50,32 @@ function sanitizePayload(payload: unknown): ActionConfigInput {
   };
 }
 
-export async function GET(_request: Request, { params }: RouteParams) {
+function ensureAdmin(request: Request) {
+  const user = extractUserFromRequest(request);
+  if (!isAdminUser(user?.id)) {
+    return NextResponse.json(
+      { error: "FORBIDDEN", message: "只有系统管理员可以管理审批配置。" },
+      { status: 403 },
+    );
+  }
+  return null;
+}
+
+export async function GET(request: Request, { params }: RouteParams) {
+  const forbidden = ensureAdmin(request);
+  if (forbidden) {
+    return forbidden;
+  }
   const { id } = await params;
   const config = getActionConfig(id);
   return NextResponse.json({ data: config });
 }
 
 export async function PUT(request: Request, { params }: RouteParams) {
+  const forbidden = ensureAdmin(request);
+  if (forbidden) {
+    return forbidden;
+  }
   try {
     const { id } = await params;
     const payload = sanitizePayload(await request.json());

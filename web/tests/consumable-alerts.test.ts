@@ -10,6 +10,7 @@ import {
 } from "@/lib/repositories/consumable-alerts";
 import { createConsumable } from "@/lib/repositories/consumables";
 import { createConsumableCategory } from "@/lib/repositories/consumable-categories";
+import type { ConsumableStatus } from "@/lib/types/consumable";
 
 const TEST_DB_PATH = path.join(process.cwd(), "data", "test-consumable-alerts.db");
 let categorySeeded = false;
@@ -37,13 +38,18 @@ describe("Consumable alerts repository", () => {
   }
 
   function seedConsumable(
-    overrides?: Partial<{ quantity: number; reservedQuantity: number; status: string; name: string }>,
+    overrides?: Partial<{
+      quantity: number;
+      reservedQuantity: number;
+      status: ConsumableStatus;
+      name: string;
+    }>,
   ) {
     ensureCategory();
     return createConsumable({
       name: overrides?.name ?? "Test Consumable",
       category: "Office",
-      status: (overrides?.status as any) ?? "in-stock",
+      status: overrides?.status ?? "in-stock",
       quantity: overrides?.quantity ?? 10,
       reservedQuantity: overrides?.reservedQuantity ?? 0,
       unit: "pcs",

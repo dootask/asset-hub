@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { ApprovalActionPayload, ApprovalRequest } from "@/lib/types/approval";
 import { applyApprovalAction, getApprovalRequestById } from "@/lib/repositories/approvals";
 import { extractUserFromRequest } from "@/lib/utils/request-user";
-import { isAdminUser } from "@/lib/utils/permissions";
+import { canApproveUser, isAdminUser } from "@/lib/utils/permissions";
 
 type RouteContext = {
   params: Promise<{
@@ -42,7 +42,7 @@ function canApprove(approval: ApprovalRequest, userId: string) {
   if (approval.approverId && approval.approverId === userId) {
     return true;
   }
-  return isAdminUser(userId);
+  return canApproveUser(userId);
 }
 
 function canCancel(approval: ApprovalRequest, userId: string) {

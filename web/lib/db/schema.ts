@@ -40,6 +40,7 @@ export const CREATE_TABLES = {
       name TEXT NOT NULL,
       scope TEXT NOT NULL DEFAULT ('system'),
       description TEXT,
+      member_user_ids TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -359,12 +360,14 @@ export const seedRoles = [
     name: "超级管理员",
     scope: "system",
     description: "拥有全部资产与配置权限",
+    member_user_ids: null,
   },
   {
     id: "ROLE-ASSET-MANAGER",
     name: "资产管理员",
     scope: "asset",
     description: "负责资产新增、入库与盘点",
+    member_user_ids: null,
   },
 ];
 

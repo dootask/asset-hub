@@ -1,6 +1,15 @@
 "use client";
 
-import { forwardRef, useImperativeHandle, useMemo, useState, useTransition } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
+import { appReady, fetchUserBasic, isMicroApp, selectUsers } from "@dootask/tools";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +40,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import type { Role } from "@/lib/types/system";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
@@ -45,16 +55,30 @@ export type RoleTableHandle = {
   openCreateDialog: () => void;
 };
 
+type DootaskUser =
+  | string
+  | number
+  | {
+      userid?: string;
+      id?: string;
+      nickname?: string;
+      name?: string;
+    };
+
+type SelectUsersReturn = DootaskUser[] | { users?: DootaskUser[] };
+
 type FormState = {
   name: string;
   scope: string;
   description: string;
+  members: string[];
 };
 
 const DEFAULT_FORM: FormState = {
   name: "",
   scope: "system",
   description: "",
+  members: [],
 };
 
 const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
@@ -70,19 +94,103 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
   const [pending, startTransition] = useTransition();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [dialogRole, setDialogRole] = useState<Role | null>(null);
+  const [selectorReady, setSelectorReady] = useState(false);
+  const [selectingMembers, setSelectingMembers] = useState(false);
+  const [userNames, setUserNames] = useState<Record<string, string>>({});
   const feedback = useAppFeedback();
+
+  useEffect(() => {
+    let active = true;
+    async function detectSelector() {
+      try {
+        const micro = await isMicroApp();
+        if (!micro) {
+          if (active) setSelectorReady(false);
+          return;
+        }
+        await appReady();
+        if (active) setSelectorReady(true);
+      } catch {
+        if (active) setSelectorReady(false);
+      }
+    }
+    detectSelector();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function hydrateNames() {
+      const ids = new Set<string>();
+      roles.forEach((role) => role.members?.forEach((member) => member && ids.add(member)));
+      formState.members.forEach((member) => member && ids.add(member));
+      const missing = Array.from(ids).filter((id) => !userNames[id]);
+      if (missing.length === 0) {
+        return;
+      }
+      for (const id of missing) {
+        const numeric = Number(id);
+        if (!Number.isFinite(numeric)) {
+          continue;
+        }
+        try {
+          const result = await fetchUserBasic([numeric]);
+          const info = Array.isArray(result) ? result[0] : undefined;
+          const name = info?.nickname ?? info?.name;
+          if (name && !cancelled) {
+            setUserNames((prev) => ({ ...prev, [id]: name }));
+          }
+        } catch {
+          // ignore errors to avoid blocking UI
+        }
+      }
+    }
+    hydrateNames();
+    return () => {
+      cancelled = true;
+    };
+  }, [roles, formState.members, userNames]);
+
+  const resolveSelectedUser = useCallback(async (entry: DootaskUser) => {
+    const rawId = typeof entry === "object" ? entry.userid ?? entry.id : entry;
+    const id = rawId !== undefined ? `${rawId}`.trim() : "";
+    if (!id) {
+      return null;
+    }
+    const name =
+      typeof entry === "object"
+        ? entry.nickname ?? entry.name ?? ""
+        : "";
+    if (name) {
+      return { id, name };
+    }
+    try {
+      const numeric = Number(id);
+      if (!Number.isFinite(numeric)) {
+        return { id, name: "" };
+      }
+      const list = await fetchUserBasic([numeric]);
+      const info = Array.isArray(list) ? list[0] : undefined;
+      return { id, name: info?.nickname ?? info?.name ?? "" };
+    } catch {
+      return { id, name: "" };
+    }
+  }, []);
 
   const filteredRoles = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return roles;
-    return roles.filter((role) =>
-      `${role.name} ${role.scope} ${role.description ?? ""}`.toLowerCase().includes(query),
-    );
+    return roles.filter((role) => {
+      const target = `${role.name} ${role.scope} ${role.description ?? ""} ${(role.members ?? []).join(" ")}`.toLowerCase();
+      return target.includes(query);
+    });
   }, [roles, search]);
 
   const openCreateDialog = () => {
     setEditing(null);
-    setFormState(DEFAULT_FORM);
+    setFormState({ ...DEFAULT_FORM });
     setDialogOpen(true);
   };
 
@@ -100,6 +208,7 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
       name: role.name,
       scope: role.scope,
       description: role.description ?? "",
+      members: role.members ?? [],
     });
     setDialogOpen(true);
   };
@@ -112,6 +221,7 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
           name: formState.name.trim(),
           scope: formState.scope,
           description: formState.description.trim() || undefined,
+          members: formState.members,
         };
         const url = editing
           ? `${baseUrl}/apps/asset-hub/api/system/roles/${editing.id}`
@@ -128,6 +238,7 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
         );
         setDialogOpen(false);
         setEditing(null);
+        setFormState({ ...DEFAULT_FORM });
         feedback.success(
           isChinese
             ? editing
@@ -184,6 +295,81 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
     });
   };
 
+  const handleSelectMembers = useCallback(async () => {
+    if (!selectorReady) {
+      feedback.error(
+        isChinese
+          ? "当前环境不支持用户选择器，请在 DooTask 内使用。"
+          : "User picker unavailable in this environment.",
+      );
+      return;
+    }
+    setSelectingMembers(true);
+    try {
+      const result = (await selectUsers({
+        multipleMax: 20,
+        showDialog: false,
+        showSelectAll: false,
+        value: formState.members
+          .map((id) => Number(id))
+          .filter((id) => Number.isFinite(id)),
+      })) as SelectUsersReturn;
+      const entries = Array.isArray(result) ? result : result?.users ?? [];
+      if (!entries.length) {
+        return;
+      }
+      const picks = (
+        await Promise.all(entries.map((entry) => resolveSelectedUser(entry)))
+      ).filter(Boolean) as { id: string; name?: string }[];
+      if (!picks.length) {
+        feedback.error(isChinese ? "无法解析所选用户。" : "Could not parse selected users.");
+        return;
+      }
+      const nextMembers = Array.from(
+        new Set([...formState.members, ...picks.map((item) => item.id)]),
+      );
+      setFormState((prev) => ({ ...prev, members: nextMembers }));
+      setUserNames((prev) => {
+        const next = { ...prev };
+        picks.forEach((item) => {
+          if (item.name) {
+            next[item.id] = item.name;
+          }
+        });
+        return next;
+      });
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : isChinese
+            ? "选择成员失败，请稍后再试。"
+            : "Failed to pick members.";
+      feedback.error(message, {
+        blocking: true,
+        title: isChinese ? "操作失败" : "Operation failed",
+        acknowledgeLabel: isChinese ? "知道了" : "Got it",
+      });
+    } finally {
+      setSelectingMembers(false);
+    }
+  }, [selectorReady, formState.members, feedback, isChinese, resolveSelectedUser]);
+
+  const handleRemoveMember = useCallback((memberId: string) => {
+    setFormState((prev) => ({
+      ...prev,
+      members: prev.members.filter((id) => id !== memberId),
+    }));
+  }, []);
+
+  const handleDialogOpenChange = (open: boolean) => {
+    setDialogOpen(open);
+    if (!open) {
+      setEditing(null);
+      setFormState({ ...DEFAULT_FORM });
+    }
+  };
+
   return (
     <>
       <div className="space-y-2 rounded-2xl border bg-muted/20 p-4 text-sm text-muted-foreground">
@@ -213,6 +399,7 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
               <TableRow className="text-left text-xs uppercase tracking-wide text-muted-foreground hover:bg-transparent">
                 <TableHead className="px-4 py-3">{isChinese ? "角色名称" : "Role"}</TableHead>
                 <TableHead className="px-4 py-3">{isChinese ? "作用域" : "Scope"}</TableHead>
+                <TableHead className="px-4 py-3">{isChinese ? "成员" : "Members"}</TableHead>
                 <TableHead className="px-4 py-3">{isChinese ? "描述" : "Description"}</TableHead>
                 <TableHead className="px-4 py-3 text-right">{isChinese ? "操作" : "Actions"}</TableHead>
               </TableRow>
@@ -225,6 +412,24 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
                     <p className="text-xs text-muted-foreground">{role.id}</p>
                   </TableCell>
                   <TableCell className="px-4 py-3">{role.scope}</TableCell>
+                  <TableCell className="px-4 py-3">
+                    {role.members && role.members.length > 0 ? (
+                      <div className="flex flex-wrap gap-1 text-xs text-muted-foreground">
+                        {role.members.slice(0, 3).map((member) => (
+                          <span key={`${role.id}-${member}`} className="rounded-full bg-muted/50 px-2 py-0.5">
+                            {userNames[member] ?? member}
+                          </span>
+                        ))}
+                        {role.members.length > 3 && (
+                          <span className="text-xs text-muted-foreground">
+                            +{role.members.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
                   <TableCell className="px-4 py-3 whitespace-normal">
                     {role.description ?? "-"}
                   </TableCell>
@@ -253,7 +458,7 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
         )}
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
@@ -317,6 +522,72 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
                     setFormState((prev) => ({ ...prev, description: event.target.value }))
                   }
                 />
+              </div>
+              <div className="space-y-1.5">
+                <Label>
+                  {isChinese ? "角色成员（可选）" : "Role members (optional)"}
+                </Label>
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={selectingMembers}
+                      onClick={() => void handleSelectMembers()}
+                    >
+                      {selectingMembers
+                        ? isChinese
+                          ? "加载中..."
+                          : "Loading..."
+                        : isChinese
+                          ? "选择用户"
+                          : "Select users"}
+                    </Button>
+                    {formState.members.length > 0 && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() =>
+                          setFormState((prev) => ({ ...prev, members: [] }))
+                        }
+                      >
+                        {isChinese ? "清空" : "Clear"}
+                      </Button>
+                    )}
+                    {!selectorReady && (
+                      <span className="text-xs text-muted-foreground">
+                        {isChinese
+                          ? "当前环境不支持用户选择器，请在宿主中使用。"
+                          : "Picker unavailable outside DooTask host."}
+                      </span>
+                    )}
+                  </div>
+                  {formState.members.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {formState.members.map((id) => (
+                        <Badge
+                          key={id}
+                          variant="secondary"
+                          className="flex items-center gap-1"
+                        >
+                          <span>
+                            {userNames[id] ? `${userNames[id]} (${id})` : id}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveMember(id)}
+                            className="rounded-full px-1 text-xs text-muted-foreground transition hover:text-foreground"
+                            aria-label={isChinese ? "移除成员" : "Remove member"}
+                          >
+                            ×
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </form>
           </DialogBody>

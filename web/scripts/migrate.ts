@@ -61,6 +61,7 @@ function ensureSchemaUpgrades() {
     "reserved_quantity",
     "reserved_quantity INTEGER NOT NULL DEFAULT 0",
   );
+  ensureColumn("roles", "member_user_ids", "member_user_ids TEXT");
 }
 
 function ensureSystemSetting(key: string, value: string) {
@@ -126,7 +127,7 @@ function run() {
   seedTable({
     table: "roles",
     rows: seedRoles,
-    columns: ["id", "name", "scope", "description"],
+    columns: ["id", "name", "scope", "description", "member_user_ids"],
   });
 
   seedTable({

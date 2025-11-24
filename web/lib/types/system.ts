@@ -18,12 +18,14 @@ export interface Role {
   scope: string;
   description?: string;
   createdAt: string;
+  members: string[];
 }
 
 export interface CreateRolePayload {
   name: string;
   scope: string;
   description?: string;
+  members?: string[];
 }
 
 export interface SystemVersionInfo {

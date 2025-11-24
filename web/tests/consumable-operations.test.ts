@@ -96,7 +96,7 @@ describe("Consumable operations", () => {
       reservedDelta: 20,
     });
 
-    let updated = getConsumableById(consumable.id)!;
+    const updated = getConsumableById(consumable.id)!;
     expect(updated.reservedQuantity).toBe(20);
     expect(updated.status).toBe("reserved");
 
