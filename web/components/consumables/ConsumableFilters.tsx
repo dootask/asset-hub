@@ -11,18 +11,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  CONSUMABLE_STATUS_LABELS,
-  type ConsumableStatus,
-} from "@/lib/types/consumable";
+import { CONSUMABLE_STATUS_LABELS } from "@/lib/types/consumable";
 import type { ConsumableCategory } from "@/lib/types/consumable";
+import type { Company } from "@/lib/types/system";
 
 interface Props {
   locale: string;
   categories: ConsumableCategory[];
+  companies: Company[];
 }
 
-export default function ConsumableFilters({ locale, categories }: Props) {
+export default function ConsumableFilters({ locale, categories, companies }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isChinese = locale === "zh";
@@ -36,10 +35,9 @@ export default function ConsumableFilters({ locale, categories }: Props) {
     [isChinese],
   );
 
-  const currentStatus =
-    searchParams.get("status") ??
-    undefined;
+  const currentStatus = searchParams.get("status") ?? undefined;
   const currentCategory = searchParams.get("category") ?? undefined;
+  const currentCompany = searchParams.get("company") ?? undefined;
   const currentSearch = searchParams.get("search") ?? "";
 
   const applyFilters = (params: Record<string, string | undefined>) => {
@@ -102,7 +100,7 @@ export default function ConsumableFilters({ locale, categories }: Props) {
           </SelectContent>
         </Select>
       </div>
-      <div className="flex flex-1 flex-col gap-1.5">
+        <div className="flex flex-1 flex-col gap-1.5">
         <p className="text-xs font-medium text-muted-foreground">
           {isChinese ? "类别" : "Category"}
         </p>
@@ -129,6 +127,33 @@ export default function ConsumableFilters({ locale, categories }: Props) {
           </SelectContent>
         </Select>
       </div>
+      <div className="flex flex-1 flex-col gap-1.5">
+        <p className="text-xs font-medium text-muted-foreground">
+          {isChinese ? "所属公司" : "Company"}
+        </p>
+        <Select
+          value={currentCompany ?? "all"}
+          onValueChange={(value) =>
+            applyFilters({
+              company: value === "all" ? undefined : value,
+            })
+          }
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder={isChinese ? "全部公司" : "All companies"} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">
+              {isChinese ? "全部公司" : "All companies"}
+            </SelectItem>
+            {companies.map((company) => (
+              <SelectItem value={company.code} key={company.id}>
+                {company.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       <div className="flex items-center gap-2">
         <Button
           variant="outline"
@@ -138,6 +163,7 @@ export default function ConsumableFilters({ locale, categories }: Props) {
               search: undefined,
               status: undefined,
               category: undefined,
+              company: undefined,
             })
           }
         >

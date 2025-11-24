@@ -4,12 +4,14 @@ import {
   type ConsumableStatus,
 } from "@/lib/types/consumable";
 import { createConsumable } from "@/lib/repositories/consumables";
+import { getCompanyByCode } from "@/lib/repositories/companies";
 
 const STATUS_ALLOW_LIST = new Set<ConsumableStatus>(CONSUMABLE_STATUSES);
 const REQUIRED_HEADERS = [
   "name",
   "category",
   "status",
+  "companyCode",
   "quantity",
   "unit",
   "keeper",
@@ -85,6 +87,11 @@ export function parseConsumableImportContent(content: string) {
       errors.push(`第 ${rowNumber} 行状态不合法: ${record.status}`);
       return;
     }
+    const companyCode = record.companyCode?.trim().toUpperCase();
+    if (!companyCode) {
+      errors.push(`第 ${rowNumber} 行缺少字段: companyCode`);
+      return;
+    }
     if (Number.isNaN(Number(record.quantity)) || Number(record.quantity) < 0) {
       errors.push(`第 ${rowNumber} 行 quantity 无效`);
       return;
@@ -93,7 +100,7 @@ export function parseConsumableImportContent(content: string) {
       errors.push(`第 ${rowNumber} 行 safetyStock 无效`);
       return;
     }
-    rows.push(record);
+    rows.push({ ...record, companyCode });
   });
 
   return { rows, errors };
@@ -125,11 +132,17 @@ export async function POST(request: Request) {
     }
 
     let imported = 0;
+    const aggregatedErrors = [...errors];
     rows.forEach((row) => {
+      if (!row.companyCode || !getCompanyByCode(row.companyCode as string)) {
+        aggregatedErrors.push(`公司编码不存在: ${row.companyCode ?? ""}`);
+        return;
+      }
       createConsumable({
         name: row.name,
         category: row.category,
         status: row.status as ConsumableStatus,
+        companyCode: row.companyCode as string,
         quantity: Number(row.quantity),
         unit: row.unit,
         keeper: row.keeper,
@@ -143,8 +156,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       data: {
         imported,
-        skipped: errors.length,
-        errors,
+        skipped: aggregatedErrors.length,
+        errors: aggregatedErrors,
       },
     });
   } catch (error) {

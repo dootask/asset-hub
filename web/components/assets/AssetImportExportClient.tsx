@@ -13,12 +13,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { AssetCategory } from "@/lib/types/asset-category";
+import type { Company } from "@/lib/types/system";
 import { ASSET_STATUSES, type AssetStatus } from "@/lib/types/asset";
 import { getApiClient } from "@/lib/http/client";
 
 interface Props {
   locale: string;
   categories: AssetCategory[];
+  companies: Company[];
 }
 
 type ImportResult = {
@@ -28,11 +30,13 @@ type ImportResult = {
 };
 
 const ALL_CATEGORIES_VALUE = "__all__";
+const ALL_COMPANIES_VALUE = "__all_companies__";
 
-export default function AssetImportExportClient({ locale, categories }: Props) {
+export default function AssetImportExportClient({ locale, categories, companies }: Props) {
   const isChinese = locale === "zh";
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
+  const [company, setCompany] = useState("");
   const [selectedStatuses, setSelectedStatuses] = useState<Set<AssetStatus>>(
     () => new Set(),
   );
@@ -49,12 +53,15 @@ export default function AssetImportExportClient({ locale, categories }: Props) {
     if (category) {
       params.set("category", category);
     }
+    if (company) {
+      params.set("company", company);
+    }
     Array.from(selectedStatuses).forEach((status) =>
       params.append("status", status),
     );
     const query = params.toString();
     return `/apps/asset-hub/api/assets/export${query ? `?${query}` : ""}`;
-  }, [search, category, selectedStatuses]);
+  }, [search, category, company, selectedStatuses]);
 
   const templateHref = "/apps/asset-hub/api/assets/export/template";
 
@@ -160,6 +167,60 @@ export default function AssetImportExportClient({ locale, categories }: Props) {
               </SelectContent>
             </Select>
           </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">
+            {isChinese ? "所属公司" : "Company"}
+          </Label>
+          <Select
+            value={company === "" ? ALL_COMPANIES_VALUE : company}
+            onValueChange={(value) =>
+              setCompany(value === ALL_COMPANIES_VALUE ? "" : value)
+            }
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue
+                placeholder={isChinese ? "全部公司" : "All companies"}
+              />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_COMPANIES_VALUE}>
+                {isChinese ? "全部公司" : "All companies"}
+              </SelectItem>
+              {companies.map((entry) => (
+                <SelectItem key={entry.id} value={entry.code}>
+                  {entry.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">
+              {isChinese ? "所属公司" : "Company"}
+            </Label>
+            <Select
+              value={company === "" ? ALL_COMPANIES_VALUE : company}
+              onValueChange={(value) =>
+                setCompany(value === ALL_COMPANIES_VALUE ? "" : value)
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue
+                  placeholder={isChinese ? "全部公司" : "All companies"}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_COMPANIES_VALUE}>
+                  {isChinese ? "全部公司" : "All companies"}
+                </SelectItem>
+                {companies.map((entry) => (
+                  <SelectItem key={entry.id} value={entry.code}>
+                    {entry.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <Label className="text-xs text-muted-foreground">
             {isChinese ? "资产状态" : "Status"}
           </Label>
@@ -235,8 +296,8 @@ export default function AssetImportExportClient({ locale, categories }: Props) {
             />
             <p className="text-xs text-muted-foreground">
               {isChinese
-                ? "请确保包含列：name, category, status, owner, location, purchaseDate。"
-                : "Make sure the file includes columns: name, category, status, owner, location, purchaseDate."}
+                ? "请确保包含列：name, category, status, companyCode, owner, location, purchaseDate。"
+                : "Make sure the file includes columns: name, category, status, companyCode, owner, location, purchaseDate."}
             </p>
           </div>
           {importError && (

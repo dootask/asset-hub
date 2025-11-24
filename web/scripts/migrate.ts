@@ -61,6 +61,8 @@ function ensureSchemaUpgrades() {
     "reserved_quantity",
     "reserved_quantity INTEGER NOT NULL DEFAULT 0",
   );
+  ensureColumn("assets", "company_code", "company_code TEXT");
+  ensureColumn("consumables", "company_code", "company_code TEXT");
   ensureColumn("roles", "member_user_ids", "member_user_ids TEXT");
 }
 
@@ -147,6 +149,7 @@ function run() {
       "name",
       "category",
       "status",
+      "company_code",
       "owner",
       "location",
       "purchase_date",
@@ -227,6 +230,7 @@ function run() {
       "name",
       "category",
       "status",
+      "company_code",
       "quantity",
       "reserved_quantity",
       "unit",

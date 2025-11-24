@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 import { createAsset } from "@/lib/repositories/assets";
 import { ASSET_STATUSES, type AssetStatus } from "@/lib/types/asset";
 import type { CreateAssetPayload } from "@/lib/types/asset";
+import { getCompanyByCode } from "@/lib/repositories/companies";
 
 const REQUIRED_HEADERS = [
   "name",
   "category",
   "status",
+  "companyCode",
   "owner",
   "location",
   "purchaseDate",
@@ -101,10 +103,16 @@ export function parseAssetImportContent(content: string) {
       return;
     }
 
+    const companyCode = record.companyCode?.trim().toUpperCase();
+    if (!companyCode) {
+      errors.push(`第 ${rowNumber} 行缺少字段: companyCode`);
+      return;
+    }
     rows.push({
       name: record.name,
       category: record.category,
       status,
+      companyCode,
       owner: record.owner,
       location: record.location,
       purchaseDate: record.purchaseDate,
@@ -143,7 +151,12 @@ export async function POST(request: Request) {
     }
 
     let imported = 0;
+    const aggregatedErrors = [...errors];
     rows.forEach((row) => {
+      if (!getCompanyByCode(row.companyCode)) {
+        aggregatedErrors.push(`公司编码不存在: ${row.companyCode}`);
+        return;
+      }
       createAsset(row);
       imported += 1;
     });
@@ -151,8 +164,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       data: {
         imported,
-        skipped: errors.length,
-        errors,
+        skipped: aggregatedErrors.length,
+        errors: aggregatedErrors,
       },
     });
   } catch (error) {

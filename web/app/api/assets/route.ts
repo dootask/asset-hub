@@ -3,6 +3,7 @@ import { createAsset, listAssets } from "@/lib/repositories/assets";
 import { getAssetCategoryByCode } from "@/lib/repositories/asset-categories";
 import type { AssetStatus, CreateAssetPayload } from "@/lib/types/asset";
 import { ASSET_STATUSES } from "@/lib/types/asset";
+import { getCompanyByCode } from "@/lib/repositories/companies";
 
 function parseStatuses(searchParams: URLSearchParams): AssetStatus[] | undefined {
   const rawStatuses = [
@@ -24,12 +25,16 @@ export async function GET(request: Request) {
   const search = searchParams.get("search") ?? undefined;
   const category = searchParams.get("category") ?? undefined;
   const status = parseStatuses(searchParams);
+  const company = searchParams.get("company") ?? undefined;
+  const normalizedCompany =
+    company && company.trim().length > 0 ? company.trim().toUpperCase() : undefined;
 
   const result = listAssets({
     page: Number.isNaN(page) ? 1 : page,
     pageSize: Number.isNaN(pageSize) ? 10 : pageSize,
     search: search?.trim() || undefined,
     category: category?.trim() || undefined,
+    companyCode: normalizedCompany,
     status,
   });
 
@@ -48,6 +53,7 @@ function sanitizePayload(payload: Partial<CreateAssetPayload>): CreateAssetPaylo
     "name",
     "category",
     "status",
+    "companyCode",
     "owner",
     "location",
     "purchaseDate",
@@ -68,7 +74,20 @@ function sanitizePayload(payload: Partial<CreateAssetPayload>): CreateAssetPaylo
     throw new Error("Invalid asset category");
   }
 
-  return payload as CreateAssetPayload;
+  const companyCode = payload.companyCode?.trim();
+  if (!companyCode) {
+    throw new Error("缺少公司编码");
+  }
+  const normalizedCompanyCode = companyCode.toUpperCase();
+  const company = getCompanyByCode(normalizedCompanyCode);
+  if (!company) {
+    throw new Error("公司不存在");
+  }
+
+  return {
+    ...payload,
+    companyCode: company.code,
+  } as CreateAssetPayload;
 }
 
 export async function POST(request: Request) {

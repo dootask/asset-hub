@@ -4,6 +4,7 @@ const HEADERS = [
   "name",
   "category",
   "status",
+  "companyCode",
   "quantity",
   "unit",
   "keeper",

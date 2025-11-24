@@ -6,6 +6,7 @@ import ConsumableOperationTimeline from "@/components/consumables/ConsumableOper
 import { getConsumableById } from "@/lib/repositories/consumables";
 import { listOperationsForConsumable } from "@/lib/repositories/consumable-operations";
 import { getConsumableStatusLabel } from "@/lib/types/consumable";
+import { listCompanies } from "@/lib/repositories/companies";
 
 type PageParams = { locale: string; id: string };
 
@@ -25,10 +26,17 @@ export default async function ConsumableDetailPage({ params }: PageProps) {
   const consumable = getConsumableById(id);
   const operations = listOperationsForConsumable(id);
   const isChinese = locale === "zh";
+  const companies = listCompanies();
 
   if (!consumable) {
     notFound();
   }
+
+  const companyName =
+    consumable.companyCode &&
+    companies.find((company) => company.code === consumable.companyCode)?.name;
+  const displayCompany =
+    companyName ?? consumable.companyCode ?? (isChinese ? "未指定" : "Unassigned");
 
   return (
     <div className="space-y-6">
@@ -59,6 +67,10 @@ export default async function ConsumableDetailPage({ params }: PageProps) {
           <div>
             <dt className="font-medium text-muted-foreground">{isChinese ? "类别" : "Category"}</dt>
             <dd className="text-foreground">{consumable.category}</dd>
+          </div>
+          <div>
+            <dt className="font-medium text-muted-foreground">{isChinese ? "所属公司" : "Company"}</dt>
+            <dd className="text-foreground">{displayCompany}</dd>
           </div>
           <div>
             <dt className="font-medium text-muted-foreground">{isChinese ? "库存" : "Quantity"}</dt>

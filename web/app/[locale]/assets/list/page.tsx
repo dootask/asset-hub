@@ -5,6 +5,7 @@ import PageHeader from "@/components/layout/PageHeader";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { type Asset, getAssetStatusLabel } from "@/lib/types/asset";
 import { listAssetCategories } from "@/lib/repositories/asset-categories";
+import { listCompanies } from "@/lib/repositories/companies";
 import { getApiClient } from "@/lib/http/client";
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -23,7 +24,7 @@ function parseStatuses(value?: string | string[]) {
 async function fetchAssets(searchParams: SearchParams) {
   const qs = new URLSearchParams();
 
-  const allowList = ["search", "status", "category", "page", "pageSize"];
+  const allowList = ["search", "status", "category", "company", "page", "pageSize"];
   allowList.forEach((key) => {
     const value = searchParams[key];
     if (Array.isArray(value)) {
@@ -58,6 +59,8 @@ export default async function AssetListPage({
   ]);
   const isChinese = locale === "zh";
   const categories = listAssetCategories();
+  const companies = listCompanies();
+  const companyMap = new Map(companies.map((company) => [company.code, company.name]));
   const categoryMap = new Map(
     categories.map((category) => [
       category.code,
@@ -114,8 +117,8 @@ export default async function AssetListPage({
         title={isChinese ? "资产列表" : "Asset List"}
         description={
           isChinese
-            ? "支持关键词、状态与类别筛选，可随时新增资产记录。"
-            : "Filter by keyword, status, or category and create new assets anytime."
+            ? "支持关键词、公司、状态与类别筛选，可随时新增资产记录。"
+            : "Filter by keyword, company, status, or category and create new assets anytime."
         }
         actions={
           <>
@@ -147,6 +150,8 @@ export default async function AssetListPage({
         initialCategory={normalizeParam(resolvedSearchParams.category)}
         initialStatus={parseStatuses(resolvedSearchParams.status)}
         categories={categories}
+        initialCompany={normalizeParam(resolvedSearchParams.company)}
+        companies={companies}
       />
 
       {errorMessage ? (
@@ -166,6 +171,7 @@ export default async function AssetListPage({
               <TableRow className="text-left text-xs uppercase tracking-wide text-muted-foreground hover:bg-transparent">
                 <TableHead className="px-4 py-3">{isChinese ? "资产名称" : "Asset"}</TableHead>
                 <TableHead className="px-4 py-3">{isChinese ? "类别" : "Category"}</TableHead>
+                <TableHead className="px-4 py-3">{isChinese ? "所属公司" : "Company"}</TableHead>
                 <TableHead className="px-4 py-3">{isChinese ? "状态" : "Status"}</TableHead>
                 <TableHead className="px-4 py-3">
                   {isChinese ? "使用人 / 部门" : "Owner / Dept"}
@@ -192,6 +198,13 @@ export default async function AssetListPage({
                   <TableCell className="px-4 py-3">
                     {categoryMap.get(asset.category) ?? asset.category}
                   </TableCell>
+                    <TableCell className="px-4 py-3">
+                      {asset.companyCode
+                        ? companyMap.get(asset.companyCode) ?? asset.companyCode
+                        : isChinese
+                          ? "未指定"
+                          : "Unassigned"}
+                    </TableCell>
                   <TableCell className="px-4 py-3">
                     <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium">
                       {getAssetStatusLabel(asset.status, locale)}

@@ -39,6 +39,7 @@ export interface Consumable {
   name: string;
   category: string;
   status: ConsumableStatus;
+  companyCode?: string;
   quantity: number;
   reservedQuantity: number;
   unit: string;
@@ -53,6 +54,7 @@ export interface CreateConsumablePayload {
   name: string;
   category: string;
   status: ConsumableStatus;
+  companyCode: string;
   quantity: number;
   reservedQuantity?: number;
   unit: string;

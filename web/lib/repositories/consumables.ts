@@ -16,6 +16,7 @@ type ConsumableRow = {
   name: string;
   category: string;
   status: string;
+  company_code: string | null;
   quantity: number;
   reserved_quantity: number;
   unit: string;
@@ -34,6 +35,7 @@ function mapRow(row: ConsumableRow): Consumable {
     name: row.name,
     category: row.category,
     status: row.status as ConsumableStatus,
+    companyCode: row.company_code ?? undefined,
     quantity: row.quantity,
     reservedQuantity: row.reserved_quantity,
     unit: row.unit,
@@ -49,6 +51,7 @@ export interface ConsumableQuery {
   search?: string;
   status?: ConsumableStatus[];
   category?: string;
+  companyCode?: string;
   page?: number;
   pageSize?: number;
 }
@@ -88,6 +91,11 @@ export function listConsumables(query: ConsumableQuery = {}): ConsumableListResu
     limited.forEach((status, idx) => {
       params[`status${idx}`] = status;
     });
+  }
+
+  if (query.companyCode) {
+    where.push("company_code = @companyCode");
+    params.companyCode = query.companyCode;
   }
 
   const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
@@ -136,6 +144,7 @@ export function createConsumable(
         name,
         category,
         status,
+        company_code,
         quantity,
         reserved_quantity,
         unit,
@@ -152,6 +161,7 @@ export function createConsumable(
         @name,
         @category,
         @status,
+        @company_code,
         @quantity,
         @reserved_quantity,
         @unit,
@@ -168,6 +178,7 @@ export function createConsumable(
     name: payload.name,
     category: payload.category,
     status: payload.status,
+    company_code: payload.companyCode,
     quantity: payload.quantity,
     reserved_quantity: payload.reservedQuantity ?? 0,
     unit: payload.unit,
@@ -203,6 +214,7 @@ export function updateConsumable(
      SET name=@name,
          category=@category,
          status=@status,
+         company_code=@company_code,
          quantity=@quantity,
          reserved_quantity=@reserved_quantity,
          unit=@unit,
@@ -218,6 +230,7 @@ export function updateConsumable(
     name: payload.name,
     category: payload.category,
     status: payload.status,
+    company_code: payload.companyCode,
     quantity: payload.quantity,
     reserved_quantity: payload.reservedQuantity ?? existing.reservedQuantity,
     unit: payload.unit,

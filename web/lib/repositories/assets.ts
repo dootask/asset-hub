@@ -8,6 +8,7 @@ type AssetRow = {
   name: string;
   category: string;
   status: Asset["status"];
+  company_code: string | null;
   owner: string;
   location: string;
   purchase_date: string;
@@ -17,6 +18,7 @@ export interface AssetQuery {
   search?: string;
   status?: Asset["status"][];
   category?: string;
+  companyCode?: string;
   page?: number;
   pageSize?: number;
 }
@@ -34,6 +36,7 @@ function mapRow(row: AssetRow): Asset {
     name: row.name,
     category: row.category,
     status: row.status,
+    companyCode: row.company_code ?? undefined,
     owner: row.owner,
     location: row.location,
     purchaseDate: row.purchase_date,
@@ -48,8 +51,8 @@ function seedIfEmpty() {
 
   if (count.count === 0) {
     const insert = db.prepare(
-      `INSERT INTO assets (id, name, category, status, owner, location, purchase_date)
-       VALUES (@id, @name, @category, @status, @owner, @location, @purchaseDate)
+      `INSERT INTO assets (id, name, category, status, company_code, owner, location, purchase_date)
+       VALUES (@id, @name, @category, @status, @company_code, @owner, @location, @purchaseDate)
       `,
     );
 
@@ -87,6 +90,11 @@ export function listAssets(query: AssetQuery = {}): AssetListResult {
   if (query.category) {
     where.push("category = @category");
     params.category = query.category;
+  }
+
+  if (query.companyCode) {
+    where.push("company_code = @companyCode");
+    params.companyCode = query.companyCode;
   }
 
   if (query.status && query.status.length > 0) {
@@ -138,11 +146,39 @@ export function createAsset(payload: CreateAssetPayload): Asset {
   const id = `AST-${randomUUID().slice(0, 8).toUpperCase()}`;
 
   db.prepare(
-    `INSERT INTO assets (id, name, category, status, owner, location, purchase_date, created_at, updated_at)
-     VALUES (@id, @name, @category, @status, @owner, @location, @purchaseDate, datetime('now'), datetime('now'))`,
+    `INSERT INTO assets (
+       id,
+       name,
+       category,
+       status,
+       company_code,
+       owner,
+       location,
+       purchase_date,
+       created_at,
+       updated_at
+     )
+     VALUES (
+       @id,
+       @name,
+       @category,
+       @status,
+       @company_code,
+       @owner,
+       @location,
+       @purchaseDate,
+       datetime('now'),
+       datetime('now')
+     )`,
   ).run({
     id,
-    ...payload,
+    name: payload.name,
+    category: payload.category,
+    status: payload.status,
+    company_code: payload.companyCode,
+    owner: payload.owner,
+    location: payload.location,
+    purchaseDate: payload.purchaseDate,
   });
 
   return {
@@ -164,6 +200,7 @@ export function updateAsset(id: string, payload: CreateAssetPayload): Asset | nu
      SET name=@name,
          category=@category,
          status=@status,
+         company_code=@company_code,
          owner=@owner,
          location=@location,
          purchase_date=@purchaseDate,
@@ -171,7 +208,13 @@ export function updateAsset(id: string, payload: CreateAssetPayload): Asset | nu
      WHERE id=@id`,
   ).run({
     id,
-    ...payload,
+    name: payload.name,
+    category: payload.category,
+    status: payload.status,
+    company_code: payload.companyCode,
+    owner: payload.owner,
+    location: payload.location,
+    purchaseDate: payload.purchaseDate,
   });
 
   return { id, ...payload };

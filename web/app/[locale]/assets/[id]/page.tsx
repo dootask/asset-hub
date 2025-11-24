@@ -14,6 +14,7 @@ import PageHeader from "@/components/layout/PageHeader";
 import { getAssetStatusLabel } from "@/lib/types/asset";
 import { listAssetCategories } from "@/lib/repositories/asset-categories";
 import { listOperationTemplates } from "@/lib/repositories/operation-templates";
+import { listCompanies } from "@/lib/repositories/companies";
 
 type PageParams = { id: string; locale: string };
 type PageProps = {
@@ -46,10 +47,16 @@ export default async function AssetDetailPage({ params }: PageProps) {
   const isChinese = locale === "zh";
   const categories = listAssetCategories();
   const operationTemplates = listOperationTemplates();
+  const companies = listCompanies();
   const categoryLabel =
     categories.find((category) => category.code === asset.category)?.[
       isChinese ? "labelZh" : "labelEn"
     ] ?? asset.category;
+  const companyName =
+    asset.companyCode &&
+    companies.find((company) => company.code === asset.companyCode)?.name;
+  const displayCompany =
+    companyName ?? asset.companyCode ?? (isChinese ? "未指定" : "Unassigned");
 
   return (
     <div className="space-y-6">
@@ -76,7 +83,12 @@ export default async function AssetDetailPage({ params }: PageProps) {
           <h2 className="text-lg font-semibold">
             {isChinese ? "基础信息" : "Basic Info"}
           </h2>
-          <EditAssetDialog asset={asset} locale={locale} categories={categories} />
+          <EditAssetDialog
+            asset={asset}
+            locale={locale}
+            categories={categories}
+            companies={companies}
+          />
         </div>
         <dl className="mt-4 grid gap-4 sm:grid-cols-2">
           <div>
@@ -92,6 +104,12 @@ export default async function AssetDetailPage({ params }: PageProps) {
             <dd className="text-sm font-medium">
               {getAssetStatusLabel(asset.status, locale)}
             </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground">
+              {isChinese ? "所属公司" : "Company"}
+            </dt>
+            <dd className="text-sm font-medium">{displayCompany}</dd>
           </div>
           <div>
             <dt className="text-xs text-muted-foreground">

@@ -11,7 +11,7 @@ export default async function SystemLayout({
   params,
 }: SystemLayoutProps) {
   const { locale } = await params;
-  requireAdminUser(locale);
+  await requireAdminUser(locale);
   return <>{children}</>;
 }
 

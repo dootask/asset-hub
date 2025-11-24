@@ -46,6 +46,7 @@ import {
   deriveOperationTemplateFields,
   mapApprovalTypeToTemplateType,
 } from "@/lib/config/operation-template-fields";
+import type { Role } from "@/lib/types/system";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
 
@@ -103,6 +104,11 @@ export default function ApprovalRequestForm({
   const [configs, setConfigs] = useState<ActionConfig[]>([]);
   const [loadingConfigs, setLoadingConfigs] = useState(true);
   const [configError, setConfigError] = useState<string | null>(null);
+  
+  // Role-based approver states
+  const [loadingRole, setLoadingRole] = useState(false);
+  const [roleMembers, setRoleMembers] = useState<Array<{id: string, name: string}>>([]);
+  
   const feedback = useAppFeedback();
   const fieldIds = {
     type: useId(),
@@ -257,19 +263,124 @@ export default function ApprovalRequestForm({
       ? currentConfig.defaultApproverRefs[0]
       : null;
 
+  const defaultRoleApproverId = 
+    currentConfig?.defaultApproverType === "role" &&
+    currentConfig.defaultApproverRefs.length > 0
+      ? currentConfig.defaultApproverRefs[0]
+      : null;
+
+  // Effect to handle Role-based approver resolution
   useEffect(() => {
-    if (!currentConfig || !defaultApproverId) {
+    if (!defaultRoleApproverId) {
+      setRoleMembers([]);
       return;
     }
-    setFormState((prev) => {
-      if (prev.approverId) {
-        return prev;
+
+    let active = true;
+    async function resolveRole() {
+      setLoadingRole(true);
+      try {
+        // 1. Fetch role details to get member IDs
+        const client = await getApiClient();
+        const roleRes = await client.get<{ data: Role }>(
+          `/apps/asset-hub/api/system/roles/${defaultRoleApproverId}`
+        );
+        const role = roleRes.data.data;
+        const memberIds = role.members;
+
+        if (!active) return;
+
+        if (memberIds.length === 0) {
+           feedback.error(
+            isChinese 
+              ? `角色 "${role.name}" 暂无成员，请联系管理员配置。`
+              : `Role "${role.name}" has no members. Contact admin.`
+           );
+           setRoleMembers([]);
+           return;
+        }
+
+        // 2. Fetch member details (names)
+        const memberDetails: Array<{id: string, name: string}> = [];
+        
+        // Try to fetch names in batches or individually
+        // Since fetchUserBasic takes number[], we need to filter numeric IDs
+        const numericIds = memberIds
+          .map(id => Number(id))
+          .filter(n => Number.isFinite(n));
+          
+        const nonNumericIds = memberIds.filter(id => !Number.isFinite(Number(id)));
+
+        if (numericIds.length > 0) {
+          try {
+            const users = await fetchUserBasic(numericIds);
+             if (Array.isArray(users)) {
+              users.forEach(u => {
+                const uid = u.id || u.userid;
+                if (uid) {
+                  memberDetails.push({
+                    id: String(uid),
+                    name: u.nickname || u.name || String(uid)
+                  });
+                }
+              });
+             }
+          } catch {
+             // Ignore fetch errors, fallback to IDs
+          }
+        }
+
+        // Add missing IDs (non-numeric or failed fetch)
+        memberIds.forEach(mid => {
+          if (!memberDetails.find(m => m.id === mid)) {
+             memberDetails.push({ id: mid, name: mid }); // Fallback name = id
+          }
+        });
+        
+        if (!active) return;
+        setRoleMembers(memberDetails);
+
+        // Auto-select if single member
+        if (memberDetails.length === 1) {
+          setFormState(prev => {
+            // Only update if not already set to avoid loops
+            if (prev.approverId === memberDetails[0].id) return prev;
+            return {
+              ...prev,
+              approverId: memberDetails[0].id,
+              approverName: memberDetails[0].name
+            };
+          });
+        }
+      } catch (err) {
+         if (!active) return;
+         console.error("Failed to resolve role members", err);
+      } finally {
+         if (active) setLoadingRole(false);
       }
-      return {
-        ...prev,
-        approverId: defaultApproverId,
-      };
-    });
+    }
+
+    resolveRole();
+    return () => { active = false; };
+  }, [defaultRoleApproverId, isChinese, feedback]);
+
+  useEffect(() => {
+    if (!currentConfig) {
+      return;
+    }
+    // If user type, use defaultApproverId logic (existing)
+    if (defaultApproverId) {
+      setFormState((prev) => {
+        if (prev.approverId) {
+          return prev;
+        }
+        return {
+          ...prev,
+          approverId: defaultApproverId,
+        };
+      });
+    }
+    // Role type logic is handled in the specific role effect above
   }, [currentConfig, defaultApproverId]);
 
   const canSubmit = useMemo(() => {
@@ -345,8 +456,8 @@ export default function ApprovalRequestForm({
   };
 
   const handleSelectApprover = async () => {
-    if (!canUseSelector) return;
-    if (!allowOverride) {
+    if (!canUseSelector && roleMembers.length === 0) return;
+    if (!allowOverride && roleMembers.length === 0) {
       feedback.error(
         isChinese
           ? "当前操作的审批人由系统自动指派，无法修改。"
@@ -354,6 +465,11 @@ export default function ApprovalRequestForm({
       );
       return;
     }
+    
+    // If role members are loaded and we have > 1, we can let user pick from them
+    // But the UI below handles this with a Select if roleMembers > 0.
+    // This handler is mainly for the generic user picker.
+    
     setSelectingApprover(true);
     try {
       const result = (await selectUsers({
@@ -909,7 +1025,35 @@ export default function ApprovalRequestForm({
         <Label className="text-xs font-medium text-muted-foreground">
           {isChinese ? "审批人" : "Approver"}
         </Label>
-        {allowOverride ? (
+        
+        {/* Case 1: Role-based multiple members - Show Dropdown */}
+        {roleMembers.length > 1 && (
+          <Select
+            value={formState.approverId}
+            onValueChange={(val) => {
+               const member = roleMembers.find(m => m.id === val);
+               setFormState(prev => ({
+                 ...prev,
+                 approverId: val,
+                 approverName: member?.name ?? ""
+               }));
+            }}
+          >
+             <SelectTrigger className="w-full">
+               <SelectValue placeholder={isChinese ? "请选择审批人" : "Select an approver"} />
+             </SelectTrigger>
+             <SelectContent>
+               {roleMembers.map(member => (
+                 <SelectItem key={member.id} value={member.id}>
+                   {member.name} ({member.id})
+                 </SelectItem>
+               ))}
+             </SelectContent>
+          </Select>
+        )}
+
+        {/* Case 2: Generic User Selection (Manual Override or No Default) */}
+        {roleMembers.length <= 1 && allowOverride ? (
           canUseSelector ? (
             <div className="flex flex-wrap items-center gap-2">
               <Button
@@ -982,7 +1126,8 @@ export default function ApprovalRequestForm({
               </div>
             </div>
           )
-        ) : (
+        ) : roleMembers.length <= 1 && !allowOverride ? (
+          /* Case 3: Locked Single Approver (User or Single Role Member) */
           <div className="rounded-2xl border border-dashed border-muted-foreground/40 bg-muted/20 px-3 py-2 text-sm font-medium text-foreground">
             {formState.approverId || defaultApproverId ? (
               <span>{formState.approverName || formState.approverId || defaultApproverId}</span>
@@ -994,17 +1139,25 @@ export default function ApprovalRequestForm({
               </span>
             )}
           </div>
-        )}
-        {!allowOverride && (
+        ) : null}
+
+        {!allowOverride && roleMembers.length <= 1 && (
           <p className="text-xs text-muted-foreground">
             {isChinese
               ? "此操作由系统自动指派审批人，无法手动修改。"
               : "Approver is assigned automatically and cannot be changed."}
           </p>
         )}
-        {allowOverride && !formState.approverId && !approvalsDisabled && (
+        {allowOverride && !formState.approverId && !approvalsDisabled && roleMembers.length === 0 && (
           <p className="text-xs text-muted-foreground">
             {isChinese ? "请选择审批人后再提交。" : "Please pick an approver before submitting."}
+          </p>
+        )}
+         {roleMembers.length > 1 && (
+          <p className="text-xs text-muted-foreground">
+            {isChinese 
+              ? "请从该角色成员中选择一位审批人。" 
+              : "Please select one approver from the role members."}
           </p>
         )}
       </div>

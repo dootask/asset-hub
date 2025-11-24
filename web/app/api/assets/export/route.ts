@@ -40,12 +40,16 @@ export async function GET(request: Request) {
   const search = searchParams.get("search") ?? undefined;
   const category = searchParams.get("category") ?? undefined;
   const status = parseStatuses(searchParams);
+  const company = searchParams.get("company") ?? undefined;
+  const normalizedCompany =
+    company && company.trim().length > 0 ? company.trim().toUpperCase() : undefined;
 
   const result = listAssets({
     page: 1,
     pageSize: 1000,
     search: search?.trim() || undefined,
     category: category?.trim() || undefined,
+    companyCode: normalizedCompany,
     status,
   });
 
@@ -61,6 +65,7 @@ export async function GET(request: Request) {
     name: asset.name,
     category: asset.category,
     status: asset.status,
+    companyCode: asset.companyCode ?? "",
     owner: asset.owner,
     location: asset.location,
     purchaseDate: asset.purchaseDate,

@@ -5,6 +5,7 @@ import {
   listConsumables,
 } from "@/lib/repositories/consumables";
 import { CONSUMABLE_STATUSES } from "@/lib/types/consumable";
+import { getCompanyByCode } from "@/lib/repositories/companies";
 
 const STATUS_ALLOW_LIST = new Set<ConsumableStatus>(CONSUMABLE_STATUSES);
 
@@ -25,7 +26,7 @@ function sanitizePayload(body: unknown) {
   }
   const payload = body as Record<string, unknown>;
 
-  const stringFields = ["name", "category", "unit", "keeper", "location"];
+  const stringFields = ["name", "category", "unit", "keeper", "location", "companyCode"];
   stringFields.forEach((field) => {
     if (typeof payload[field] !== "string" || !payload[field]) {
       throw new Error(`${field} 为必填字段`);
@@ -52,6 +53,7 @@ function sanitizePayload(body: unknown) {
     name: (payload.name as string).trim(),
     category: (payload.category as string).trim(),
     status: payload.status as ConsumableStatus,
+    companyCode: (payload.companyCode as string).trim().toUpperCase(),
     quantity,
     unit: (payload.unit as string).trim(),
     keeper: (payload.keeper as string).trim(),
@@ -70,9 +72,15 @@ function sanitizePayload(body: unknown) {
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
+  const companyParam = searchParams.get("company");
+  const normalizedCompany =
+    companyParam && companyParam.trim().length > 0
+      ? companyParam.trim().toUpperCase()
+      : undefined;
   const result = listConsumables({
     search: searchParams.get("search") ?? undefined,
     category: searchParams.get("category") ?? undefined,
+    companyCode: normalizedCompany,
     status: parseStatusParam(searchParams.get("status")),
     page: Number(searchParams.get("page")),
     pageSize: Number(searchParams.get("pageSize")),
@@ -84,6 +92,9 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const payload = sanitizePayload(body);
+    if (!getCompanyByCode(payload.companyCode)) {
+      throw new Error("公司不存在");
+    }
     const consumable = createConsumable(payload);
     return NextResponse.json({ data: consumable }, { status: 201 });
   } catch (error) {

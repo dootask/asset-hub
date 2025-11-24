@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { ConsumableCategory } from "@/lib/types/consumable";
+import type { Company } from "@/lib/types/system";
 import {
   CONSUMABLE_STATUS_LABELS,
   CONSUMABLE_STATUSES,
@@ -15,6 +16,7 @@ import { getApiClient } from "@/lib/http/client";
 interface Props {
   locale: string;
   categories: ConsumableCategory[];
+  companies: Company[];
 }
 
 type ImportResult = {
@@ -23,11 +25,12 @@ type ImportResult = {
   errors: string[];
 };
 
-export default function ConsumableImportExportClient({ locale, categories }: Props) {
+export default function ConsumableImportExportClient({ locale, categories, companies }: Props) {
   const isChinese = locale === "zh";
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [status, setStatus] = useState<string | undefined>(undefined);
+  const [company, setCompany] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
@@ -38,9 +41,10 @@ export default function ConsumableImportExportClient({ locale, categories }: Pro
     if (search.trim()) params.set("search", search.trim());
     if (category) params.set("category", category);
     if (status) params.set("status", status);
+    if (company) params.set("company", company);
     const query = params.toString();
     return `/apps/asset-hub/api/consumables/export${query ? `?${query}` : ""}`;
-  }, [search, category, status]);
+  }, [search, category, status, company]);
 
   const templateHref = "/apps/asset-hub/api/consumables/export/template";
 
@@ -130,6 +134,22 @@ export default function ConsumableImportExportClient({ locale, categories }: Pro
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-1.5">
+            <Label>{isChinese ? "所属公司" : "Company"}</Label>
+            <Select value={company || "all"} onValueChange={(value) => setCompany(value === "all" ? "" : value)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{isChinese ? "全部" : "All"}</SelectItem>
+                {companies.map((entry) => (
+                  <SelectItem key={entry.id} value={entry.code}>
+                    {entry.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <Button asChild>
@@ -168,8 +188,8 @@ export default function ConsumableImportExportClient({ locale, categories }: Pro
             />
             <p className="text-xs text-muted-foreground">
               {isChinese
-                ? "字段需包含：name, category, status, quantity, unit, keeper, location, safetyStock。"
-                : "Required columns: name, category, status, quantity, unit, keeper, location, safetyStock."}
+                ? "字段需包含：name, category, status, companyCode, quantity, unit, keeper, location, safetyStock。"
+                : "Required columns: name, category, status, companyCode, quantity, unit, keeper, location, safetyStock."}
             </p>
           </div>
           {importError && (

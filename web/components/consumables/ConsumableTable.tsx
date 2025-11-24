@@ -9,9 +9,10 @@ import { getConsumableStatusLabel } from "@/lib/types/consumable";
 interface Props {
   consumables: Consumable[];
   locale: string;
+  companyLookup?: Map<string, string>;
 }
 
-export default function ConsumableTable({ consumables, locale }: Props) {
+export default function ConsumableTable({ consumables, locale, companyLookup }: Props) {
   const isChinese = locale === "zh";
 
   if (consumables.length === 0) {
@@ -29,6 +30,7 @@ export default function ConsumableTable({ consumables, locale }: Props) {
           <TableRow className="text-xs uppercase tracking-wide text-muted-foreground">
             <TableHead className="px-4 py-3">{isChinese ? "名称" : "Name"}</TableHead>
             <TableHead className="px-4 py-3">{isChinese ? "类别" : "Category"}</TableHead>
+            <TableHead className="px-4 py-3">{isChinese ? "所属公司" : "Company"}</TableHead>
             <TableHead className="px-4 py-3">{isChinese ? "状态" : "Status"}</TableHead>
             <TableHead className="px-4 py-3">{isChinese ? "数量" : "Quantity"}</TableHead>
             <TableHead className="px-4 py-3">{isChinese ? "保管人" : "Keeper"}</TableHead>
@@ -45,6 +47,13 @@ export default function ConsumableTable({ consumables, locale }: Props) {
                 <div className="text-xs text-muted-foreground">{item.id}</div>
               </TableCell>
               <TableCell className="px-4 py-3">{item.category}</TableCell>
+                  <TableCell className="px-4 py-3">
+                    {item.companyCode
+                      ? companyLookup?.get(item.companyCode) ?? item.companyCode
+                      : isChinese
+                        ? "未指定"
+                        : "Unassigned"}
+                  </TableCell>
               <TableCell className="px-4 py-3">
                 <Badge variant="secondary">
                   {getConsumableStatusLabel(item.status, locale)}

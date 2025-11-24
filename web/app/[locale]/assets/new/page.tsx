@@ -1,6 +1,7 @@
 import NewAssetForm from "@/components/assets/NewAssetForm";
 import PageHeader from "@/components/layout/PageHeader";
 import { listAssetCategories } from "@/lib/repositories/asset-categories";
+import { listCompanies } from "@/lib/repositories/companies";
 
 export default async function AssetCreatePage({
   params,
@@ -9,6 +10,7 @@ export default async function AssetCreatePage({
 }) {
   const { locale } = await params;
   const categories = listAssetCategories();
+  const companies = listCompanies();
   const isChinese = locale === "zh";
   return (
     <div className="space-y-6">
@@ -34,7 +36,7 @@ export default async function AssetCreatePage({
       />
 
       <section className="rounded-2xl border bg-muted/30 p-6">
-        <NewAssetForm locale={locale} categories={categories} />
+        <NewAssetForm locale={locale} categories={categories} companies={companies} />
       </section>
     </div>
   );

@@ -10,6 +10,7 @@ import {
   getAssetStatusLabel,
 } from "@/lib/types/asset";
 import type { AssetCategory } from "@/lib/types/asset-category";
+import type { Company } from "@/lib/types/system";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,9 +46,10 @@ type Props = {
   asset: Asset;
   locale?: string;
   categories: AssetCategory[];
+  companies: Company[];
 };
 
-export default function EditAssetDialog({ asset, locale = "en", categories }: Props) {
+export default function EditAssetDialog({ asset, locale = "en", categories, companies }: Props) {
   const isChinese = locale === "zh";
   const categoryOptions = categories.map((category) => ({
     id: category.id,
@@ -64,6 +66,7 @@ export default function EditAssetDialog({ asset, locale = "en", categories }: Pr
     name: asset.name,
     category: asset.category,
     status: asset.status,
+    companyCode: asset.companyCode ?? companies[0]?.code ?? "",
     owner: asset.owner,
     location: asset.location,
     purchaseDate: asset.purchaseDate,
@@ -73,6 +76,26 @@ export default function EditAssetDialog({ asset, locale = "en", categories }: Pr
   const currentCategory = categoryOptions.find(
     (entry) => entry.code === formState.category,
   );
+  const companyOptions = companies.map((company) => ({
+    id: company.id,
+    code: company.code,
+    label: company.name,
+  }));
+  const currentCompany =
+    companyOptions.find((entry) => entry.code === formState.companyCode) ??
+    (formState.companyCode
+      ? [
+          {
+            id: "unknown-company",
+            code: formState.companyCode,
+            label: formState.companyCode,
+          },
+        ]
+      : [])[0];
+  const selectCompanyOptions =
+    currentCompany && !companyOptions.some((entry) => entry.code === currentCompany.code)
+      ? [...companyOptions, currentCompany]
+      : companyOptions;
   const selectOptions =
     currentCategory || !formState.category
       ? categoryOptions
@@ -193,6 +216,41 @@ export default function EditAssetDialog({ asset, locale = "en", categories }: Pr
                               {category.fallbackLabel}
                             </span>
                           )}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-asset-company">
+                  {isChinese ? "所属公司" : "Company"}
+                </Label>
+                <Select
+                  value={formState.companyCode}
+                  onValueChange={(value) => handleChange("companyCode", value)}
+                  disabled={selectCompanyOptions.length === 0}
+                >
+                  <SelectTrigger id="edit-asset-company" className="w-full">
+                    <SelectValue
+                      placeholder={
+                        selectCompanyOptions.length === 0
+                          ? isChinese
+                            ? "暂无公司"
+                            : "No companies"
+                          : undefined
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {selectCompanyOptions.length === 0 ? (
+                      <SelectItem value="" disabled>
+                        {isChinese ? "无可用公司" : "No companies available"}
+                      </SelectItem>
+                    ) : (
+                      selectCompanyOptions.map((company) => (
+                        <SelectItem key={company.id} value={company.code}>
+                          {company.label}
                         </SelectItem>
                       ))
                     )}

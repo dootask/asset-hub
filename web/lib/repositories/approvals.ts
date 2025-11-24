@@ -20,7 +20,6 @@ import {
   getConsumableOperationById,
   updateConsumableOperationStatus,
 } from "@/lib/repositories/consumable-operations";
-import type { AssetStatus } from "@/lib/types/asset";
 import type { AssetOperationType } from "@/lib/types/operation";
 import type { OperationTemplateMetadata } from "@/lib/types/operation-template";
 import { extractOperationTemplateMetadata } from "@/lib/utils/operation-template";
@@ -330,19 +329,6 @@ function linkApprovalToAssetOperation(approvalId: string, operationId: string) {
   db.prepare(
     `UPDATE asset_approval_requests
      SET operation_id = @operationId,
-         updated_at = datetime('now')
-     WHERE id = @approvalId`,
-  ).run({ approvalId, operationId });
-}
-
-function linkApprovalToConsumableOperation(
-  approvalId: string,
-  operationId: string,
-) {
-  const db = getDb();
-  db.prepare(
-    `UPDATE asset_approval_requests
-     SET consumable_operation_id = @operationId,
          updated_at = datetime('now')
      WHERE id = @approvalId`,
   ).run({ approvalId, operationId });

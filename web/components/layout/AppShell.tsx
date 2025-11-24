@@ -32,9 +32,15 @@ type Props = {
   children: React.ReactNode;
   locale: string;
   adminUserIds: number[];
+  currentUserId?: number | null;
 };
 
-export default function AppShell({ children, locale, adminUserIds }: Props) {
+export default function AppShell({
+  children,
+  locale,
+  adminUserIds,
+  currentUserId,
+}: Props) {
   const pathname = usePathname() || "/";
   const tNav = useTranslations("Nav");
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
@@ -131,8 +137,15 @@ export default function AppShell({ children, locale, adminUserIds }: Props) {
     };
   }, []);
 
+  const isServerAdmin =
+    adminUserIds.length === 0 ||
+    (currentUserId !== undefined &&
+      currentUserId !== null &&
+      adminUserIds.includes(currentUserId));
+
   const showSystemNav =
     adminUserIds.length === 0 ||
+    isServerAdmin ||
     (userReady &&
       sessionUser?.id !== undefined &&
       adminUserIds.includes(sessionUser.id));

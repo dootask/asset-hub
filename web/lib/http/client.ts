@@ -9,6 +9,21 @@ type UserContext = {
   nickname?: string;
 };
 
+function getServerFallbackUserId() {
+  if (process.env.NODE_ENV === "production") {
+    return undefined;
+  }
+  const raw = process.env.ASSET_HUB_ADMIN_USER_IDS;
+  if (!raw) {
+    return undefined;
+  }
+  const first = raw
+    .split(",")
+    .map((entry) => entry.trim())
+    .find(Boolean);
+  return first;
+}
+
 function extractUserFromStorage(): UserContext {
   if (typeof window === "undefined") return {};
   try {
@@ -91,9 +106,12 @@ async function createServerClient(): Promise<AxiosInstance> {
   const { getRequestBaseUrl } = await import("@/lib/utils/server-url");
   const baseURL = await getRequestBaseUrl();
   const { headers } = await import("next/headers");
-  const incomingHeaders = headers();
+  const incomingHeaders = await headers();
   const context: UserContext = {
-    userId: incomingHeaders.get("x-user-id") ?? undefined,
+    userId:
+      incomingHeaders.get("x-user-id") ??
+      getServerFallbackUserId() ??
+      undefined,
     token: incomingHeaders.get("x-user-token") ?? undefined,
     nickname: decodeHeaderValue(incomingHeaders.get("x-user-nickname")),
   };

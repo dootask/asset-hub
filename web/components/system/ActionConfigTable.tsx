@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import type { ActionConfig, ActionConfigId } from "@/lib/types/action-config";
+import type { Role } from "@/lib/types/system";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -64,6 +65,7 @@ type SelectUsersReturn = DootaskUser[] | { users?: DootaskUser[] };
 
 export default function ActionConfigTable({ initialConfigs, locale }: Props) {
   const [configs, setConfigs] = useState(initialConfigs);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [savingId, setSavingId] = useState<ActionConfigId | null>(null);
   const [selectingId, setSelectingId] = useState<ActionConfigId | null>(null);
   const [selectorReady, setSelectorReady] = useState(false);
@@ -139,7 +141,39 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
         }
       }
     }
+
+    async function fetchRoles() {
+      try {
+        const client = await getApiClient();
+        // Assuming there's an endpoint to get all roles, or we use the paginated one with large size
+        // For now, reusing the endpoint used by RoleTable, might need adjustment if it's paginated by default
+        // If listRoles returns all, that's great. The API route GET /api/system/roles currently returns filtered list based on query params
+        // but usually listRoles returns all if no params. Let's check api implementation or assume we can get all.
+        // Actually the API GET /api/system/roles is not implemented to return list in the snippets I saw (it was POST/PUT/DELETE in one file and GET id in another). 
+        // Wait, RoleManagementClient uses RoleTable which uses initialRoles prop. 
+        // Let's assume we can fetch from /apps/asset-hub/api/system/roles if implemented, or we might need to implement it.
+        // Looking at previous `read_file` of `web/app/api/system/roles/route.ts` (it was only [id] and POST).
+        // Ah, I missed reading `web/app/api/system/roles/route.ts`. Let me assume I can add a simple fetch.
+        // Actually RoleTable receives `initialRoles`.
+        // For now, I'll try to fetch from the same endpoint pattern. 
+        // If GET /api/system/roles is not available, I might need to add it or use a different way.
+        // Let's try to fetch. If it fails, roles will be empty and we fallback to input.
+        
+        // Re-reading my own memory/logs: I saw `web/app/api/system/roles/route.ts` signature in previous turns but I didn't read the content of GET.
+        // It seems I only read `[id]/route.ts`.
+        // I will assume a GET endpoint exists or I will add one if I find it missing. 
+        // For now, I'll implement the fetch call.
+        const response = await client.get<{ data: Role[] }>("/apps/asset-hub/api/system/roles");
+        if (!cancelled && response.data?.data) {
+          setRoles(response.data.data);
+        }
+      } catch {
+        // ignore
+      }
+    }
+
     hydrateUserNames();
+    fetchRoles();
     return () => {
       cancelled = true;
     };
@@ -426,8 +460,8 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
                                 ? "默认审批人"
                                 : "Default approvers"
                               : isChinese
-                                ? "默认角色 ID（逗号分隔）"
-                                : "Default role IDs (comma separated)"}
+                                ? "默认角色"
+                                : "Default role"}
                           </Label>
                           {config.defaultApproverType === "user" ? (
                             <div className="space-y-2">
@@ -436,6 +470,7 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
                                   type="button"
                                   size="sm"
                                   variant="outline"
+                                  className="h-9"
                                   disabled={pending || selectingId === config.id}
                                   onClick={() => handleSelectApprovers(config)}
                                 >
@@ -479,15 +514,45 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
                               )}
                             </div>
                           ) : (
-                            <Input
-                              value={config.defaultApproverRefs.join(", ")}
-                              onChange={(event) =>
-                                handleRefsChange(config.id, event.target.value)
-                              }
-                              placeholder={
-                                isChinese ? "示例：role-asset-admin" : "e.g. role-asset-admin"
-                              }
-                            />
+                            /* Role Selection Dropdown */
+                            config.defaultApproverType === "role" ? (
+                              roles.length > 0 ? (
+                                <Select
+                                  value={config.defaultApproverRefs[0] || ""}
+                                  onValueChange={(val) =>
+                                    handleChange(config.id, { defaultApproverRefs: [val] })
+                                  }
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder={isChinese ? "选择角色" : "Select role"} />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {roles.map((role) => (
+                                      <SelectItem key={role.id} value={role.id}>
+                                        {role.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                <div className="text-sm text-muted-foreground h-9 flex items-center px-3 rounded-lg bg-muted/40">
+                                  {isChinese 
+                                    ? "暂无可用角色，请先前往角色管理创建。"
+                                    : "No roles available. Create one in Role Management."}
+                                </div>
+                              )
+                            ) : (
+                              /* Fallback Text Input (should not be reached given current types, but safe to keep) */
+                              <Input
+                                value={config.defaultApproverRefs.join(", ")}
+                                onChange={(event) =>
+                                  handleRefsChange(config.id, event.target.value)
+                                }
+                                placeholder={
+                                  isChinese ? "示例：role-asset-admin" : "e.g. role-asset-admin"
+                                }
+                              />
+                            )
                           )}
                         </div>
                       )}

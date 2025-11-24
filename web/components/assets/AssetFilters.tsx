@@ -15,21 +15,26 @@ import {
 } from "@/components/ui/select";
 import { ASSET_STATUSES, getAssetStatusLabel } from "@/lib/types/asset";
 import type { AssetCategory } from "@/lib/types/asset-category";
+import type { Company } from "@/lib/types/system";
 
 export interface AssetFiltersProps {
   initialSearch?: string;
   initialStatus?: string[];
   initialCategory?: string;
+  initialCompany?: string;
   locale?: string;
   categories?: AssetCategory[];
+  companies?: Company[];
 }
 
 export default function AssetFilters({
   initialSearch,
   initialStatus = [],
   initialCategory,
+  initialCompany,
   locale = "en",
   categories = [],
+  companies = [],
 }: AssetFiltersProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -42,6 +47,7 @@ export default function AssetFilters({
     initialStatus,
   );
   const [category, setCategory] = useState(initialCategory ?? "all");
+  const [company, setCompany] = useState(initialCompany ?? "all");
 
   const toggleStatus = useCallback((value: string) => {
     setSelectedStatuses((prev) =>
@@ -70,18 +76,27 @@ export default function AssetFilters({
       params.delete("category");
     }
 
+    if (company && company !== "all") {
+      params.set("company", company);
+    } else {
+      params.delete("company");
+    }
+
     params.delete("page");
     const query = params.toString();
     router.push(query ? `${pathname}?${query}` : pathname);
-  }, [search, selectedStatuses, category, router, pathname, searchParams]);
+  }, [search, selectedStatuses, category, company, router, pathname, searchParams]);
 
   const resetFilters = useCallback(() => {
     setSearch("");
     setSelectedStatuses([]);
     setCategory("all");
+    setCompany("all");
 
     const params = new URLSearchParams(searchParams.toString());
-    ["search", "status", "category", "page"].forEach((key) => params.delete(key));
+    ["search", "status", "category", "company", "page"].forEach((key) =>
+      params.delete(key),
+    );
     const query = params.toString();
     router.push(query ? `${pathname}?${query}` : pathname);
   }, [pathname, router, searchParams]);
@@ -93,6 +108,14 @@ export default function AssetFilters({
     }));
     return [{ value: "all", label: isChinese ? "全部" : "All" }, ...options];
   }, [categories, isChinese, locale]);
+
+  const companyOptions = useMemo(() => {
+    const options = companies.map((company) => ({
+      value: company.code,
+      label: company.name,
+    }));
+    return [{ value: "all", label: isChinese ? "全部公司" : "All companies" }, ...options];
+  }, [companies, isChinese]);
 
   return (
     <div className="rounded-2xl border bg-muted/40 p-4">
@@ -121,6 +144,24 @@ export default function AssetFilters({
             </SelectTrigger>
             <SelectContent>
               {categoryOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex flex-1 flex-col gap-1.5">
+          <Label htmlFor="asset-filter-company" className="text-sm font-medium text-muted-foreground">
+            {isChinese ? "所属公司" : "Company"}
+          </Label>
+          <Select value={company} onValueChange={setCompany}>
+            <SelectTrigger id="asset-filter-company" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {companyOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>

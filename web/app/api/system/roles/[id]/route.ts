@@ -40,10 +40,6 @@ function sanitizePayload(
   };
 }
 
-interface RouteParams {
-  params: { id: string };
-}
-
 function ensureAdmin(request: Request) {
   const user = extractUserFromRequest(request);
   if (!isAdminUser(user?.id)) {
@@ -55,12 +51,16 @@ function ensureAdmin(request: Request) {
   return null;
 }
 
-export async function GET(request: Request, { params }: RouteParams) {
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const forbidden = ensureAdmin(request);
   if (forbidden) {
     return forbidden;
   }
-  const role = getRoleById(params.id);
+  const { id } = await params;
+  const role = getRoleById(id);
   if (!role) {
     return NextResponse.json(
       { error: "NOT_FOUND", message: "角色不存在" },
@@ -70,14 +70,18 @@ export async function GET(request: Request, { params }: RouteParams) {
   return NextResponse.json({ data: role });
 }
 
-export async function PUT(request: Request, { params }: RouteParams) {
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const forbidden = ensureAdmin(request);
   if (forbidden) {
     return forbidden;
   }
   try {
     const payload = sanitizePayload(await request.json());
-    const updated = updateRole(params.id, payload);
+    const { id } = await params;
+    const updated = updateRole(id, payload);
     if (!updated) {
       return NextResponse.json(
         { error: "NOT_FOUND", message: "角色不存在" },
@@ -97,12 +101,16 @@ export async function PUT(request: Request, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(request: Request, { params }: RouteParams) {
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const forbidden = ensureAdmin(request);
   if (forbidden) {
     return forbidden;
   }
-  const removed = deleteRole(params.id);
+  const { id } = await params;
+  const removed = deleteRole(id);
   if (!removed) {
     return NextResponse.json(
       { error: "NOT_FOUND", message: "角色不存在" },
@@ -111,4 +119,3 @@ export async function DELETE(request: Request, { params }: RouteParams) {
   }
   return NextResponse.json({ success: true });
 }
-

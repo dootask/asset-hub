@@ -40,6 +40,14 @@ export function getCompanyById(id: string): Company | null {
   return row ? mapRow(row) : null;
 }
 
+export function getCompanyByCode(code: string): Company | null {
+  const db = getDb();
+  const row = db
+    .prepare(`SELECT * FROM companies WHERE code = ?`)
+    .get(code) as CompanyRow | undefined;
+  return row ? mapRow(row) : null;
+}
+
 export function createCompany(payload: CreateCompanyPayload): Company {
   const db = getDb();
   const id = `COMP-${randomUUID().slice(0, 6).toUpperCase()}`;
@@ -83,5 +91,21 @@ export function deleteCompany(id: string): boolean {
   const db = getDb();
   const result = db.prepare(`DELETE FROM companies WHERE id = ?`).run(id);
   return result.changes > 0;
+}
+
+export function countAssetsForCompany(code: string): number {
+  const db = getDb();
+  const row = db
+    .prepare(`SELECT COUNT(1) as count FROM assets WHERE company_code = ?`)
+    .get(code) as { count: number } | undefined;
+  return row?.count ?? 0;
+}
+
+export function countConsumablesForCompany(code: string): number {
+  const db = getDb();
+  const row = db
+    .prepare(`SELECT COUNT(1) as count FROM consumables WHERE company_code = ?`)
+    .get(code) as { count: number } | undefined;
+  return row?.count ?? 0;
 }
 

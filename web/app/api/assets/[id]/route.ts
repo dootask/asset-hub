@@ -6,6 +6,7 @@ import {
 } from "@/lib/repositories/assets";
 import { getAssetCategoryByCode } from "@/lib/repositories/asset-categories";
 import type { CreateAssetPayload } from "@/lib/types/asset";
+import { getCompanyByCode } from "@/lib/repositories/companies";
 
 interface RouteParams {
   params: {
@@ -32,7 +33,14 @@ export async function PUT(request: Request, { params }: RouteParams) {
     if (!getAssetCategoryByCode(payload.category)) {
       throw new Error("Invalid asset category");
     }
-    const updated = updateAsset(params.id, payload);
+    const normalizedCompanyCode = payload.companyCode?.trim();
+    if (!normalizedCompanyCode || !getCompanyByCode(normalizedCompanyCode)) {
+      throw new Error("Invalid company code");
+    }
+    const updated = updateAsset(params.id, {
+      ...payload,
+      companyCode: normalizedCompanyCode,
+    });
 
     if (!updated) {
       return NextResponse.json(

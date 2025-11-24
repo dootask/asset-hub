@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import FilterDatePicker from "@/components/filters/FilterDatePicker";
+import ConsumableOperationFilters from "@/components/consumables/ConsumableOperationFilters";
 import PageHeader from "@/components/layout/PageHeader";
 import ListPagination from "@/components/layout/ListPagination";
 import {
@@ -12,33 +12,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
+import { CONSUMABLE_OPERATION_STATUS_LABELS } from "@/lib/constants/consumable-operation-status";
 import {
   queryConsumableOperations,
 } from "@/lib/repositories/consumable-operations";
 import {
   buildConsumableOperationQuery,
-  searchParamsToQueryString,
   toURLSearchParams,
 } from "@/lib/utils/consumable-operation-query";
 import {
   CONSUMABLE_OPERATION_TYPE_LABELS,
-  CONSUMABLE_OPERATION_TYPES,
 } from "@/lib/types/consumable-operation";
-import type { ConsumableOperationStatus } from "@/lib/types/consumable-operation";
 
 type SearchParams = Record<string, string | string[] | undefined>;
-
-const STATUS_LABELS: Record<
-  "pending" | "done" | "cancelled",
-  { zh: string; en: string; variant: "secondary" | "default" | "outline" }
-> = {
-  pending: { zh: "待处理", en: "Pending", variant: "secondary" },
-  done: { zh: "已完成", en: "Done", variant: "default" },
-  cancelled: { zh: "已取消", en: "Cancelled", variant: "outline" },
-};
 
 export const metadata: Metadata = {
   title: "耗材操作审计 - Asset Hub",
@@ -68,9 +54,6 @@ export default async function ConsumableOperationsPage({
 
   const query = buildConsumableOperationQuery(resolvedSearchParams);
   const report = queryConsumableOperations(query);
-
-  const selectedTypes = query.types ?? [];
-  const selectedStatuses = query.statuses ?? [];
 
   const baseParams = toURLSearchParams(resolvedSearchParams);
   const queryString = baseParams.toString();
@@ -122,7 +105,17 @@ export default async function ConsumableOperationsPage({
     },
   ];
 
-  const resetHref = `/${locale}/consumables/operations`;
+  const filterInitialValues = {
+    keyword: query.keyword,
+    keeper: query.keeper,
+    actor: query.actor,
+    consumableId: query.consumableId,
+    dateFrom: query.dateFrom,
+    dateTo: query.dateTo,
+    types: query.types ?? [],
+    statuses: query.statuses ?? [],
+  };
+  const statusLabels = CONSUMABLE_OPERATION_STATUS_LABELS;
 
   return (
     <div className="space-y-6">
@@ -171,133 +164,10 @@ export default async function ConsumableOperationsPage({
         ))}
       </section>
 
-      <form className="rounded-3xl border bg-card p-5 shadow-sm space-y-4" method="get">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <label className="flex flex-col gap-2 text-sm">
-            <span className="text-muted-foreground">
-              {isChinese ? "关键字" : "Keyword"}
-            </span>
-            <Input
-              type="text"
-              name="keyword"
-              defaultValue={query.keyword ?? ""}
-              placeholder={
-                isChinese ? "按耗材/描述/操作编号" : "Consumable / description / ID"
-              }
-              className="rounded-2xl bg-background text-sm"
-            />
-          </label>
-          <label className="flex flex-col gap-2 text-sm">
-            <span className="text-muted-foreground">
-              {isChinese ? "保管人" : "Keeper"}
-            </span>
-            <Input
-              type="text"
-              name="keeper"
-              defaultValue={query.keeper ?? ""}
-              className="rounded-2xl bg-background text-sm"
-            />
-          </label>
-          <label className="flex flex-col gap-2 text-sm">
-            <span className="text-muted-foreground">
-              {isChinese ? "操作人" : "Actor"}
-            </span>
-            <Input
-              type="text"
-              name="actor"
-              defaultValue={query.actor ?? ""}
-              className="rounded-2xl bg-background text-sm"
-            />
-          </label>
-          <FilterDatePicker
-            name="dateFrom"
-            label={isChinese ? "开始日期" : "Start Date"}
-            locale={locale}
-            defaultValue={query.dateFrom}
-          />
-          <FilterDatePicker
-            name="dateTo"
-            label={isChinese ? "结束日期" : "End Date"}
-            locale={locale}
-            defaultValue={query.dateTo}
-          />
-          <label className="flex flex-col gap-2 text-sm">
-            <span className="text-muted-foreground">
-              {isChinese ? "耗材编号" : "Consumable ID"}
-            </span>
-            <Input
-              type="text"
-              name="consumableId"
-              defaultValue={query.consumableId ?? ""}
-              className="rounded-2xl bg-background text-sm"
-            />
-          </label>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {isChinese ? "操作类型" : "Operation Types"}
-            </p>
-            <div className="mt-3 flex flex-wrap gap-3">
-              {CONSUMABLE_OPERATION_TYPES.map((type) => {
-                const checkboxId = `operation-type-${type.value}`;
-                return (
-                  <label
-                    key={type.value}
-                    htmlFor={checkboxId}
-                    className="flex items-center gap-2 text-sm text-muted-foreground"
-                  >
-                    <Checkbox
-                      id={checkboxId}
-                      name="type"
-                      value={type.value}
-                      defaultChecked={selectedTypes.includes(type.value)}
-                      className="border-muted-foreground"
-                    />
-                    {isChinese ? type.label.zh : type.label.en}
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {isChinese ? "状态" : "Status"}
-            </p>
-            <div className="mt-3 flex flex-wrap gap-3">
-              {Object.entries(STATUS_LABELS).map(([status, label]) => {
-                const checkboxId = `operation-status-${status}`;
-                return (
-                  <label
-                    key={status}
-                    htmlFor={checkboxId}
-                    className="flex items-center gap-2 text-sm text-muted-foreground"
-                  >
-                    <Checkbox
-                      id={checkboxId}
-                      name="status"
-                      value={status}
-                      defaultChecked={selectedStatuses.includes(status as ConsumableOperationStatus)}
-                      className="border-muted-foreground"
-                    />
-                    {isChinese ? label.zh : label.en}
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-3">
-          <Button type="submit">
-            {isChinese ? "应用筛选" : "Apply Filters"}
-          </Button>
-          <Button asChild variant="outline">
-            <a href={resetHref}>{isChinese ? "重置" : "Reset"}</a>
-          </Button>
-        </div>
-      </form>
+      <ConsumableOperationFilters
+        locale={locale}
+        initialValues={filterInitialValues}
+      />
 
       {report.items.length === 0 ? (
         <div className="rounded-3xl border border-dashed bg-muted/30 p-10 text-center text-sm text-muted-foreground">
@@ -358,10 +228,10 @@ export default async function ConsumableOperationsPage({
                       </p>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={STATUS_LABELS[entry.status].variant}>
+                      <Badge variant={statusLabels[entry.status].variant}>
                         {isChinese
-                          ? STATUS_LABELS[entry.status].zh
-                          : STATUS_LABELS[entry.status].en}
+                          ? statusLabels[entry.status].zh
+                          : statusLabels[entry.status].en}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">

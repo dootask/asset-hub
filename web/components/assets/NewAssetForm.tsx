@@ -25,23 +25,27 @@ import {
   getAssetStatusLabel,
 } from "@/lib/types/asset";
 import type { AssetCategory } from "@/lib/types/asset-category";
+import type { Company } from "@/lib/types/system";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
 
 type Props = {
   locale?: string;
   categories: AssetCategory[];
+  companies: Company[];
 };
 
-export default function NewAssetForm({ locale = "en", categories }: Props) {
+export default function NewAssetForm({ locale = "en", categories, companies }: Props) {
   const router = useRouter();
   const isChinese = locale === "zh";
   const [purchaseDateOpen, setPurchaseDateOpen] = useState(false);
   const firstCategory = categories[0]?.code ?? "";
+  const firstCompany = companies[0]?.code ?? "";
   const [formState, setFormState] = useState({
     name: "",
     category: firstCategory,
     status: ASSET_STATUSES[0],
+    companyCode: firstCompany,
     owner: "",
     location: "",
     purchaseDate: new Date().toISOString().slice(0, 10),
@@ -94,10 +98,50 @@ export default function NewAssetForm({ locale = "en", categories }: Props) {
   })();
 
   const categoryReady = formState.category.trim().length > 0;
+  const companyReady = formState.companyCode.trim().length > 0;
+  const canSubmit = categoryReady && companyReady && companies.length > 0;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="asset-company" className="text-sm font-medium text-muted-foreground">
+            {isChinese ? "所属公司" : "Company"}
+          </Label>
+          <Select
+            value={formState.companyCode || "none"}
+            onValueChange={(value) =>
+              handleChange("companyCode", value === "none" ? "" : value)
+            }
+            disabled={companies.length === 0}
+          >
+            <SelectTrigger id="asset-company" className="w-full">
+              <SelectValue
+                placeholder={
+                  companies.length === 0
+                    ? isChinese
+                      ? "请先创建公司"
+                      : "Create a company first"
+                    : undefined
+                }
+              />
+            </SelectTrigger>
+            <SelectContent>
+              {companies.length === 0 ? (
+                <SelectItem value="none" disabled>
+                  {isChinese ? "无可用公司" : "No companies available"}
+                </SelectItem>
+              ) : (
+                companies.map((company) => (
+                  <SelectItem key={company.id} value={company.code}>
+                    {company.name}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+
         <div className="space-y-1.5">
           <Label htmlFor="asset-name" className="text-sm font-medium text-muted-foreground">
             {isChinese ? "资产名称" : "Asset Name"}
@@ -240,11 +284,18 @@ export default function NewAssetForm({ locale = "en", categories }: Props) {
             : "No categories available. Please create one in the category management page first."}
         </p>
       )}
+      {companies.length === 0 && (
+        <p className="rounded-2xl border border-dashed border-amber-400/60 bg-amber-50 px-4 py-2 text-sm text-amber-900 dark:bg-amber-500/10 dark:text-amber-100">
+          {isChinese
+            ? "当前没有可用的公司，请先在系统管理中创建公司。"
+            : "No companies available. Please create one under System Management first."}
+        </p>
+      )}
 
       <div className="flex items-center gap-3">
         <Button
           type="submit"
-          disabled={submitting || !categoryReady}
+          disabled={submitting || !canSubmit}
           className="rounded-2xl px-5 py-2 text-sm shadow disabled:opacity-60"
         >
           {submitting

@@ -35,9 +35,15 @@ function toCsv(rows: Record<string, string | number>[]) {
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
+  const companyParam = searchParams.get("company");
+  const normalizedCompany =
+    companyParam && companyParam.trim().length > 0
+      ? companyParam.trim().toUpperCase()
+      : undefined;
   const result = listConsumables({
     search: searchParams.get("search") ?? undefined,
     category: searchParams.get("category") ?? undefined,
+    companyCode: normalizedCompany,
     status: parseStatus(searchParams.get("status")),
     page: 1,
     pageSize: 1000,
@@ -53,6 +59,7 @@ export async function GET(request: Request) {
     name: item.name,
     category: item.category,
     status: item.status,
+    companyCode: item.companyCode ?? "",
     quantity: item.quantity,
     unit: item.unit,
     keeper: item.keeper,

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { listAssetCategories } from "@/lib/repositories/asset-categories";
+import { listCompanies } from "@/lib/repositories/companies";
 import AssetImportExportClient from "@/components/assets/AssetImportExportClient";
 import PageHeader from "@/components/layout/PageHeader";
 
@@ -14,6 +15,7 @@ export default async function AssetImportExportPage({
 }) {
   const { locale } = await params;
   const categories = listAssetCategories();
+  const companies = listCompanies();
   const isChinese = locale === "zh";
 
   return (
@@ -38,7 +40,11 @@ export default async function AssetImportExportPage({
             : "Manage CSV import and export to maintain asset records in bulk."
         }
       />
-      <AssetImportExportClient locale={locale} categories={categories} />
+      <AssetImportExportClient
+        locale={locale}
+        categories={categories}
+        companies={companies}
+      />
     </div>
   );
 }

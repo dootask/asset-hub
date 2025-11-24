@@ -10,6 +10,7 @@ import {
   type ConsumableListResult,
 } from "@/lib/repositories/consumables";
 import { CONSUMABLE_STATUSES, type ConsumableStatus } from "@/lib/types/consumable";
+import { listCompanies } from "@/lib/repositories/companies";
 
 type PageParams = {
   locale: string;
@@ -53,12 +54,14 @@ export default async function ConsumableListPage({
   const isChinese = locale === "zh";
 
   const categories = listConsumableCategories();
+  const companies = listCompanies();
   const stockStats = getConsumableStockStats();
   const pageParam = Number(ensureSingle(resolvedSearchParams.page));
   const page = Number.isNaN(pageParam) ? 1 : Math.max(pageParam, 1);
   const query = {
     search: ensureSingle(resolvedSearchParams.search),
     category: ensureSingle(resolvedSearchParams.category),
+    companyCode: ensureSingle(resolvedSearchParams.company),
     status: parseStatus(ensureSingle(resolvedSearchParams.status)),
     page,
     pageSize: 10,
@@ -122,7 +125,7 @@ export default async function ConsumableListPage({
         }
       />
 
-      <ConsumableFilters locale={locale} categories={categories} />
+      <ConsumableFilters locale={locale} categories={categories} companies={companies} />
 
       {lowStockTotal > 0 && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-4 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
@@ -147,7 +150,11 @@ export default async function ConsumableListPage({
         </div>
       )}
 
-      <ConsumableTable locale={locale} consumables={result.items} />
+      <ConsumableTable
+        locale={locale}
+        consumables={result.items}
+        companyLookup={new Map(companies.map((company) => [company.code, company.name]))}
+      />
 
       <div className="flex flex-col gap-3 rounded-2xl border bg-muted/30 px-4 py-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
         <p>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import ConsumableImportExportClient from "@/components/consumables/ConsumableImportExportClient";
 import PageHeader from "@/components/layout/PageHeader";
 import { listConsumableCategories } from "@/lib/repositories/consumable-categories";
+import { listCompanies } from "@/lib/repositories/companies";
 
 export const metadata: Metadata = {
   title: "耗材导入导出 - Asset Hub",
@@ -14,6 +15,7 @@ export default async function ConsumableImportExportPage({
 }) {
   const { locale } = await params;
   const categories = listConsumableCategories();
+  const companies = listCompanies();
   const isChinese = locale === "zh";
 
   return (
@@ -38,7 +40,11 @@ export default async function ConsumableImportExportPage({
             : "Download or import consumable inventory data in bulk."
         }
       />
-      <ConsumableImportExportClient locale={locale} categories={categories} />
+      <ConsumableImportExportClient
+        locale={locale}
+        categories={categories}
+        companies={companies}
+      />
     </div>
   );
 }

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import {
+  countAssetsForCompany,
+  countConsumablesForCompany,
   deleteCompany,
   getCompanyById,
   updateCompany,
@@ -68,8 +70,8 @@ export async function PUT(request: Request, { params }: RouteContext) {
   try {
     const payload = sanitizePayload(await request.json());
     const { id } = await params;
-    const updated = updateCompany(id, payload);
-    if (!updated) {
+    const existing = getCompanyById(id);
+    if (!existing) {
       return NextResponse.json(
         {
           error: "NOT_FOUND",
@@ -78,6 +80,20 @@ export async function PUT(request: Request, { params }: RouteContext) {
         { status: 404 },
       );
     }
+    if (payload.code !== existing.code) {
+      const assetCount = countAssetsForCompany(existing.code);
+      const consumableCount = countConsumablesForCompany(existing.code);
+      if (assetCount > 0 || consumableCount > 0) {
+        return NextResponse.json(
+          {
+            error: "COMPANY_CODE_IN_USE",
+            message: "公司编码已被资产或耗材使用，无法修改。",
+          },
+          { status: 409 },
+        );
+      }
+    }
+    const updated = updateCompany(id, payload);
     return NextResponse.json({ data: updated });
   } catch (error) {
     const message =
@@ -107,6 +123,17 @@ export async function DELETE(request: Request, { params }: RouteContext) {
     return NextResponse.json(
       { error: "NOT_FOUND", message: "公司不存在。" },
       { status: 404 },
+    );
+  }
+  const assetCount = countAssetsForCompany(existing.code);
+  const consumableCount = countConsumablesForCompany(existing.code);
+  if (assetCount > 0 || consumableCount > 0) {
+    return NextResponse.json(
+      {
+        error: "COMPANY_IN_USE",
+        message: "该公司仍关联资产或耗材，无法删除。",
+      },
+      { status: 409 },
     );
   }
   const removed = deleteCompany(id);

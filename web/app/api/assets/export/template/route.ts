@@ -4,6 +4,7 @@ const TEMPLATE_HEADERS = [
   "name",
   "category",
   "status",
+  "companyCode",
   "owner",
   "location",
   "purchaseDate",
