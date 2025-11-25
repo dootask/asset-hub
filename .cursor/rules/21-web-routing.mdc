@@ -52,9 +52,9 @@ alwaysApply: true
     - `/operations`：耗材操作流程（采购、入库、出库、处理等），与审批和库存联动。
     - `/inventory`：耗材盘点任务列表与详情。
 
-- **版本信息 / 关于**
-  - URL：`/apps/asset-hub/{locale}/about`（或嵌入到系统管理 / 个人中心中）
-  - 用途：突出显示当前插件版本号及基础信息。
+- **帮助中心**
+  - URL：`/apps/asset-hub/{locale}/help`
+  - 用途：集中展示 Asset Hub 的功能使用说明和常见问题，可作为首页“帮助中心”快捷方式的目标页面。
 
 ## API 路由规划（首期）
 

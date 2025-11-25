@@ -26,6 +26,7 @@ const NAV_ITEMS = [
   { href: "/assets/list", match: "/assets", key: "assets" },
   { href: "/consumables", match: "/consumables", key: "consumables" },
   { href: "/system", match: "/system", key: "system" },
+  { href: "/help", match: "/help", key: "help" },
 ] as const;
 
 type Props = {

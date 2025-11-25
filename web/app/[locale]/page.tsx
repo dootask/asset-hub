@@ -218,8 +218,8 @@ export default async function LocaleDashboard({
       href: "/system/upgrade",
     },
     {
-      label: isChinese ? "关于 / 帮助" : "About / Help",
-      href: "/about",
+      label: isChinese ? "帮助中心" : "Help Center",
+      href: "/help",
     },
   ];
 

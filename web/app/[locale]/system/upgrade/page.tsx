@@ -184,18 +184,24 @@ export default async function SystemUpgradePage({
         </h2>
         <div className="mt-4 flex flex-wrap gap-3">
           <Link
+            href={`/${locale}/help`}
+            className="inline-flex items-center justify-center rounded-full border px-4 py-2 text-sm font-medium text-muted-foreground hover:border-primary hover:text-primary"
+          >
+            {isChinese ? "帮助中心" : "Help Center"}
+          </Link>
+          <Link
             href="https://appstore.dootask.com/development/manual"
             target="_blank"
             className="inline-flex items-center justify-center rounded-full border px-4 py-2 text-sm font-medium text-muted-foreground hover:border-primary hover:text-primary"
           >
-            {isChinese ? "插件开发文档" : "Plugin Docs"}
+            {isChinese ? "开发文档" : "Development Documentation"}
           </Link>
           <Link
             href="https://github.com/dootask/asset-hub/issues"
             target="_blank"
             className="inline-flex items-center justify-center rounded-full border px-4 py-2 text-sm font-medium text-muted-foreground hover:border-primary hover:text-primary"
           >
-            {isChinese ? "提交反馈" : "Give Feedback"}
+            {isChinese ? "问题反馈" : "Issue Feedback"}
           </Link>
         </div>
       </section>

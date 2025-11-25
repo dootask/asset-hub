@@ -48,8 +48,8 @@
 - 前缀：`/apps/asset-hub/{locale}/consumables`
 - 示例子路由：`settings`、`operations`、`inventory` 等（实际已实现列表、详情、操作时间线、盘点、告警与审计报表等能力，详细能力说明见 `.cursor/rules/30-feature-plan.mdc` 中的“耗材管理”章节）。
 
-- **关于 / 版本信息**
-  - 建议在关于页或系统管理中突出显示当前插件版本号，方便用户感知版本信息。
+- **帮助中心**
+  - 页面：`/apps/asset-hub/{locale}/help`，集中展示使用指南和常见问题。
 
 - **API 概要**
   - 所有对外 API 路径前缀为 `/apps/asset-hub/api/**`。
