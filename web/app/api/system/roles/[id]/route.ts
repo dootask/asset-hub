@@ -55,10 +55,7 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const forbidden = ensureAdmin(request);
-  if (forbidden) {
-    return forbidden;
-  }
+  // Allow all authenticated users to read role details (needed for approval workflows)
   const { id } = await params;
   const role = getRoleById(id);
   if (!role) {

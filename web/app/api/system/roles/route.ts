@@ -49,10 +49,7 @@ function ensureAdmin(request: Request) {
 }
 
 export async function GET(request: Request) {
-  const forbidden = ensureAdmin(request);
-  if (forbidden) {
-    return forbidden;
-  }
+  // Allow all authenticated users to list roles (needed for approval workflows/filtering)
   return NextResponse.json({ data: listRoles() });
 }
 

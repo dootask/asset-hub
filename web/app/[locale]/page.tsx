@@ -11,6 +11,7 @@ import type { ApprovalStatus } from "@/lib/types/approval";
 import { listAssetCategories } from "@/lib/repositories/asset-categories";
 import { listInventoryTasks } from "@/lib/repositories/inventory-tasks";
 import { getApiClient } from "@/lib/http/client";
+import AdminOnly from "@/components/auth/AdminOnly";
 
 const RANGE_OPTIONS = [7, 14, 30] as const;
 
@@ -192,34 +193,42 @@ export default async function LocaleDashboard({
     {
       label: isChinese ? "资产列表" : "Asset List",
       href: "/assets/list",
+      adminOnly: false,
     },
     {
       label: isChinese ? "新增资产" : "New Asset",
       href: "/assets/new",
+      adminOnly: true,
     },
     {
       label: isChinese ? "系统配置" : "System Settings",
       href: "/system/company",
+      adminOnly: true,
     },
     {
       label: isChinese ? "审批中心" : "Approvals",
       href: "/approvals",
+      adminOnly: false,
     },
     {
       label: isChinese ? "资产盘点" : "Inventory",
       href: "/assets/inventory",
+      adminOnly: true,
     },
     {
       label: isChinese ? "耗材管理" : "Consumables",
       href: "/consumables",
+      adminOnly: false,
     },
     {
       label: isChinese ? "版本信息" : "Version Info",
       href: "/system/upgrade",
+      adminOnly: true,
     },
     {
       label: isChinese ? "帮助中心" : "Help Center",
       href: "/help",
+      adminOnly: false,
     },
   ];
 
@@ -399,15 +408,22 @@ export default async function LocaleDashboard({
           </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-3">
-          {shortcuts.map((item) => (
-            <Link
-              key={item.href}
-              href={withLocale(item.href)}
-              className="rounded-full border px-4 py-2 text-sm text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
-            >
-              {item.label}
-            </Link>
-          ))}
+          {shortcuts.map((item) => {
+            const link = (
+              <Link
+                key={item.href}
+                href={withLocale(item.href)}
+                className="rounded-full border px-4 py-2 text-sm text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
+              >
+                {item.label}
+              </Link>
+            );
+
+            if (item.adminOnly) {
+              return <AdminOnly key={item.href}>{link}</AdminOnly>;
+            }
+            return link;
+          })}
         </div>
       </section>
 
