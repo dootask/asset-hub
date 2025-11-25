@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
 import { useTranslations } from "next-intl";
-import { isMicroApp } from "@dootask/tools";
+import { isMicroApp, setCapsuleConfig } from "@dootask/tools";
 import DooTaskBridge from "@/components/providers/DooTaskBridge";
 import { Spinner } from "@/components/ui/spinner";
 import { usePermissions } from "@/components/providers/PermissionProvider";
@@ -58,6 +58,29 @@ export default function AppShell({
   useEffect(() => {
     document.documentElement.lang = locale === "zh" ? "zh-CN" : "en-US";
   }, [locale]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !isMicroEnv) return;
+    const handleResize = () => {
+      const innerWidth = window.innerWidth;
+      if (innerWidth > 1280) {
+        setCapsuleConfig({
+          top: 16,
+          right: 16,
+        })
+      } else {
+        setCapsuleConfig({
+          top: 32,
+          right: 34,
+        })
+      }
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [isMicroEnv]);
 
   useEffect(() => {
     let cancelled = false;
