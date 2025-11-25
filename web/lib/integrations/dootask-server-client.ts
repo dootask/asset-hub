@@ -10,6 +10,14 @@ export function resolveServerFromRequest(request: Request) {
   if (process.env.NODE_ENV === "production") {
     return "http://nginx";
   }
+  const baseFromHeader = request.headers.get("x-base-url");
+  if (baseFromHeader) {
+    try {
+      return new URL(baseFromHeader).origin;
+    } catch {
+      return baseFromHeader;
+    }
+  }
   const origin = request.headers.get("origin");
   if (origin) {
     return origin;

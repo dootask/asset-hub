@@ -7,6 +7,7 @@ import {
   getThemeName,
   isMicroApp,
   getUserInfo,
+  getBaseUrl,
 } from "@dootask/tools";
 import { normalizeUserId } from "@/lib/utils/user-id";
 
@@ -45,6 +46,16 @@ export default function DooTaskBridge() {
         window.dispatchEvent(
           new CustomEvent("asset-hub:user-updated", { detail: payload }),
         );
+
+        const baseUrl = await getBaseUrl();
+        if (typeof baseUrl === "string" && baseUrl.trim()) {
+          sessionStorage.setItem(
+            "asset-hub:dootask-base-url",
+            baseUrl.trim(),
+          );
+        } else {
+          sessionStorage.removeItem("asset-hub:dootask-base-url");
+        }
       } catch {
         // Ignore errors when运行在独立模式
       }

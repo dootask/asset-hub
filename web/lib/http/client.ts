@@ -7,6 +7,7 @@ type UserContext = {
   userId?: string;
   token?: string;
   nickname?: string;
+  baseUrl?: string;
 };
 
 function getServerFallbackUserId() {
@@ -28,20 +29,27 @@ function extractUserFromStorage(): UserContext {
   if (typeof window === "undefined") return {};
   try {
     const raw = sessionStorage.getItem("asset-hub:dootask-user");
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as {
-      id?: string | number;
-      nickname?: string;
-      token?: string;
-    };
-    return {
-      userId:
-        parsed.id !== undefined && parsed.id !== null
-          ? String(parsed.id)
-          : undefined,
-      token: parsed.token ?? undefined,
-      nickname: parsed.nickname ?? undefined,
-    };
+    const parsed = raw
+      ? (JSON.parse(raw) as {
+          id?: string | number;
+          nickname?: string;
+          token?: string;
+        })
+      : null;
+
+    const baseUrl = sessionStorage.getItem("asset-hub:dootask-base-url") ?? undefined;
+
+    return parsed
+      ? {
+          userId:
+            parsed.id !== undefined && parsed.id !== null
+              ? String(parsed.id)
+              : undefined,
+          token: parsed.token ?? undefined,
+          nickname: parsed.nickname ?? undefined,
+          baseUrl: baseUrl ?? undefined,
+        }
+      : { baseUrl: baseUrl ?? undefined };
   } catch {
     return {};
   }
@@ -84,6 +92,10 @@ function attachUserHeaders(
     config.headers["x-user-nickname"] ??= encodeHeaderValue(context.nickname);
   }
 
+  if (context.baseUrl) {
+    config.headers["x-base-url"] ??= context.baseUrl;
+  }
+
   return config;
 }
 
@@ -114,6 +126,7 @@ async function createServerClient(): Promise<AxiosInstance> {
       undefined,
     token: incomingHeaders.get("x-user-token") ?? undefined,
     nickname: decodeHeaderValue(incomingHeaders.get("x-user-nickname")),
+    baseUrl: incomingHeaders.get("x-base-url") ?? undefined,
   };
   const client = axios.create({ baseURL });
   client.interceptors.request.use((config) => attachUserHeaders(config, context));

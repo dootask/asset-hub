@@ -14,6 +14,10 @@ export async function getRequestBaseUrl() {
   try {
     const { headers } = await import("next/headers");
     const headerStore = await headers();
+    const baseFromHeader = headerStore.get("x-base-url");
+    if (baseFromHeader) {
+      return baseFromHeader.replace(/\/$/, "");
+    }
     const host =
       headerStore.get("x-forwarded-host") ?? headerStore.get("host");
 
