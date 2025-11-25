@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/popover";
 import { Calendar as CalendarIcon, X as XICon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
+import { AttachmentUploadField } from "@/components/attachments/AttachmentUploadField";
 import { cn } from "@/lib/utils";
 import type {
   OperationTemplate,
@@ -56,6 +57,8 @@ type Applicant = {
 };
 
 const MIN_INBOUND_ATTACHMENTS = 3;
+
+type FieldValue = string | string[];
 
 type DootaskUser =
   | string
@@ -101,7 +104,7 @@ export default function ApprovalRequestForm({
     approverId: "",
     approverName: "",
   });
-  const [operationFieldValues, setOperationFieldValues] = useState<Record<string, string>>({});
+  const [operationFieldValues, setOperationFieldValues] = useState<Record<string, FieldValue>>({});
   const [operationDatePicker, setOperationDatePicker] = useState<string | null>(null);
   const [configs, setConfigs] = useState<ActionConfig[]>([]);
   const [loadingConfigs, setLoadingConfigs] = useState(true);
@@ -140,11 +143,34 @@ export default function ApprovalRequestForm({
     [operationTemplateType, currentOperationTemplate],
   );
 
+  const toAttachmentArray = (value: FieldValue | undefined) => {
+    if (Array.isArray(value)) {
+      return value.map((entry) => entry.trim()).filter(Boolean);
+    }
+    if (typeof value === "string") {
+      return value
+        .split(/\r?\n|,/)
+        .map((entry) => entry.trim())
+        .filter(Boolean);
+    }
+    return [];
+  };
+
+  const handleAttachmentChange = (key: string, urls: string[]) => {
+    setOperationFieldValues((prev) => ({ ...prev, [key]: urls }));
+  };
+
   useEffect(() => {
     setOperationFieldValues((prev) => {
-      const next: Record<string, string> = {};
+      const next: Record<string, FieldValue> = {};
       operationTemplateFields.forEach((field) => {
-        next[field.key] = prev[field.key] ?? "";
+        if (field.widget === "attachments") {
+          next[field.key] = toAttachmentArray(prev[field.key]);
+        } else {
+          const prevValue = prev[field.key];
+          next[field.key] =
+            typeof prevValue === "string" ? prevValue : "";
+        }
       });
       return next;
     });
@@ -537,8 +563,15 @@ export default function ApprovalRequestForm({
 
   const normalizeOperationFieldValue = (
     field: OperationTemplateField,
-    raw: string,
+    raw: FieldValue,
   ): OperationTemplateFieldValue | undefined => {
+    if (field.widget === "attachments") {
+      const attachments = toAttachmentArray(raw);
+      return attachments.length ? attachments : undefined;
+    }
+
+    if (typeof raw !== "string") return undefined;
+
     const value = raw.trim();
     if (!value) return undefined;
     if (field.widget === "number") {
@@ -552,12 +585,7 @@ export default function ApprovalRequestForm({
       }
       return asNumber;
     }
-    if (field.widget === "attachments") {
-      return value
-        .split(/\r?\n|,/)
-        .map((entry) => entry.trim())
-        .filter(Boolean);
-    }
+
     return value;
   };
 
@@ -566,14 +594,8 @@ export default function ApprovalRequestForm({
       .filter((field) => field.widget === "attachments")
       .reduce((total, field) => {
         const raw = operationFieldValues[field.key];
-        if (!raw || !raw.trim()) {
-          return total;
-        }
-        const entries = raw
-          .split(/\r?\n|,/)
-          .map((entry) => entry.trim())
-          .filter(Boolean);
-        return total + entries.length;
+        const attachments = toAttachmentArray(raw);
+        return total + attachments.length;
       }, 0);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -583,7 +605,20 @@ export default function ApprovalRequestForm({
 
     try {
       for (const field of operationTemplateFields) {
-        if (field.required && !operationFieldValues[field.key]?.trim()) {
+        if (field.widget === "attachments") {
+          const attachments = toAttachmentArray(operationFieldValues[field.key]);
+          if (field.required && attachments.length === 0) {
+            throw new Error(
+              isChinese
+                ? `${field.labelZh} 为必填项`
+                : `${field.labelEn} is required`,
+            );
+          }
+        } else if (
+          field.required &&
+          (typeof operationFieldValues[field.key] !== "string" ||
+            !operationFieldValues[field.key]?.trim())
+        ) {
           throw new Error(
             isChinese
               ? `${field.labelZh} 为必填项`
@@ -617,7 +652,6 @@ export default function ApprovalRequestForm({
         [];
       operationTemplateFields.forEach((field) => {
         const raw = operationFieldValues[field.key];
-        if (!raw || !raw.trim()) return;
         const normalized = normalizeOperationFieldValue(field, raw);
         if (normalized !== undefined) {
           operationFieldEntries.push([field.key, normalized]);
@@ -761,7 +795,8 @@ export default function ApprovalRequestForm({
   };
 
   const renderOperationField = (field: OperationTemplateField) => {
-    const value = operationFieldValues[field.key] ?? "";
+    const rawValue = operationFieldValues[field.key];
+    const value = typeof rawValue === "string" ? rawValue : "";
     const label = isChinese ? field.labelZh : field.labelEn;
     const placeholder = isChinese
       ? field.placeholderZh ?? field.placeholderEn
@@ -769,6 +804,33 @@ export default function ApprovalRequestForm({
     const helper = isChinese
       ? field.helperZh ?? field.helperEn
       : field.helperEn ?? field.helperZh;
+
+    if (field.widget === "attachments") {
+      const showInboundAttachmentHint =
+        currentOperationTemplate?.requireAttachment &&
+        operationTemplateType === "inbound";
+      return (
+        <div key={field.key} className="space-y-1.5">
+          <Label className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+            {label}
+            {field.required && <span className="text-destructive">*</span>}
+          </Label>
+          <AttachmentUploadField
+            locale={locale}
+            value={toAttachmentArray(rawValue)}
+            onChange={(urls) => handleAttachmentChange(field.key, urls)}
+            helperText={
+              helper ??
+              (showInboundAttachmentHint
+                ? isChinese
+                  ? `请至少上传 ${MIN_INBOUND_ATTACHMENTS} 张不同角度的入库照片。`
+                  : `Upload at least ${MIN_INBOUND_ATTACHMENTS} inbound photos from different angles.`
+                : undefined)
+            }
+          />
+        </div>
+      );
+    }
 
     if (field.widget === "date") {
       return (
@@ -819,11 +881,7 @@ export default function ApprovalRequestForm({
       );
     }
 
-    if (field.widget === "textarea" || field.widget === "attachments") {
-      const showInboundAttachmentHint =
-        field.widget === "attachments" &&
-        currentOperationTemplate?.requireAttachment &&
-        operationTemplateType === "inbound";
+    if (field.widget === "textarea") {
       return (
         <div key={field.key} className="space-y-1.5">
           <Label className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
@@ -831,7 +889,7 @@ export default function ApprovalRequestForm({
             {field.required && <span className="text-destructive">*</span>}
           </Label>
           <Textarea
-            rows={field.widget === "attachments" ? 4 : 3}
+            rows={3}
             value={value}
             placeholder={placeholder}
             required={field.required}
@@ -840,13 +898,6 @@ export default function ApprovalRequestForm({
             }
           />
           {helper && <p className="text-xs text-muted-foreground">{helper}</p>}
-          {showInboundAttachmentHint && (
-            <p className="text-xs font-medium text-amber-600">
-              {isChinese
-                ? `请至少上传 ${MIN_INBOUND_ATTACHMENTS} 张不同角度的入库照片。`
-                : `Upload at least ${MIN_INBOUND_ATTACHMENTS} inbound photos from different angles.`}
-            </p>
-          )}
         </div>
       );
     }

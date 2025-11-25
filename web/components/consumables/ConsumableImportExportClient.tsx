@@ -4,6 +4,15 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  FileUpload,
+  FileUploadDropzone,
+  FileUploadItem,
+  FileUploadItemDelete,
+  FileUploadItemMetadata,
+  FileUploadList,
+  FileUploadTrigger,
+} from "@/components/ui/file-upload";
 import type { ConsumableCategory } from "@/lib/types/consumable";
 import type { Company } from "@/lib/types/system";
 import {
@@ -12,6 +21,7 @@ import {
 } from "@/lib/types/consumable";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getApiClient } from "@/lib/http/client";
+import { Upload } from "lucide-react";
 
 interface Props {
   locale: string;
@@ -31,7 +41,7 @@ export default function ConsumableImportExportClient({ locale, categories, compa
   const [category, setCategory] = useState("");
   const [status, setStatus] = useState<string | undefined>(undefined);
   const [company, setCompany] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
@@ -50,6 +60,7 @@ export default function ConsumableImportExportClient({ locale, categories, compa
 
   const handleImport = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const selectedFile = selectedFiles[0] ?? null;
     if (!selectedFile) {
       setImportError(isChinese ? "请选择 CSV 文件" : "Please select a CSV file");
       setImportResult(null);
@@ -80,6 +91,12 @@ export default function ConsumableImportExportClient({ locale, categories, compa
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleFileChange = (files: File[]) => {
+    setSelectedFiles(files.slice(0, 1));
+    setImportResult(null);
+    setImportError(null);
   };
 
   return (
@@ -175,17 +192,60 @@ export default function ConsumableImportExportClient({ locale, categories, compa
           </p>
         </div>
         <form className="mt-4 space-y-4" onSubmit={handleImport}>
-          <div className="space-y-1.5">
+          <div className="space-y-3">
             <Label>{isChinese ? "选择 CSV 文件" : "Choose CSV file"}</Label>
-            <Input
-              type="file"
+            <FileUpload
               accept=".csv,text/csv"
-              onChange={(event) => {
-                setSelectedFile(event.target.files?.[0] ?? null);
-                setImportResult(null);
-                setImportError(null);
-              }}
-            />
+              maxFiles={1}
+              multiple={false}
+              value={selectedFiles}
+              onValueChange={handleFileChange}
+              onFileReject={(file, message) =>
+                setImportError(`${file.name}: ${message}`)
+              }
+            >
+            <FileUploadDropzone className="w-full">
+              <div className="flex flex-col items-center gap-2 text-center">
+                <div className="flex items-center justify-center rounded-full border border-dashed p-2.5">
+                  <Upload className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <p className="text-sm font-medium">
+                  {isChinese ? "拖拽 CSV 文件到此处" : "Drag & drop CSV here"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {isChinese ? "仅支持单个 CSV 文件" : "Single CSV file"}
+                </p>
+                <FileUploadTrigger asChild>
+                  <Button variant="outline" size="sm" type="button">
+                    {isChinese ? "浏览文件" : "Browse files"}
+                  </Button>
+                </FileUploadTrigger>
+              </div>
+            </FileUploadDropzone>
+            <FileUploadList>
+              {selectedFiles.map((file) => (
+                <FileUploadItem
+                  key={`${file.name}-${file.size}-${file.lastModified}`}
+                  value={file}
+                >
+                    <FileUploadItemMetadata size="sm" />
+                    <FileUploadItemDelete asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground"
+                        type="button"
+                      >
+                        <span className="sr-only">
+                          {isChinese ? "移除文件" : "Remove file"}
+                        </span>
+                        ×
+                      </Button>
+                    </FileUploadItemDelete>
+                  </FileUploadItem>
+                ))}
+              </FileUploadList>
+            </FileUpload>
             <p className="text-xs text-muted-foreground">
               {isChinese
                 ? "字段需包含：name, category, status, companyCode, quantity, unit, keeper, location, safetyStock。"

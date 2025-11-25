@@ -42,12 +42,15 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Calendar as CalendarIcon, X as XICon } from "lucide-react";
+import { AttachmentUploadField } from "@/components/attachments/AttachmentUploadField";
 
 type Props = {
   locale?: string;
   categories: AssetCategory[];
   companies: Company[];
 };
+
+type FieldValue = string | string[];
 
 type DootaskUser =
   | string
@@ -92,7 +95,7 @@ export default function NewPurchaseForm({
   const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [templateError, setTemplateError] = useState<string | null>(null);
   const [operationFieldValues, setOperationFieldValues] = useState<
-    Record<string, string>
+    Record<string, FieldValue>
   >({});
   const [operationDatePicker, setOperationDatePicker] = useState<string | null>(
     null,
@@ -350,11 +353,34 @@ export default function NewPurchaseForm({
     [operationTemplateType, currentOperationTemplate],
   );
 
+  const toAttachmentArray = (value: FieldValue | undefined) => {
+    if (Array.isArray(value)) {
+      return value.map((entry) => entry.trim()).filter(Boolean);
+    }
+    if (typeof value === "string") {
+      return value
+        .split(/\r?\n|,/)
+        .map((entry) => entry.trim())
+        .filter(Boolean);
+    }
+    return [];
+  };
+
+  const handleAttachmentChange = (key: string, urls: string[]) => {
+    setOperationFieldValues((prev) => ({ ...prev, [key]: urls }));
+  };
+
   useEffect(() => {
     setOperationFieldValues((prev) => {
-      const next: Record<string, string> = {};
+      const next: Record<string, FieldValue> = {};
       operationTemplateFields.forEach((field) => {
-        next[field.key] = prev[field.key] ?? "";
+        if (field.widget === "attachments") {
+          next[field.key] = toAttachmentArray(prev[field.key]);
+        } else {
+          const prevValue = prev[field.key];
+          next[field.key] =
+            typeof prevValue === "string" ? prevValue : "";
+        }
       });
       return next;
     });
@@ -377,8 +403,15 @@ export default function NewPurchaseForm({
 
   const normalizeOperationFieldValue = (
     field: OperationTemplateField,
-    raw: string,
+    raw: FieldValue,
   ): OperationTemplateFieldValue | undefined => {
+    if (field.widget === "attachments") {
+      const attachments = toAttachmentArray(raw);
+      return attachments.length ? attachments : undefined;
+    }
+
+    if (typeof raw !== "string") return undefined;
+
     const value = raw.trim();
     if (!value) return undefined;
     if (field.widget === "number") {
@@ -392,22 +425,17 @@ export default function NewPurchaseForm({
       }
       return asNumber;
     }
-    if (field.widget === "attachments") {
-      return value
-        .split(/\r?\n|,/)
-        .map((entry) => entry.trim())
-        .filter(Boolean);
-    }
     return value;
   };
 
   const hasOperationAttachmentValue = () =>
     operationTemplateFields
       .filter((field) => field.widget === "attachments")
-      .some((field) => operationFieldValues[field.key]?.trim());
+      .some((field) => toAttachmentArray(operationFieldValues[field.key]).length > 0);
 
   const renderOperationField = (field: OperationTemplateField) => {
-    const value = operationFieldValues[field.key] ?? "";
+    const rawValue = operationFieldValues[field.key];
+    const value = typeof rawValue === "string" ? rawValue : "";
     const label = isChinese ? field.labelZh : field.labelEn;
     const placeholder = isChinese
       ? field.placeholderZh ?? field.placeholderEn
@@ -415,6 +443,23 @@ export default function NewPurchaseForm({
     const helper = isChinese
       ? field.helperZh ?? field.helperEn
       : field.helperEn ?? field.helperZh;
+
+    if (field.widget === "attachments") {
+      return (
+        <div key={field.key} className="space-y-1.5">
+          <Label className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+            {label}
+            {field.required && <span className="text-destructive">*</span>}
+          </Label>
+          <AttachmentUploadField
+            locale={locale}
+            value={toAttachmentArray(rawValue)}
+            onChange={(urls) => handleAttachmentChange(field.key, urls)}
+            helperText={helper}
+          />
+        </div>
+      );
+    }
 
     if (field.widget === "date") {
       return (
@@ -463,7 +508,7 @@ export default function NewPurchaseForm({
       );
     }
 
-    if (field.widget === "textarea" || field.widget === "attachments") {
+    if (field.widget === "textarea") {
       return (
         <div key={field.key} className="space-y-1.5">
           <Label className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
@@ -471,7 +516,7 @@ export default function NewPurchaseForm({
             {field.required && <span className="text-destructive">*</span>}
           </Label>
           <Textarea
-            rows={field.widget === "attachments" ? 4 : 3}
+            rows={3}
             value={value}
             placeholder={placeholder}
             required={field.required}
@@ -578,7 +623,20 @@ export default function NewPurchaseForm({
       }
 
       for (const field of operationTemplateFields) {
-        if (field.required && !operationFieldValues[field.key]?.trim()) {
+        if (field.widget === "attachments") {
+          const attachments = toAttachmentArray(operationFieldValues[field.key]);
+          if (field.required && attachments.length === 0) {
+            throw new Error(
+              isChinese
+                ? `${field.labelZh} 为必填项`
+                : `${field.labelEn} is required`,
+            );
+          }
+        } else if (
+          field.required &&
+          (typeof operationFieldValues[field.key] !== "string" ||
+            !operationFieldValues[field.key]?.trim())
+        ) {
           throw new Error(
             isChinese
               ? `${field.labelZh} 为必填项`
@@ -601,7 +659,6 @@ export default function NewPurchaseForm({
       const operationFieldEntries: [string, OperationTemplateFieldValue][] = [];
       operationTemplateFields.forEach((field) => {
         const raw = operationFieldValues[field.key];
-        if (!raw || !raw.trim()) return;
         const normalized = normalizeOperationFieldValue(field, raw);
         if (normalized !== undefined) {
           operationFieldEntries.push([field.key, normalized]);

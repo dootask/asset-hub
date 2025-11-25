@@ -115,32 +115,32 @@ const FIELD_LIBRARY: Record<string, OperationTemplateField> = {
     widget: "attachments",
     labelZh: "照片 / 附件",
     labelEn: "Photos / Attachments",
-    helperZh: "可粘贴图片链接或文件存储地址，多个条目请换行。",
-    helperEn: "Paste photo URLs or storage links, one per line.",
+    helperZh: "支持上传图片或附件，单文件不超过 20MB。",
+    helperEn: "Upload images or attachments, max 20MB each.",
   },
   depositAttachment: {
     key: "depositAttachment",
     widget: "attachments",
     labelZh: "押金凭证",
     labelEn: "Deposit Proof",
-    helperZh: "可填写存根编号或上传凭证链接。",
-    helperEn: "Enter receipt numbers or paste links to deposit proof.",
+    helperZh: "上传押金凭证（图片/PDF）。",
+    helperEn: "Upload deposit proof (image/PDF).",
   },
   report: {
     key: "report",
     widget: "attachments",
     labelZh: "维修报告",
     labelEn: "Maintenance Report",
-    helperZh: "可粘贴维修报告链接或编号。",
-    helperEn: "Paste maintenance report links or identifiers.",
+    helperZh: "上传维修报告文件或照片。",
+    helperEn: "Upload maintenance report file or photo.",
   },
   evidence: {
     key: "evidence",
     widget: "attachments",
     labelZh: "佐证材料",
     labelEn: "Evidence",
-    helperZh: "请提供报废或处理的证据链接。",
-    helperEn: "Provide evidence links for the disposal/operation.",
+    helperZh: "上传报废/处理的佐证文件。",
+    helperEn: "Upload evidence files for disposal/operation.",
   },
   method: {
     key: "method",
@@ -425,4 +425,3 @@ export function mapApprovalTypeToTemplateType(
       return "other";
   }
 }
-

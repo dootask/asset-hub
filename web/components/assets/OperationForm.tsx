@@ -41,6 +41,7 @@ import {
   type AssetOperationType,
 } from "@/lib/types/operation";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
+import { AttachmentUploadField } from "@/components/attachments/AttachmentUploadField";
 
 interface Props {
   assetId: string;
@@ -53,6 +54,8 @@ interface Props {
     operationLocked: boolean;
   }) => void;
 }
+
+type FieldValue = string | string[];
 
 const MIN_INBOUND_ATTACHMENTS = 3;
 
@@ -85,13 +88,30 @@ export default function OperationForm({
     actor: "",
     description: "",
   });
-  const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
+  const [fieldValues, setFieldValues] = useState<Record<string, FieldValue>>({});
   const [openDateField, setOpenDateField] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [actionConfigs, setActionConfigs] = useState<ActionConfig[]>([]);
   const [loadingConfigs, setLoadingConfigs] = useState(true);
   const [configError, setConfigError] = useState<string | null>(null);
   const feedback = useAppFeedback();
+
+  const toAttachmentArray = (value: FieldValue | undefined) => {
+    if (Array.isArray(value)) {
+      return value.map((entry) => entry.trim()).filter(Boolean);
+    }
+    if (typeof value === "string") {
+      return value
+        .split(/\r?\n|,/)
+        .map((entry) => entry.trim())
+        .filter(Boolean);
+    }
+    return [];
+  };
+
+  const handleAttachmentChange = (key: string, urls: string[]) => {
+    setFieldValues((prev) => ({ ...prev, [key]: urls }));
+  };
 
   useEffect(() => {
     setFormState((prev) => {
@@ -134,9 +154,15 @@ export default function OperationForm({
 
   useEffect(() => {
     setFieldValues((prev) => {
-      const next: Record<string, string> = {};
+      const next: Record<string, FieldValue> = {};
       templateFields.forEach((field) => {
-        next[field.key] = prev[field.key] ?? "";
+        if (field.widget === "attachments") {
+          next[field.key] = toAttachmentArray(prev[field.key]);
+        } else {
+          const prevValue = prev[field.key];
+          next[field.key] =
+            typeof prevValue === "string" ? prevValue : "";
+        }
       });
       return next;
     });
@@ -205,8 +231,15 @@ export default function OperationForm({
 
   const normalizeFieldValue = (
     field: OperationTemplateField,
-    raw: string,
+    raw: FieldValue,
   ): OperationTemplateFieldValue | undefined => {
+    if (field.widget === "attachments") {
+      const attachments = toAttachmentArray(raw);
+      return attachments.length ? attachments : undefined;
+    }
+
+    if (typeof raw !== "string") return undefined;
+
     const value = raw.trim();
     if (!value) return undefined;
     if (field.widget === "number") {
@@ -220,12 +253,7 @@ export default function OperationForm({
       }
       return asNumber;
     }
-    if (field.widget === "attachments") {
-      return value
-        .split(/\r?\n|,/)
-        .map((entry) => entry.trim())
-        .filter(Boolean);
-    }
+
     return value;
   };
 
@@ -234,20 +262,14 @@ export default function OperationForm({
       .filter((field) => field.widget === "attachments")
       .reduce((total, field) => {
         const raw = fieldValues[field.key];
-        if (!raw || !raw.trim()) {
-          return total;
-        }
-        const entries = raw
-          .split(/\r?\n|,/)
-          .map((entry) => entry.trim())
-          .filter(Boolean);
-        return total + entries.length;
+        const attachments = toAttachmentArray(raw);
+        return total + attachments.length;
       }, 0);
 
   const resetFieldValues = () => {
     setFieldValues(
-      templateFields.reduce<Record<string, string>>((acc, field) => {
-        acc[field.key] = "";
+      templateFields.reduce<Record<string, FieldValue>>((acc, field) => {
+        acc[field.key] = field.widget === "attachments" ? [] : "";
         return acc;
       }, {}),
     );
@@ -277,7 +299,20 @@ export default function OperationForm({
       }
 
       for (const field of templateFields) {
-        if (field.required && !fieldValues[field.key]?.trim()) {
+        if (field.widget === "attachments") {
+          const attachments = toAttachmentArray(fieldValues[field.key]);
+          if (field.required && attachments.length === 0) {
+            throw new Error(
+              isChinese
+                ? `${field.labelZh} 为必填项`
+                : `${field.labelEn} is required`,
+            );
+          }
+        } else if (
+          field.required &&
+          (typeof fieldValues[field.key] !== "string" ||
+            !fieldValues[field.key]?.trim())
+        ) {
           throw new Error(
             isChinese
               ? `${field.labelZh} 为必填项`
@@ -310,9 +345,6 @@ export default function OperationForm({
       const metadataEntries: [string, OperationTemplateFieldValue][] = [];
       templateFields.forEach((field) => {
         const raw = fieldValues[field.key];
-        if (!raw || !raw.trim()) {
-          return;
-        }
         const normalized = normalizeFieldValue(field, raw);
         if (normalized !== undefined) {
           metadataEntries.push([field.key, normalized]);
@@ -390,7 +422,8 @@ export default function OperationForm({
   };
 
   const renderField = (field: OperationTemplateField) => {
-    const value = fieldValues[field.key] ?? "";
+    const rawValue = fieldValues[field.key];
+    const value = typeof rawValue === "string" ? rawValue : "";
     const label = isChinese ? field.labelZh : field.labelEn;
     const placeholder = isChinese
       ? field.placeholderZh ?? field.placeholderEn
@@ -398,6 +431,32 @@ export default function OperationForm({
     const helper = isChinese
       ? field.helperZh ?? field.helperEn
       : field.helperEn ?? field.helperZh;
+
+    if (field.widget === "attachments") {
+      const showInboundAttachmentHint =
+        currentTemplate?.requireAttachment && templateType === "inbound";
+      return (
+        <div key={field.key} className="space-y-1.5">
+          <Label className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+            {label}
+            {field.required && <span className="text-destructive">*</span>}
+          </Label>
+          <AttachmentUploadField
+            locale={locale}
+            value={toAttachmentArray(rawValue)}
+            onChange={(urls) => handleAttachmentChange(field.key, urls)}
+            helperText={
+              helper ??
+              (showInboundAttachmentHint
+                ? isChinese
+                  ? `请至少上传 ${MIN_INBOUND_ATTACHMENTS} 张不同角度的入库照片。`
+                  : `Upload at least ${MIN_INBOUND_ATTACHMENTS} inbound photos from different angles.`
+                : undefined)
+            }
+          />
+        </div>
+      );
+    }
 
     if (field.widget === "date") {
       return (
@@ -442,11 +501,7 @@ export default function OperationForm({
       );
     }
 
-    if (field.widget === "textarea" || field.widget === "attachments") {
-      const showInboundAttachmentHint =
-        field.widget === "attachments" &&
-        currentTemplate?.requireAttachment &&
-        templateType === "inbound";
+    if (field.widget === "textarea") {
       return (
         <div key={field.key} className="space-y-1.5">
           <Label className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
@@ -454,20 +509,13 @@ export default function OperationForm({
             {field.required && <span className="text-destructive">*</span>}
           </Label>
           <Textarea
-            rows={field.widget === "attachments" ? 4 : 3}
+            rows={3}
             value={value}
             placeholder={placeholder}
             required={field.required}
             onChange={(event) => handleFieldChange(field.key, event.target.value)}
           />
           {helper && <p className="text-xs text-muted-foreground">{helper}</p>}
-          {showInboundAttachmentHint && (
-            <p className="text-xs font-medium text-amber-600">
-              {isChinese
-                ? `请至少上传 ${MIN_INBOUND_ATTACHMENTS} 张不同角度的入库照片。`
-                : `Upload at least ${MIN_INBOUND_ATTACHMENTS} inbound photos from different angles.`}
-            </p>
-          )}
         </div>
       );
     }

@@ -37,6 +37,38 @@ function formatDate(value: string, locale: string) {
 }
 
 function renderValue(entry: TemplateEntry, locale: string): ReactNode {
+  const formatLinkLabel = (url: string) => {
+    try {
+      const parsed = new URL(url, "http://placeholder");
+      const pathname = parsed.pathname?.split("/").filter(Boolean).pop();
+      return pathname || url;
+    } catch {
+      return url;
+    }
+  };
+
+  const renderAttachmentLink = (value: string) => {
+    const isLink =
+      value.startsWith("http://") ||
+      value.startsWith("https://") ||
+      value.startsWith("/");
+
+    if (!isLink) {
+      return <span className="break-all">{value}</span>;
+    }
+
+    return (
+      <a
+        href={value}
+        target="_blank"
+        rel="noreferrer"
+        className="break-all text-primary underline-offset-4 hover:underline"
+      >
+        {formatLinkLabel(value)}
+      </a>
+    );
+  };
+
   if (Array.isArray(entry.value)) {
     if (entry.value.length === 0) {
       return <span className="text-muted-foreground">-</span>;
@@ -48,7 +80,7 @@ function renderValue(entry: TemplateEntry, locale: string): ReactNode {
             key={`${entry.key}-${index}`}
             className="break-all"
           >
-            {item}
+            {renderAttachmentLink(item)}
           </li>
         ))}
       </ul>
@@ -161,4 +193,3 @@ export default function OperationTemplateView({
     </div>
   );
 }
-
