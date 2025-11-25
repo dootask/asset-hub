@@ -153,13 +153,11 @@ export default function AppShell({
   }, [isMicroEnv, userReady]);
 
   const isServerAdmin =
-    adminUserIds.length === 0 ||
-    (currentUserId !== undefined &&
-      currentUserId !== null &&
-      adminUserIds.includes(currentUserId));
+    currentUserId !== undefined &&
+    currentUserId !== null &&
+    adminUserIds.includes(currentUserId);
 
   const showSystemNav =
-    adminUserIds.length === 0 ||
     isServerAdmin ||
     (userReady &&
       sessionUser?.id !== undefined &&
