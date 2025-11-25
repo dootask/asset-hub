@@ -18,8 +18,7 @@ async function sendBotMessage({
   await client.sendBotMessage({
     userid: id,
     text,
-    bot_type: botType,
-    text_type: "md",
+    bot_type: botType
   });
 }
 
