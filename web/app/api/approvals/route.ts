@@ -153,8 +153,20 @@ function sanitizeCreatePayload(
   }
 
   if (cleaned.type === "purchase" && !cleaned.assetId) {
-    const newAssetMeta = (cleaned.metadata?.newAsset as any);
-    if (!newAssetMeta || !newAssetMeta.name || !newAssetMeta.category) {
+    const newAssetMeta = cleaned.metadata?.newAsset;
+    const newAssetName = isRecord(newAssetMeta)
+      ? (newAssetMeta.name as unknown)
+      : undefined;
+    const newAssetCategory = isRecord(newAssetMeta)
+      ? (newAssetMeta.category as unknown)
+      : undefined;
+
+    if (
+      typeof newAssetName !== "string" ||
+      !newAssetName.trim() ||
+      typeof newAssetCategory !== "string" ||
+      !newAssetCategory.trim()
+    ) {
       throw new Error("新资产采购必须提供资产名称和类别");
     }
   }

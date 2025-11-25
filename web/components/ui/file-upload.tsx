@@ -739,7 +739,7 @@ function FileUploadDropzone(props: FileUploadDropzoneProps) {
       for (const file of files) {
         dataTransfer.items.add(file);
       }
-
+      // eslint-disable-next-line react-hooks/immutability
       inputElement.files = dataTransfer.files;
       inputElement.dispatchEvent(new Event("change", { bubbles: true }));
     },
@@ -778,7 +778,7 @@ function FileUploadDropzone(props: FileUploadDropzoneProps) {
       for (const file of files) {
         dataTransfer.items.add(file);
       }
-
+      // eslint-disable-next-line react-hooks/immutability
       inputElement.files = dataTransfer.files;
       inputElement.dispatchEvent(new Event("change", { bubbles: true }));
     },
