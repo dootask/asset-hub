@@ -308,16 +308,15 @@ export default function OperationForm({
                 : `${field.labelEn} is required`,
             );
           }
-        } else if (
-          field.required &&
-          (typeof fieldValues[field.key] !== "string" ||
-            !fieldValues[field.key]?.trim())
-        ) {
-          throw new Error(
-            isChinese
-              ? `${field.labelZh} 为必填项`
-              : `${field.labelEn} is required`,
-          );
+        } else if (field.required) {
+          const rawValue = fieldValues[field.key];
+          if (typeof rawValue !== "string" || !rawValue.trim()) {
+            throw new Error(
+              isChinese
+                ? `${field.labelZh} 为必填项`
+                : `${field.labelEn} is required`,
+            );
+          }
         }
       }
 

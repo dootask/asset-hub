@@ -1,14 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getApprovalRequestById } from "@/lib/repositories/approvals";
 
-interface RouteParams {
-  params: {
-    id: string;
-  };
-}
-
-export async function GET(_: Request, { params }: RouteParams) {
-  const approval = getApprovalRequestById(params.id);
+export async function GET(
+  _: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
+  const { id } = await context.params;
+  const approval = getApprovalRequestById(id);
 
   if (!approval) {
     return NextResponse.json(
@@ -19,5 +17,4 @@ export async function GET(_: Request, { params }: RouteParams) {
 
   return NextResponse.json({ data: approval });
 }
-
 

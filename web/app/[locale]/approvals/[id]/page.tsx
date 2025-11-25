@@ -256,11 +256,10 @@ export default async function ApprovalDetailPage({ params }: PageProps) {
         <ApprovalActionForm
           approvalId={approval.id}
           locale={locale}
-          approverId={approval.approverId}
+          approverId={approval.approverId ?? undefined}
           applicantId={approval.applicantId}
         />
       )}
     </div>
   );
 }
-

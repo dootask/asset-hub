@@ -632,16 +632,15 @@ export default function NewPurchaseForm({
                 : `${field.labelEn} is required`,
             );
           }
-        } else if (
-          field.required &&
-          (typeof operationFieldValues[field.key] !== "string" ||
-            !operationFieldValues[field.key]?.trim())
-        ) {
-          throw new Error(
-            isChinese
-              ? `${field.labelZh} 为必填项`
-              : `${field.labelEn} is required`,
-          );
+        } else if (field.required) {
+          const rawValue = operationFieldValues[field.key];
+          if (typeof rawValue !== "string" || !rawValue.trim()) {
+            throw new Error(
+              isChinese
+                ? `${field.labelZh} 为必填项`
+                : `${field.labelEn} is required`,
+            );
+          }
         }
       }
 

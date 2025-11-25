@@ -40,8 +40,9 @@ export async function GET(request: Request, { params }: RouteContext) {
   const filters = task.filters ?? {};
   const statusFilter =
     Array.isArray(filters.status) && filters.status.length > 0
-      ? (filters.status as string[]).filter((status) =>
-          ASSET_STATUSES.includes(status as AssetStatus),
+      ? (filters.status as string[]).filter(
+          (status): status is AssetStatus =>
+            ASSET_STATUSES.includes(status as AssetStatus),
         )
       : undefined;
 
@@ -85,4 +86,3 @@ export async function GET(request: Request, { params }: RouteContext) {
     },
   });
 }
-

@@ -1,5 +1,12 @@
 import { listAssets } from "@/lib/repositories/assets";
 import { listApprovalRequests } from "@/lib/repositories/approvals";
+import { ASSET_STATUSES, type AssetStatus } from "@/lib/types/asset";
+import {
+  APPROVAL_STATUSES,
+  APPROVAL_TYPES,
+  type ApprovalStatus,
+  type ApprovalType,
+} from "@/lib/types/approval";
 import type {
   ReportExecutionResult,
   ReportView,
@@ -25,14 +32,16 @@ const APPROVAL_FIELDS = [
   "updatedAt",
 ] as const;
 
-function pickRow<T extends Record<string, unknown>>(
-  row: T,
-  fields: string[],
-) {
+const APPROVAL_STATUS_VALUES = APPROVAL_STATUSES.map((item) => item.value);
+const APPROVAL_TYPE_VALUES = APPROVAL_TYPES.map((item) => item.value);
+
+function pickRow(row: unknown, fields: string[]) {
+  if (typeof row !== "object" || row === null) return {};
+  const record = row as Record<string, unknown>;
   const result: Record<string, unknown> = {};
   fields.forEach((field) => {
-    if (field in row) {
-      result[field] = row[field as keyof T];
+    if (field in record) {
+      result[field] = record[field];
     }
   });
   return result;
@@ -53,7 +62,10 @@ export function runReportView(view: ReportView): ReportExecutionResult {
           ? filters.category.trim()
           : undefined,
       status: Array.isArray(filters.status)
-        ? (filters.status as string[]).filter(Boolean)
+        ? (filters.status as string[]).filter(
+            (status): status is AssetStatus =>
+              ASSET_STATUSES.includes(status as AssetStatus),
+          )
         : undefined,
     });
     const fields =
@@ -69,10 +81,16 @@ export function runReportView(view: ReportView): ReportExecutionResult {
   const filters = view.filters ?? {};
   const approvals = listApprovalRequests({
     status: Array.isArray(filters.status)
-      ? (filters.status as string[]).filter(Boolean)
+      ? (filters.status as string[]).filter(
+          (status): status is ApprovalStatus =>
+            APPROVAL_STATUS_VALUES.includes(status as ApprovalStatus),
+        )
       : undefined,
     type: Array.isArray(filters.type)
-      ? (filters.type as string[]).filter(Boolean)
+      ? (filters.type as string[]).filter(
+          (type): type is ApprovalType =>
+            APPROVAL_TYPE_VALUES.includes(type as ApprovalType),
+        )
       : undefined,
     applicantId:
       typeof filters.applicantId === "string" && filters.applicantId.trim()
@@ -94,4 +112,3 @@ export function runReportView(view: ReportView): ReportExecutionResult {
   const rows = approvals.data.map((approval) => pickRow(approval, fields));
   return { columns: fields, rows };
 }
-

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import {
   ActionConfigId,
   ActionConfigInput,
@@ -8,8 +8,23 @@ import { getActionConfig, upsertActionConfig } from "@/lib/repositories/action-c
 import { extractUserFromRequest } from "@/lib/utils/request-user";
 import { isAdminUser } from "@/lib/utils/permissions";
 
-interface RouteParams {
-  params: Promise<{ id: ActionConfigId }>;
+const ACTION_CONFIG_IDS: ActionConfigId[] = [
+  "purchase",
+  "inbound",
+  "receive",
+  "borrow",
+  "return",
+  "maintenance",
+  "dispose",
+  "outbound",
+  "reserve",
+  "release",
+  "adjust",
+  "other",
+];
+
+function isActionConfigId(value: string): value is ActionConfigId {
+  return ACTION_CONFIG_IDS.includes(value as ActionConfigId);
 }
 
 function isApproverType(value: unknown): value is ApproverType {
@@ -61,23 +76,41 @@ function ensureAdmin(request: Request) {
   return null;
 }
 
-export async function GET(request: Request, { params }: RouteParams) {
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
   const forbidden = ensureAdmin(request);
   if (forbidden) {
     return forbidden;
   }
-  const { id } = await params;
+  const { id } = await context.params;
+  if (!isActionConfigId(id)) {
+    return NextResponse.json(
+      { error: "INVALID_CONFIG", message: "审批配置不存在。" },
+      { status: 404 },
+    );
+  }
   const config = getActionConfig(id);
   return NextResponse.json({ data: config });
 }
 
-export async function PUT(request: Request, { params }: RouteParams) {
+export async function PUT(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
   const forbidden = ensureAdmin(request);
   if (forbidden) {
     return forbidden;
   }
   try {
-    const { id } = await params;
+    const { id } = await context.params;
+    if (!isActionConfigId(id)) {
+      return NextResponse.json(
+        { error: "INVALID_CONFIG", message: "审批配置不存在。" },
+        { status: 404 },
+      );
+    }
     const payload = sanitizePayload(await request.json());
     const updated = upsertActionConfig(id, payload);
     return NextResponse.json({ data: updated });
@@ -91,5 +124,4 @@ export async function PUT(request: Request, { params }: RouteParams) {
     );
   }
 }
-
 

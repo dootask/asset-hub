@@ -8,6 +8,7 @@ import type { ConsumableStatus } from "@/lib/types/consumable";
 import { CONSUMABLE_STATUSES } from "@/lib/types/consumable";
 import { extractUserFromRequest } from "@/lib/utils/request-user";
 import { isAdminUser } from "@/lib/utils/permissions";
+import { getCompanyByCode } from "@/lib/repositories/companies";
 
 const STATUS_ALLOW_LIST = new Set<ConsumableStatus>(CONSUMABLE_STATUSES);
 
@@ -20,7 +21,7 @@ function sanitizePayload(payload: unknown) {
     throw new Error("请求体必须为对象");
   }
   const body = payload as Record<string, unknown>;
-  const stringFields = ["name", "category", "unit", "keeper", "location"];
+  const stringFields = ["name", "category", "unit", "keeper", "location", "companyCode"];
   stringFields.forEach((field) => {
     if (typeof body[field] !== "string" || !body[field]) {
       throw new Error(`${field} 为必填字段`);
@@ -34,17 +35,29 @@ function sanitizePayload(payload: unknown) {
   }
   const quantity = Number(body.quantity);
   const safetyStock = Number(body.safetyStock ?? body.safety_stock ?? 0);
+  const reservedQuantityRaw =
+    body.reservedQuantity ?? body.reserved_quantity ?? null;
+  const reservedQuantity =
+    reservedQuantityRaw === null ? undefined : Number(reservedQuantityRaw);
   if (!Number.isFinite(quantity) || quantity < 0) {
     throw new Error("quantity 必须为大于等于 0 的数字");
   }
   if (!Number.isFinite(safetyStock) || safetyStock < 0) {
     throw new Error("safetyStock 必须为大于等于 0 的数字");
   }
+  if (reservedQuantity !== undefined && (!Number.isFinite(reservedQuantity) || reservedQuantity < 0)) {
+    throw new Error("reservedQuantity 必须为大于等于 0 的数字");
+  }
+  if (reservedQuantity !== undefined && reservedQuantity > quantity) {
+    throw new Error("reservedQuantity 不能大于 quantity");
+  }
   return {
     name: (body.name as string).trim(),
     category: (body.category as string).trim(),
     status: body.status as ConsumableStatus,
+    companyCode: (body.companyCode as string).trim().toUpperCase(),
     quantity,
+    reservedQuantity,
     unit: (body.unit as string).trim(),
     keeper: (body.keeper as string).trim(),
     location: (body.location as string).trim(),
@@ -84,6 +97,9 @@ export async function PUT(request: Request, { params }: RouteContext) {
   try {
     const { id } = await params;
     const payload = sanitizePayload(await request.json());
+    if (!getCompanyByCode(payload.companyCode)) {
+      throw new Error("公司不存在");
+    }
     const updated = updateConsumable(id, payload);
     if (!updated) {
       return NextResponse.json(
@@ -123,4 +139,3 @@ export async function DELETE(request: Request, { params }: RouteContext) {
   }
   return NextResponse.json({ data: { success: true } });
 }
-

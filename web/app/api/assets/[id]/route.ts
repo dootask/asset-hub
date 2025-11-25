@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import {
   deleteAsset,
   getAssetById,
@@ -10,14 +10,12 @@ import { getCompanyByCode } from "@/lib/repositories/companies";
 import { extractUserFromRequest } from "@/lib/utils/request-user";
 import { isAdminUser } from "@/lib/utils/permissions";
 
-interface RouteParams {
-  params: {
-    id: string;
-  };
-}
-
-export async function GET(_: Request, { params }: RouteParams) {
-  const asset = getAssetById(params.id);
+export async function GET(
+  _: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
+  const { id } = await context.params;
+  const asset = getAssetById(id);
 
   if (!asset) {
     return NextResponse.json(
@@ -29,7 +27,11 @@ export async function GET(_: Request, { params }: RouteParams) {
   return NextResponse.json({ data: asset });
 }
 
-export async function PUT(request: Request, { params }: RouteParams) {
+export async function PUT(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
+  const { id } = await context.params;
   const user = extractUserFromRequest(request);
   if (!isAdminUser(user?.id)) {
     return NextResponse.json(
@@ -47,7 +49,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
     if (!normalizedCompanyCode || !getCompanyByCode(normalizedCompanyCode)) {
       throw new Error("Invalid company code");
     }
-    const updated = updateAsset(params.id, {
+    const updated = updateAsset(id, {
       ...payload,
       companyCode: normalizedCompanyCode,
     });
@@ -68,7 +70,11 @@ export async function PUT(request: Request, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(request: Request, { params }: RouteParams) {
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
+  const { id } = await context.params;
   const user = extractUserFromRequest(request);
   if (!isAdminUser(user?.id)) {
     return NextResponse.json(
@@ -77,7 +83,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     );
   }
 
-  const removed = deleteAsset(params.id);
+  const removed = deleteAsset(id);
 
   if (!removed) {
     return NextResponse.json(
@@ -88,4 +94,3 @@ export async function DELETE(request: Request, { params }: RouteParams) {
 
   return NextResponse.json({ success: true });
 }
-

@@ -1,16 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAssetById, updateAsset } from "@/lib/repositories/assets";
 import { createAssetOperation } from "@/lib/repositories/asset-operations";
 import { extractUserFromRequest } from "@/lib/utils/request-user";
 import { isAdminUser } from "@/lib/utils/permissions";
 
-interface RouteParams {
-  params: {
-    id: string;
-  };
-}
-
-export async function POST(request: Request, { params }: RouteParams) {
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
+  const { id } = await context.params;
   const checkUser = extractUserFromRequest(request);
   if (!isAdminUser(checkUser?.id)) {
     return NextResponse.json(
@@ -19,7 +17,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     );
   }
 
-  const asset = getAssetById(params.id);
+  const asset = getAssetById(id);
   if (!asset) {
     return NextResponse.json(
       { error: "NOT_FOUND", message: "资产不存在" },
@@ -81,4 +79,3 @@ export async function POST(request: Request, { params }: RouteParams) {
     );
   }
 }
-
