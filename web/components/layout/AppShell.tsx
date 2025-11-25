@@ -7,18 +7,10 @@ import clsx from "clsx";
 import { useTranslations } from "next-intl";
 import { isMicroApp } from "@dootask/tools";
 import DooTaskBridge from "@/components/providers/DooTaskBridge";
-import { normalizeUserId } from "@/lib/utils/user-id";
 import { Spinner } from "@/components/ui/spinner";
+import { usePermissions } from "@/components/providers/PermissionProvider";
 
 const BASE_PATH = "/apps/asset-hub";
-const USER_STORAGE_KEY = "asset-hub:dootask-user";
-const USER_EVENT = "asset-hub:user-updated";
-
-type SessionUser = {
-  id: number;
-  nickname?: string;
-  email?: string;
-};
 
 const NAV_ITEMS = [
   { href: "/", match: "/", key: "dashboard" },
@@ -32,20 +24,16 @@ const NAV_ITEMS = [
 type Props = {
   children: React.ReactNode;
   locale: string;
-  adminUserIds: number[];
   currentUserId?: number | null;
 };
 
 export default function AppShell({
   children,
   locale,
-  adminUserIds,
-  currentUserId,
 }: Props) {
   const pathname = usePathname() || "/";
   const tNav = useTranslations("Nav");
-  const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
-  const [userReady, setUserReady] = useState(false);
+  const { user: sessionUser, userReady, isAdmin } = usePermissions();
   const [isMicroEnv, setIsMicroEnv] = useState<boolean | null>(null);
   const pathWithoutBase = pathname.startsWith(BASE_PATH)
     ? pathname.slice(BASE_PATH.length) || "/"
@@ -91,77 +79,7 @@ export default function AppShell({
     };
   }, []);
 
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const readStoredUser = () => {
-      try {
-        const stored = sessionStorage.getItem(USER_STORAGE_KEY);
-        if (!stored) {
-          setSessionUser(null);
-          setUserReady(false);
-          return;
-        }
-        const parsed = JSON.parse(stored) as SessionUser;
-        const normalizedId = normalizeUserId(parsed?.id);
-        if (normalizedId === null) {
-          setSessionUser(null);
-          setUserReady(false);
-          return;
-        }
-        setSessionUser({ ...parsed, id: normalizedId });
-        setUserReady(true);
-      } catch {
-        setSessionUser(null);
-        setUserReady(false);
-      }
-    };
-
-    readStoredUser();
-
-    const handleUserUpdated = (event: Event) => {
-      const detail = (event as CustomEvent<SessionUser | null>).detail;
-      const normalizedId = normalizeUserId(detail?.id);
-      if (normalizedId !== null && detail) {
-        setSessionUser({ ...detail, id: normalizedId });
-      } else {
-        setSessionUser(null);
-      }
-      setUserReady(true);
-    };
-
-    window.addEventListener(USER_EVENT, handleUserUpdated);
-    return () => {
-      window.removeEventListener(USER_EVENT, handleUserUpdated);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    if (isMicroEnv !== true || userReady) {
-      return;
-    }
-
-    const timer = window.setTimeout(() => setUserReady(true), 3000);
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [isMicroEnv, userReady]);
-
-  const isServerAdmin =
-    currentUserId !== undefined &&
-    currentUserId !== null &&
-    adminUserIds.includes(currentUserId);
-
-  const showSystemNav =
-    isServerAdmin ||
-    (userReady &&
-      sessionUser?.id !== undefined &&
-      adminUserIds.includes(sessionUser.id));
+  const showSystemNav = isAdmin;
 
   const visibleNavItems = navItems.filter(
     (item) => item.key !== "system" || showSystemNav,

@@ -38,6 +38,10 @@ export async function generateMetadata({
   };
 }
 
+import { PermissionProvider } from "@/components/providers/PermissionProvider";
+
+// ...
+
 export default async function LocaleLayout({
   children,
   params,
@@ -54,15 +58,19 @@ export default async function LocaleLayout({
   return (
     <NextIntlClientProvider locale={normalizedLocale} messages={messages}>
       <ThemeSync />
-      <AppShell
-        locale={normalizedLocale}
+      <PermissionProvider
         adminUserIds={appConfig.permissions.adminUserIds}
-        currentUserId={
-          typeof currentUserId === "number" ? currentUserId : undefined
-        }
+        approverUserIds={appConfig.permissions.approverUserIds}
       >
-        {children}
-      </AppShell>
+        <AppShell
+          locale={normalizedLocale}
+          currentUserId={
+            typeof currentUserId === "number" ? currentUserId : undefined
+          }
+        >
+          {children}
+        </AppShell>
+      </PermissionProvider>
     </NextIntlClientProvider>
   );
 }

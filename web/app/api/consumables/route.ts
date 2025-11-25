@@ -6,6 +6,8 @@ import {
 } from "@/lib/repositories/consumables";
 import { CONSUMABLE_STATUSES } from "@/lib/types/consumable";
 import { getCompanyByCode } from "@/lib/repositories/companies";
+import { extractUserFromRequest } from "@/lib/utils/request-user";
+import { isAdminUser } from "@/lib/utils/permissions";
 
 const STATUS_ALLOW_LIST = new Set<ConsumableStatus>(CONSUMABLE_STATUSES);
 
@@ -89,6 +91,14 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const user = extractUserFromRequest(request);
+  if (!isAdminUser(user?.id)) {
+    return NextResponse.json(
+      { error: "FORBIDDEN", message: "只有系统管理员可以创建耗材。" },
+      { status: 403 },
+    );
+  }
+
   try {
     const body = await request.json();
     const payload = sanitizePayload(body);

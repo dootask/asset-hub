@@ -7,6 +7,7 @@ import { getConsumableById } from "@/lib/repositories/consumables";
 import { listOperationsForConsumable } from "@/lib/repositories/consumable-operations";
 import { getConsumableStatusLabel } from "@/lib/types/consumable";
 import { listCompanies } from "@/lib/repositories/companies";
+import AdminOnly from "@/components/auth/AdminOnly";
 
 type PageParams = { locale: string; id: string };
 
@@ -119,19 +120,29 @@ export default async function ConsumableDetailPage({ params }: PageProps) {
           />
         </section>
         <section className="rounded-2xl border bg-card/70 p-4">
-          <h2 className="text-base font-semibold">
-            {isChinese ? "记录操作" : "Log Operation"}
-          </h2>
-          <p className="mb-4 text-sm text-muted-foreground">
-            {isChinese
-              ? "适用于无需审批的快速库存变更。"
-              : "Use for quick adjustments that do not require approval."}
-          </p>
-          <ConsumableOperationForm
-            consumableId={consumable.id}
-            locale={locale}
-            unit={consumable.unit}
-          />
+          <AdminOnly
+            fallback={
+              <div className="h-full flex items-center justify-center p-6 text-center text-sm text-muted-foreground border border-dashed rounded-2xl">
+                {isChinese
+                  ? "如需调整库存，请联系管理员。"
+                  : "Contact admin to adjust stock."}
+              </div>
+            }
+          >
+            <h2 className="text-base font-semibold">
+              {isChinese ? "记录操作" : "Log Operation"}
+            </h2>
+            <p className="mb-4 text-sm text-muted-foreground">
+              {isChinese
+                ? "适用于无需审批的快速库存变更。"
+                : "Use for quick adjustments that do not require approval."}
+            </p>
+            <ConsumableOperationForm
+              consumableId={consumable.id}
+              locale={locale}
+              unit={consumable.unit}
+            />
+          </AdminOnly>
         </section>
       </div>
     </div>

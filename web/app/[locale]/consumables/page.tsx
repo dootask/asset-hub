@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import PageHeader from "@/components/layout/PageHeader";
+import AdminOnly from "@/components/auth/AdminOnly";
 
 export const metadata: Metadata = {
   title: "耗材管理 - Asset Hub",
@@ -69,20 +70,26 @@ export default async function ConsumablesOverviewPage({
         }
       />
       <section className="grid gap-4 md:grid-cols-2">
-        {sections.map((section) => (
-          <Link
-            key={section.href}
-            href={section.href}
-            className="rounded-2xl border bg-card/70 p-5 transition hover:border-primary hover:bg-primary/5"
-          >
-            <h2 className="text-lg font-semibold">
-              {isChinese ? section.titleZh : section.titleEn}
-            </h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {isChinese ? section.descriptionZh : section.descriptionEn}
-            </p>
-          </Link>
-        ))}
+        {sections.map((section) => {
+          const content = (
+            <Link
+              href={section.href}
+              className="rounded-2xl border bg-card/70 p-5 transition hover:border-primary hover:bg-primary/5"
+            >
+              <h2 className="text-lg font-semibold">
+                {isChinese ? section.titleZh : section.titleEn}
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {isChinese ? section.descriptionZh : section.descriptionEn}
+              </p>
+            </Link>
+          );
+
+          if (section.href.includes("/settings")) {
+            return <AdminOnly key={section.href}>{content}</AdminOnly>;
+          }
+          return <div key={section.href} className="contents">{content}</div>;
+        })}
       </section>
     </div>
   );

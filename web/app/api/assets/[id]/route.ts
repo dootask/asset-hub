@@ -7,6 +7,8 @@ import {
 import { getAssetCategoryByCode } from "@/lib/repositories/asset-categories";
 import type { CreateAssetPayload } from "@/lib/types/asset";
 import { getCompanyByCode } from "@/lib/repositories/companies";
+import { extractUserFromRequest } from "@/lib/utils/request-user";
+import { isAdminUser } from "@/lib/utils/permissions";
 
 interface RouteParams {
   params: {
@@ -28,6 +30,14 @@ export async function GET(_: Request, { params }: RouteParams) {
 }
 
 export async function PUT(request: Request, { params }: RouteParams) {
+  const user = extractUserFromRequest(request);
+  if (!isAdminUser(user?.id)) {
+    return NextResponse.json(
+      { error: "FORBIDDEN", message: "只有系统管理员可以更新资产。" },
+      { status: 403 },
+    );
+  }
+
   try {
     const payload = (await request.json()) as CreateAssetPayload;
     if (!getAssetCategoryByCode(payload.category)) {
@@ -58,7 +68,15 @@ export async function PUT(request: Request, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(_: Request, { params }: RouteParams) {
+export async function DELETE(request: Request, { params }: RouteParams) {
+  const user = extractUserFromRequest(request);
+  if (!isAdminUser(user?.id)) {
+    return NextResponse.json(
+      { error: "FORBIDDEN", message: "只有系统管理员可以删除资产。" },
+      { status: 403 },
+    );
+  }
+
   const removed = deleteAsset(params.id);
 
   if (!removed) {

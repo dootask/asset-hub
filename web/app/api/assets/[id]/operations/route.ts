@@ -17,6 +17,7 @@ import {
 } from "@/lib/services/borrow-tracking";
 import { extractUserFromRequest } from "@/lib/utils/request-user";
 import { resolveServerFromRequest } from "@/lib/integrations/dootask-server-client";
+import { isAdminUser } from "@/lib/utils/permissions";
 
 const VALID_OPERATION_TYPES = OPERATION_TYPES.map((item) => item.value);
 
@@ -80,6 +81,14 @@ function sanitizeOperationPayload(
 }
 
 export async function POST(request: Request, { params }: RouteContext) {
+  const user = extractUserFromRequest(request);
+  if (!isAdminUser(user?.id)) {
+    return NextResponse.json(
+      { error: "FORBIDDEN", message: "只有系统管理员可以录入资产操作记录。" },
+      { status: 403 },
+    );
+  }
+
   const { id } = await params;
   const asset = getAssetById(id);
   if (!asset) {

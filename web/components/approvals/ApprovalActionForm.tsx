@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
+import { usePermissions } from "@/components/providers/PermissionProvider";
 
 const ACTIONS: { value: ApprovalAction; labelZh: string; labelEn: string }[] = [
   { value: "approve", labelZh: "通过", labelEn: "Approve" },
@@ -20,14 +21,20 @@ const ACTIONS: { value: ApprovalAction; labelZh: string; labelEn: string }[] = [
 interface Props {
   approvalId: string;
   locale?: string;
+  approverId?: string;
+  applicantId?: string;
 }
 
-export default function ApprovalActionForm({ approvalId, locale }: Props) {
+export default function ApprovalActionForm({ 
+  approvalId, 
+  locale,
+  approverId,
+  applicantId 
+}: Props) {
   const router = useRouter();
   const isChinese = locale === "zh";
-  const [applicant, setApplicant] = useState({ id: "", name: "" });
-  const [loadingUser, setLoadingUser] = useState(true);
-  const [action, setAction] = useState<ApprovalAction>("approve");
+  const { user, userReady, isAdmin, isApprover } = usePermissions();
+  const [action, setAction] = useState<ApprovalAction | null>(null);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const feedback = useAppFeedback();
@@ -38,31 +45,42 @@ export default function ApprovalActionForm({ approvalId, locale }: Props) {
     actorName: useId(),
   };
 
-  useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem("asset-hub:dootask-user");
-      if (raw) {
-        const parsed = JSON.parse(raw) as {
-          id?: number;
-          nickname?: string;
-        };
-        setApplicant({
-          id: parsed.id !== undefined ? String(parsed.id) : "",
-          name: parsed.nickname ?? "",
-        });
-      }
-    } catch {
-      // ignore
-    } finally {
-      setLoadingUser(false);
-    }
-  }, []);
+  const availableActions = useMemo(() => {
+    if (!userReady || !user) return [];
+    const userIdStr = String(user.id);
+    const allowed: typeof ACTIONS = [];
 
-  const canSubmit = useMemo(() => `${applicant.id}`.trim().length > 0, [applicant.id]);
+    // Admin or Assigned Approver can Approve/Reject
+    // Note: logic matches backend canApprove()
+    if (isAdmin || (isApprover && userIdStr === approverId)) {
+      allowed.push(ACTIONS[0]); // approve
+      allowed.push(ACTIONS[1]); // reject
+    }
+
+    // Applicant or Admin can Cancel
+    if (isAdmin || userIdStr === applicantId) {
+      allowed.push(ACTIONS[2]); // cancel
+    }
+
+    // Deduplicate just in case (though indices above are distinct)
+    return Array.from(new Set(allowed));
+  }, [user, userReady, isAdmin, isApprover, approverId, applicantId]);
+
+  // Set default action when available actions change
+  useEffect(() => {
+    if (availableActions.length > 0 && !action) {
+      setAction(availableActions[0].value);
+    }
+  }, [availableActions, action]);
+
+  if (!userReady) return null; // or loading spinner
+  if (availableActions.length === 0) return null;
+
+  const canSubmit = Boolean(user && action);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit || !user || !action) return;
     setSubmitting(true);
 
     try {
@@ -75,15 +93,15 @@ export default function ApprovalActionForm({ approvalId, locale }: Props) {
       })();
       const endpoint = `/apps/asset-hub/api/approvals/${approvalId}/actions${searchSuffix}`;
       const client = await getApiClient();
-      const response = await client.post<{
+      await client.post<{
         data?: ApprovalRequest;
         message?: string;
       }>(endpoint, {
         action,
         comment: comment.trim() ? comment.trim() : undefined,
         actor: {
-          id: `${applicant.id}`.trim(),
-          name: `${applicant.name}`.trim(),
+          id: String(user.id),
+          name: user.nickname,
         },
       });
 
@@ -130,12 +148,15 @@ export default function ApprovalActionForm({ approvalId, locale }: Props) {
         >
           {isChinese ? "操作类型" : "Action"}
         </Label>
-        <Select value={action} onValueChange={(value) => setAction(value as ApprovalAction)}>
+        <Select 
+          value={action || ""} 
+          onValueChange={(value) => setAction(value as ApprovalAction)}
+        >
           <SelectTrigger id={fieldIds.action} className="w-full">
-            <SelectValue />
+            <SelectValue placeholder={isChinese ? "请选择" : "Select action"} />
           </SelectTrigger>
           <SelectContent>
-            {ACTIONS.map((item) => (
+            {availableActions.map((item) => (
               <SelectItem key={item.value} value={item.value}>
                 {isChinese ? item.labelZh : item.labelEn}
               </SelectItem>
@@ -174,8 +195,8 @@ export default function ApprovalActionForm({ approvalId, locale }: Props) {
             id={fieldIds.actorId}
             required
             readOnly
-            disabled={loadingUser}
-            value={applicant.id}
+            disabled
+            value={user?.id ?? ""}
           />
         </div>
         <div className="space-y-1.5">
@@ -188,8 +209,8 @@ export default function ApprovalActionForm({ approvalId, locale }: Props) {
           <Input
             id={fieldIds.actorName}
             readOnly
-            disabled={loadingUser}
-            value={applicant.name}
+            disabled
+            value={user?.nickname ?? ""}
           />
         </div>
       </div>

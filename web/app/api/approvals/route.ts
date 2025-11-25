@@ -21,6 +21,7 @@ import type { ActionConfig } from "@/lib/types/action-config";
 import { approvalTypeToActionConfigId } from "@/lib/utils/action-config";
 import { createExternalApprovalTodo } from "@/lib/integrations/dootask-todos";
 import { notifyApprovalCreated } from "@/lib/services/approval-notifications";
+import { isAdminUser } from "@/lib/utils/permissions";
 
 const STATUS_ALLOW_LIST = APPROVAL_STATUSES.map((item) => item.value);
 const TYPE_ALLOW_LIST = APPROVAL_TYPES.map((item) => item.value);
@@ -51,6 +52,10 @@ function parseListParam<T extends string>(
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
+  const user = extractUserFromRequest(request);
+  const currentUserId = user?.id ? String(user.id) : undefined;
+  const isAdmin = isAdminUser(currentUserId);
+
   const statusParam = parseListParam<ApprovalStatus>(
     searchParams.get("status"),
     STATUS_ALLOW_LIST,
@@ -60,8 +65,20 @@ export async function GET(request: Request) {
     TYPE_ALLOW_LIST,
   );
 
-  const role = searchParams.get("role");
-  const userId = searchParams.get("userId") ?? undefined;
+  // Security: Enforce user context for non-admins
+  let role = searchParams.get("role");
+  let userId = searchParams.get("userId") ?? undefined;
+
+  if (!isAdmin) {
+    // For non-admins, we ignore the passed userId and enforce the current session user
+    userId = currentUserId;
+
+    // If no specific view role is requested, default to "my-requests"
+    // This prevents non-admins from listing all approvals by simply omitting parameters
+    if (!role || (role !== "my-requests" && role !== "my-tasks")) {
+      role = "my-requests";
+    }
+  }
 
   const page = Number(searchParams.get("page"));
   const pageSize = Number(searchParams.get("pageSize"));

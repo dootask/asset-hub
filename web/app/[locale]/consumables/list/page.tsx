@@ -4,6 +4,7 @@ import ConsumableFilters from "@/components/consumables/ConsumableFilters";
 import ConsumableTable from "@/components/consumables/ConsumableTable";
 import PageHeader from "@/components/layout/PageHeader";
 import { listConsumableCategories } from "@/lib/repositories/consumable-categories";
+import AdminOnly from "@/components/auth/AdminOnly";
 import {
   getConsumableStockStats,
   listConsumables,
@@ -108,20 +109,22 @@ export default async function ConsumableListPage({
             : "Monitor consumable stock levels and status."
         }
         actions={
-          <>
-            <Link
-              href={withLocale("/consumables/import-export")}
-              className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-            >
-              {isChinese ? "导入 / 导出" : "Import / Export"}
-            </Link>
-            <Link
-              href={withLocale("/consumables/settings")}
-              className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-            >
-              {isChinese ? "类别管理" : "Categories"}
-            </Link>
-          </>
+          <AdminOnly>
+            <div className="flex items-center gap-2">
+              <Link
+                href={withLocale("/consumables/import-export")}
+                className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+              >
+                {isChinese ? "导入 / 导出" : "Import / Export"}
+              </Link>
+              <Link
+                href={withLocale("/consumables/settings")}
+                className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+              >
+                {isChinese ? "类别管理" : "Categories"}
+              </Link>
+            </div>
+          </AdminOnly>
         }
       />
 

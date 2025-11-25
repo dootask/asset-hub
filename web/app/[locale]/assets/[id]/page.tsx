@@ -15,6 +15,7 @@ import { getAssetStatusLabel } from "@/lib/types/asset";
 import { listAssetCategories } from "@/lib/repositories/asset-categories";
 import { listOperationTemplates } from "@/lib/repositories/operation-templates";
 import { listCompanies } from "@/lib/repositories/companies";
+import AdminOnly from "@/components/auth/AdminOnly";
 
 type PageParams = { id: string; locale: string };
 type PageProps = {
@@ -75,7 +76,11 @@ export default async function AssetDetailPage({ params }: PageProps) {
         ]}
         title={asset.name}
         description={asset.id}
-        actions={<DisposeAssetButton assetId={asset.id} locale={locale} />}
+        actions={
+          <AdminOnly>
+            <DisposeAssetButton assetId={asset.id} locale={locale} />
+          </AdminOnly>
+        }
       />
 
       <section className="rounded-2xl border bg-muted/30 p-6">
@@ -83,12 +88,14 @@ export default async function AssetDetailPage({ params }: PageProps) {
           <h2 className="text-lg font-semibold">
             {isChinese ? "基础信息" : "Basic Info"}
           </h2>
-          <EditAssetDialog
-            asset={asset}
-            locale={locale}
-            categories={categories}
-            companies={companies}
-          />
+          <AdminOnly>
+            <EditAssetDialog
+              asset={asset}
+              locale={locale}
+              categories={categories}
+              companies={companies}
+            />
+          </AdminOnly>
         </div>
         <dl className="mt-4 grid gap-4 sm:grid-cols-2">
           <div>
@@ -146,11 +153,13 @@ export default async function AssetDetailPage({ params }: PageProps) {
               </p>
             </div>
             <div className="w-full sm:w-auto">
-              <OperationFormDialog
-                assetId={asset.id}
-                locale={locale}
-                templates={operationTemplates}
-              />
+              <AdminOnly>
+                <OperationFormDialog
+                  assetId={asset.id}
+                  locale={locale}
+                  templates={operationTemplates}
+                />
+              </AdminOnly>
             </div>
           </div>
           <div className="mt-2">

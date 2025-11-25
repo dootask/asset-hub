@@ -11,6 +11,8 @@ import {
   type CreateConsumableOperationPayload,
 } from "@/lib/types/consumable-operation";
 import { getConsumableActionConfig } from "@/lib/config/consumable-action-configs";
+import { extractUserFromRequest } from "@/lib/utils/request-user";
+import { isAdminUser } from "@/lib/utils/permissions";
 
 const VALID_TYPES = CONSUMABLE_OPERATION_TYPES.map((item) => item.value);
 const VALID_STATUSES: ConsumableOperationStatus[] = ["pending", "done"];
@@ -141,6 +143,14 @@ export async function GET(_: Request, { params }: RouteContext) {
 }
 
 export async function POST(request: Request, { params }: RouteContext) {
+  const user = extractUserFromRequest(request);
+  if (!isAdminUser(user?.id)) {
+    return NextResponse.json(
+      { error: "FORBIDDEN", message: "只有系统管理员可以手动录入耗材操作。" },
+      { status: 403 },
+    );
+  }
+
   const { id } = await params;
   const consumable = getConsumableById(id);
   if (!consumable) {

@@ -6,6 +6,8 @@ import {
 } from "@/lib/repositories/consumables";
 import type { ConsumableStatus } from "@/lib/types/consumable";
 import { CONSUMABLE_STATUSES } from "@/lib/types/consumable";
+import { extractUserFromRequest } from "@/lib/utils/request-user";
+import { isAdminUser } from "@/lib/utils/permissions";
 
 const STATUS_ALLOW_LIST = new Set<ConsumableStatus>(CONSUMABLE_STATUSES);
 
@@ -71,6 +73,14 @@ export async function GET(_request: Request, { params }: RouteContext) {
 }
 
 export async function PUT(request: Request, { params }: RouteContext) {
+  const user = extractUserFromRequest(request);
+  if (!isAdminUser(user?.id)) {
+    return NextResponse.json(
+      { error: "FORBIDDEN", message: "只有系统管理员可以更新耗材。" },
+      { status: 403 },
+    );
+  }
+
   try {
     const { id } = await params;
     const payload = sanitizePayload(await request.json());
@@ -94,7 +104,15 @@ export async function PUT(request: Request, { params }: RouteContext) {
   }
 }
 
-export async function DELETE(_request: Request, { params }: RouteContext) {
+export async function DELETE(request: Request, { params }: RouteContext) {
+  const user = extractUserFromRequest(request);
+  if (!isAdminUser(user?.id)) {
+    return NextResponse.json(
+      { error: "FORBIDDEN", message: "只有系统管理员可以删除耗材。" },
+      { status: 403 },
+    );
+  }
+
   const { id } = await params;
   const removed = deleteConsumable(id);
   if (!removed) {

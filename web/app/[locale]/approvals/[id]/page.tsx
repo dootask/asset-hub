@@ -253,7 +253,12 @@ export default async function ApprovalDetailPage({ params }: PageProps) {
       </section>
 
       {approval.status === "pending" && (
-        <ApprovalActionForm approvalId={approval.id} locale={locale} />
+        <ApprovalActionForm
+          approvalId={approval.id}
+          locale={locale}
+          approverId={approval.approverId}
+          applicantId={approval.applicantId}
+        />
       )}
     </div>
   );

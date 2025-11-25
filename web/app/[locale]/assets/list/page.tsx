@@ -7,6 +7,7 @@ import { type Asset, getAssetStatusLabel } from "@/lib/types/asset";
 import { listAssetCategories } from "@/lib/repositories/asset-categories";
 import { listCompanies } from "@/lib/repositories/companies";
 import { getApiClient } from "@/lib/http/client";
+import AdminOnly from "@/components/auth/AdminOnly";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -121,26 +122,28 @@ export default async function AssetListPage({
             : "Filter by keyword, company, status, or category and create new assets anytime."
         }
         actions={
-          <>
-            <Link
-              href={withLocale("/assets/new")}
-              className="inline-flex items-center justify-center whitespace-nowrap rounded-2xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow"
-            >
-              {isChinese ? "新增资产" : "New Asset"}
-            </Link>
-            <Link
-              href={withLocale("/assets/categories")}
-              className="inline-flex items-center justify-center whitespace-nowrap rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-            >
-              {isChinese ? "分类管理" : "Manage Categories"}
-            </Link>
-            <Link
-              href={withLocale("/assets/import-export")}
-              className="inline-flex items-center justify-center whitespace-nowrap rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-            >
-              {isChinese ? "导入 / 导出" : "Import / Export"}
-            </Link>
-          </>
+          <AdminOnly>
+            <div className="flex items-center gap-2">
+              <Link
+                href={withLocale("/assets/new")}
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-2xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow"
+              >
+                {isChinese ? "新增资产" : "New Asset"}
+              </Link>
+              <Link
+                href={withLocale("/assets/categories")}
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+              >
+                {isChinese ? "分类管理" : "Manage Categories"}
+              </Link>
+              <Link
+                href={withLocale("/assets/import-export")}
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+              >
+                {isChinese ? "导入 / 导出" : "Import / Export"}
+              </Link>
+            </div>
+          </AdminOnly>
         }
       />
 

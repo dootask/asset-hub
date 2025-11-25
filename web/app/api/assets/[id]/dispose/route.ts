@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAssetById, updateAsset } from "@/lib/repositories/assets";
 import { createAssetOperation } from "@/lib/repositories/asset-operations";
 import { extractUserFromRequest } from "@/lib/utils/request-user";
+import { isAdminUser } from "@/lib/utils/permissions";
 
 interface RouteParams {
   params: {
@@ -10,6 +11,14 @@ interface RouteParams {
 }
 
 export async function POST(request: Request, { params }: RouteParams) {
+  const checkUser = extractUserFromRequest(request);
+  if (!isAdminUser(checkUser?.id)) {
+    return NextResponse.json(
+      { error: "FORBIDDEN", message: "只有系统管理员可以执行资产报废。" },
+      { status: 403 },
+    );
+  }
+
   const asset = getAssetById(params.id);
   if (!asset) {
     return NextResponse.json(

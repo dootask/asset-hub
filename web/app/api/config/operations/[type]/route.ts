@@ -54,7 +54,27 @@ export async function GET(_request: Request, { params }: RouteContext) {
   }
 }
 
+import { extractUserFromRequest } from "@/lib/utils/request-user";
+import { isAdminUser } from "@/lib/utils/permissions";
+
+// ... existing imports ...
+
+function ensureAdmin(request: Request) {
+  const user = extractUserFromRequest(request);
+  if (!isAdminUser(user?.id)) {
+    return NextResponse.json(
+      { error: "FORBIDDEN", message: "只有系统管理员可以修改操作模板。" },
+      { status: 403 },
+    );
+  }
+  return null;
+}
+
 export async function PUT(request: Request, { params }: RouteContext) {
+  const forbidden = ensureAdmin(request);
+  if (forbidden) {
+    return forbidden;
+  }
   try {
     const type = await resolveType(params);
     const payload = await request.json();

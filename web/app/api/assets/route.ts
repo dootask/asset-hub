@@ -4,6 +4,8 @@ import { getAssetCategoryByCode } from "@/lib/repositories/asset-categories";
 import type { AssetStatus, CreateAssetPayload } from "@/lib/types/asset";
 import { ASSET_STATUSES } from "@/lib/types/asset";
 import { getCompanyByCode } from "@/lib/repositories/companies";
+import { extractUserFromRequest } from "@/lib/utils/request-user";
+import { isAdminUser } from "@/lib/utils/permissions";
 
 function parseStatuses(searchParams: URLSearchParams): AssetStatus[] | undefined {
   const rawStatuses = [
@@ -91,6 +93,14 @@ function sanitizePayload(payload: Partial<CreateAssetPayload>): CreateAssetPaylo
 }
 
 export async function POST(request: Request) {
+  const user = extractUserFromRequest(request);
+  if (!isAdminUser(user?.id)) {
+    return NextResponse.json(
+      { error: "FORBIDDEN", message: "只有系统管理员可以创建资产。" },
+      { status: 403 },
+    );
+  }
+
   try {
     const rawPayload = (await request.json()) as Partial<CreateAssetPayload>;
     const payload = sanitizePayload(rawPayload);
