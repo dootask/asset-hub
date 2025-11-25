@@ -156,36 +156,42 @@ export default async function LocaleDashboard({
       key: "assets-idle",
       label: isChinese ? "闲置资产" : "Idle Assets",
       value: overview.stats.idle,
+      adminOnly: false,
     },
     {
       key: "operations-range",
       label: isChinese ? `${range} 天操作` : `Ops (${range}d)`,
       value: recentOperations,
       href: "/system/operation",
+      adminOnly: true,
     },
     {
       key: "companies",
       label: isChinese ? "公司数量" : "Companies",
       value: summary.companies,
       href: "/system/company",
+      adminOnly: true,
     },
     {
       key: "roles",
       label: isChinese ? "角色数量" : "Roles",
       value: summary.roles,
       href: "/system/role",
+      adminOnly: true,
     },
     {
       key: "consumables",
       label: isChinese ? "耗材记录" : "Consumables",
       value: summary.consumables ?? 0,
       href: "/consumables/list",
+      adminOnly: false,
     },
     {
       key: "inventory-tasks",
       label: isChinese ? "盘点任务" : "Inventory Tasks",
       value: inventoryCount,
       href: "/assets/inventory",
+      adminOnly: true,
     },
   ];
 
@@ -369,8 +375,9 @@ export default async function LocaleDashboard({
                   <p className="text-xl font-semibold">{card.value}</p>
                 </>
               );
+              let wrappedContent;
               if (card.href) {
-                return (
+                wrappedContent = (
                   <Link
                     key={card.key}
                     href={withLocale(card.href)}
@@ -379,15 +386,21 @@ export default async function LocaleDashboard({
                     {content}
                   </Link>
                 );
+              } else {
+                wrappedContent = (
+                  <div
+                    key={card.key}
+                    className="rounded-2xl border bg-background/50 px-4 py-3 text-left text-sm"
+                  >
+                    {content}
+                  </div>
+                );
               }
-              return (
-                <div
-                  key={card.key}
-                  className="rounded-2xl border bg-background/50 px-4 py-3 text-left text-sm"
-                >
-                  {content}
-                </div>
-              );
+
+              if (card.adminOnly) {
+                return <AdminOnly key={card.key}>{wrappedContent}</AdminOnly>;
+              }
+              return wrappedContent;
             })}
           </div>
         </div>
