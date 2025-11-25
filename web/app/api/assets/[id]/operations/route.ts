@@ -15,6 +15,8 @@ import {
   handleBorrowOperationCreated,
   handleReturnOperationCreated,
 } from "@/lib/services/borrow-tracking";
+import { extractUserFromRequest } from "@/lib/utils/request-user";
+import { resolveServerFromRequest } from "@/lib/integrations/dootask-server-client";
 
 const VALID_OPERATION_TYPES = OPERATION_TYPES.map((item) => item.value);
 
@@ -95,7 +97,12 @@ export async function POST(request: Request, { params }: RouteContext) {
     const operation = createAssetOperation(id, payload);
     applyOperationSideEffects(asset, operation);
     if (operation.type === "borrow") {
-      handleBorrowOperationCreated(asset.id, operation);
+      const user = extractUserFromRequest(request);
+      const serverOrigin = resolveServerFromRequest(request);
+      handleBorrowOperationCreated(asset.id, operation, {
+        borrowerToken: user?.token ?? null,
+        serverOrigin,
+      });
     } else if (operation.type === "return") {
       handleReturnOperationCreated(asset.id, operation);
     }

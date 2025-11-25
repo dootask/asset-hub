@@ -3,6 +3,7 @@ import type { ApprovalActionPayload, ApprovalRequest } from "@/lib/types/approva
 import { applyApprovalAction, getApprovalRequestById } from "@/lib/repositories/approvals";
 import { extractUserFromRequest } from "@/lib/utils/request-user";
 import { canApproveUser, isAdminUser } from "@/lib/utils/permissions";
+import { notifyApprovalUpdated } from "@/lib/services/approval-notifications";
 
 type RouteContext = {
   params: Promise<{
@@ -115,6 +116,14 @@ export async function POST(request: Request, { params }: RouteContext) {
       },
     });
 
+    void (async () => {
+      await notifyApprovalUpdated({
+        request,
+        approval,
+        actorName: currentUser.nickname ?? currentUser.id,
+      });
+    })();
+
     return NextResponse.json({ data: approval });
   } catch (error) {
     const message =
@@ -129,4 +138,3 @@ export async function POST(request: Request, { params }: RouteContext) {
     );
   }
 }
-

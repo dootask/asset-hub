@@ -38,7 +38,6 @@ pnpm dev
 - `/apps/asset-hub/{locale}/system/alerts`：告警配置页，可启用/停用耗材低库存告警与 DooTask 待办推送。
 - `/apps/asset-hub/{locale}/consumables/import-export`：耗材导入 / 导出，同样要求 `companyCode` 字段以关联公司。
 - `/apps/asset-hub/api/assets/borrows/overdue`：列出已超过计划归还日期但尚未归还的借用记录，供提醒或自动化任务使用。
-- 运营指南：参阅仓库根目录 `RELEASE_NOTES.md`、`docs/launch-checklist.md`、`docs/borrow-overdue-reminder.md`。
 
 ## 测试与校验
 

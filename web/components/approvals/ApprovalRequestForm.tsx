@@ -15,7 +15,6 @@ import {
   appReady,
   fetchUserBasic,
 } from "@dootask/tools";
-import { sendApprovalCreatedNotification } from "@/lib/client/dootask-notifications";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -759,13 +758,6 @@ export default function ApprovalRequestForm({
       });
 
       const payload = response.data;
-
-      if (payload?.data) {
-        void sendApprovalCreatedNotification({
-          approval: payload.data,
-          locale,
-        });
-      }
 
       setFormState({
         type: APPROVAL_TYPES[0].value,

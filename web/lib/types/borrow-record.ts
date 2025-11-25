@@ -5,6 +5,8 @@ export interface BorrowRecord {
   assetId: string;
   borrowOperationId: string;
   borrower?: string | null;
+  borrowerToken?: string | null;
+  serverOrigin?: string | null;
   plannedReturnDate?: string | null;
   status: BorrowRecordStatus;
   returnOperationId?: string | null;
@@ -19,5 +21,4 @@ export interface OverdueBorrowRecord extends BorrowRecord {
   assetName: string;
   assetOwner: string;
 }
-
 

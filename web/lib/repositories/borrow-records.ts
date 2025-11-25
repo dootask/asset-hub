@@ -11,6 +11,8 @@ type BorrowRecordRow = {
   asset_id: string;
   borrow_operation_id: string;
   borrower: string | null;
+  borrower_token: string | null;
+  server_origin: string | null;
   planned_return_date: string | null;
   status: BorrowRecordStatus;
   return_operation_id: string | null;
@@ -27,6 +29,8 @@ function mapRow(row: BorrowRecordRow): BorrowRecord {
     assetId: row.asset_id,
     borrowOperationId: row.borrow_operation_id,
     borrower: row.borrower,
+    borrowerToken: row.borrower_token,
+    serverOrigin: row.server_origin,
     plannedReturnDate: row.planned_return_date,
     status: row.status,
     returnOperationId: row.return_operation_id,
@@ -50,6 +54,8 @@ export function upsertBorrowRecord(payload: {
   assetId: string;
   borrowOperationId: string;
   borrower?: string | null;
+  borrowerToken?: string | null;
+  serverOrigin?: string | null;
   plannedReturnDate?: string | null;
 }) {
   const db = getDb();
@@ -64,11 +70,15 @@ export function upsertBorrowRecord(payload: {
       `UPDATE asset_borrow_records
        SET borrower = COALESCE(@borrower, borrower),
            planned_return_date = COALESCE(@plannedReturnDate, planned_return_date),
+           borrower_token = COALESCE(@borrowerToken, borrower_token),
+           server_origin = COALESCE(@serverOrigin, server_origin),
            updated_at = datetime('now')
        WHERE id = @id`,
     ).run({
       id: existing.id,
       borrower: payload.borrower ?? null,
+      borrowerToken: payload.borrowerToken ?? null,
+      serverOrigin: payload.serverOrigin ?? null,
       plannedReturnDate: payload.plannedReturnDate ?? null,
     });
     return getBorrowRecordById(existing.id);
@@ -81,6 +91,8 @@ export function upsertBorrowRecord(payload: {
         asset_id,
         borrow_operation_id,
         borrower,
+        borrower_token,
+        server_origin,
         planned_return_date,
         status,
         created_at,
@@ -90,6 +102,8 @@ export function upsertBorrowRecord(payload: {
         @assetId,
         @borrowOperationId,
         @borrower,
+        @borrowerToken,
+        @serverOrigin,
         @plannedReturnDate,
         'active',
         datetime('now'),
@@ -100,6 +114,8 @@ export function upsertBorrowRecord(payload: {
     assetId: payload.assetId,
     borrowOperationId: payload.borrowOperationId,
     borrower: payload.borrower ?? null,
+    borrowerToken: payload.borrowerToken ?? null,
+    serverOrigin: payload.serverOrigin ?? null,
     plannedReturnDate: payload.plannedReturnDate ?? null,
   });
 
@@ -140,6 +156,16 @@ export function markBorrowRecordReturned(
   return getBorrowRecordById(record.id);
 }
 
+export function markBorrowRecordOverdueNotified(id: string) {
+  const db = getDb();
+  db.prepare(
+    `UPDATE asset_borrow_records
+     SET overdue_notified_at = datetime('now'),
+         updated_at = datetime('now')
+     WHERE id = @id`,
+  ).run({ id });
+}
+
 export function listOverdueBorrowRecords(referenceDate?: string) {
   const db = getDb();
   const targetDate =
@@ -165,7 +191,7 @@ export function listOverdueBorrowRecords(referenceDate?: string) {
     ...mapRow(row),
     assetName: row.asset_name,
     assetOwner: row.asset_owner,
+    borrowerToken: row.borrower_token,
+    serverOrigin: row.server_origin,
   })) as OverdueBorrowRecord[];
 }
-
-

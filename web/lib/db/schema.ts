@@ -174,6 +174,8 @@ export const CREATE_TABLES = {
       asset_id TEXT NOT NULL,
       borrow_operation_id TEXT NOT NULL UNIQUE,
       borrower TEXT,
+      borrower_token TEXT,
+      server_origin TEXT,
       planned_return_date TEXT,
       status TEXT NOT NULL DEFAULT ('active'),
       return_operation_id TEXT,
@@ -722,4 +724,3 @@ export const seedConsumables = [
     metadata: null,
   },
 ];
-

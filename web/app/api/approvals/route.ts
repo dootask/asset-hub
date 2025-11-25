@@ -20,6 +20,7 @@ import { getRoleById } from "@/lib/repositories/roles";
 import type { ActionConfig } from "@/lib/types/action-config";
 import { approvalTypeToActionConfigId } from "@/lib/utils/action-config";
 import { createExternalApprovalTodo } from "@/lib/integrations/dootask-todos";
+import { notifyApprovalCreated } from "@/lib/services/approval-notifications";
 
 const STATUS_ALLOW_LIST = APPROVAL_STATUSES.map((item) => item.value);
 const TYPE_ALLOW_LIST = APPROVAL_TYPES.map((item) => item.value);
@@ -361,6 +362,10 @@ export async function POST(request: Request) {
       if (externalId) {
         setApprovalExternalTodo(approval.id, externalId);
       }
+      await notifyApprovalCreated({
+        request,
+        approval,
+      });
     })();
 
     return NextResponse.json({ data: approval }, { status: 201 });
@@ -374,4 +379,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

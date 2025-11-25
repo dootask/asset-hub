@@ -57,6 +57,16 @@ function ensureSchemaUpgrades() {
     "consumable_operation_id TEXT",
   );
   ensureColumn(
+    "asset_borrow_records",
+    "borrower_token",
+    "borrower_token TEXT",
+  );
+  ensureColumn(
+    "asset_borrow_records",
+    "server_origin",
+    "server_origin TEXT",
+  );
+  ensureColumn(
     "consumables",
     "reserved_quantity",
     "reserved_quantity INTEGER NOT NULL DEFAULT 0",
@@ -247,4 +257,3 @@ function run() {
 
 run();
 db.close();
-

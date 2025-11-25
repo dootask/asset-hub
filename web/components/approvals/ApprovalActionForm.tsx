@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { sendApprovalUpdatedNotification } from "@/lib/client/dootask-notifications";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
 
@@ -87,17 +86,6 @@ export default function ApprovalActionForm({ approvalId, locale }: Props) {
           name: `${applicant.name}`.trim(),
         },
       });
-
-      const payload = response.data;
-
-      if (payload?.data) {
-        const actorName = applicant.name || applicant.id;
-        void sendApprovalUpdatedNotification({
-          approval: payload.data,
-          locale,
-          actorName,
-        });
-      }
 
       setComment("");
       router.refresh();
