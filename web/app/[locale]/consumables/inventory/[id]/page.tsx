@@ -4,6 +4,7 @@ import PageHeader from "@/components/layout/PageHeader";
 import ConsumableInventoryEntriesTable from "@/components/consumables/ConsumableInventoryEntriesTable";
 import ConsumableInventoryStatusControls from "@/components/consumables/ConsumableInventoryStatusControls";
 import { getConsumableInventoryTask } from "@/lib/repositories/consumable-inventory";
+import { requireAdminUser } from "@/lib/server/auth";
 
 type PageParams = {
   locale: string;
@@ -16,6 +17,8 @@ export default async function ConsumableInventoryDetailPage({
   params: Promise<PageParams>;
 }) {
   const { locale, id } = await params;
+  await requireAdminUser(locale);
+
   const task = getConsumableInventoryTask(id);
   if (!task) {
     notFound();

@@ -85,7 +85,7 @@ export default async function ConsumablesOverviewPage({
             </Link>
           );
 
-          if (section.href.includes("/settings")) {
+          if (section.href.includes("/settings") || section.href.includes("/inventory")) {
             return <AdminOnly key={section.href}>{content}</AdminOnly>;
           }
           return <div key={section.href} className="contents">{content}</div>;

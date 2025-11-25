@@ -1,12 +1,7 @@
 import { NextResponse } from "next/server";
-import {
-  getConsumableInventoryTask,
-  updateConsumableInventoryTask,
-} from "@/lib/repositories/consumable-inventory";
-import type {
-  ConsumableInventoryTaskStatus,
-  UpdateConsumableInventoryTaskPayload,
-} from "@/lib/types/consumable-inventory";
+import { getConsumableInventoryTask, updateConsumableInventoryTask } from "@/lib/repositories/consumable-inventory";
+import type { ConsumableInventoryTaskStatus, UpdateConsumableInventoryTaskPayload } from "@/lib/types/consumable-inventory";
+import { ensureAdminApiAccess } from "@/lib/server/api-guards";
 
 const TASK_STATUSES: ConsumableInventoryTaskStatus[] = [
   "draft",
@@ -111,6 +106,9 @@ export async function GET(_: Request, { params }: RouteContext) {
 }
 
 export async function PUT(request: Request, { params }: RouteContext) {
+  const forbidden = ensureAdminApiAccess(request, "只有系统管理员可以更新盘点任务。");
+  if (forbidden) return forbidden;
+
   const { id } = await params;
   try {
     const payload = sanitizeUpdatePayload(await request.json());

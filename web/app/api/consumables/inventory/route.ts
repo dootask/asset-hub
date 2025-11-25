@@ -1,12 +1,7 @@
 import { NextResponse } from "next/server";
-import {
-  createConsumableInventoryTask,
-  listConsumableInventoryTasks,
-} from "@/lib/repositories/consumable-inventory";
-import type {
-  ConsumableInventoryTaskStatus,
-  CreateConsumableInventoryTaskPayload,
-} from "@/lib/types/consumable-inventory";
+import { createConsumableInventoryTask, listConsumableInventoryTasks } from "@/lib/repositories/consumable-inventory";
+import type { ConsumableInventoryTaskStatus, CreateConsumableInventoryTaskPayload } from "@/lib/types/consumable-inventory";
+import { ensureAdminApiAccess } from "@/lib/server/api-guards";
 
 const TASK_STATUSES: ConsumableInventoryTaskStatus[] = [
   "draft",
@@ -80,6 +75,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const forbidden = ensureAdminApiAccess(request, "只有系统管理员可以创建盘点任务。");
+  if (forbidden) return forbidden;
+
   try {
     const payload = sanitizeCreatePayload(await request.json());
     const task = createConsumableInventoryTask(payload);
