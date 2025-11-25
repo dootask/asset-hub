@@ -8,6 +8,7 @@ type UserContext = {
   token?: string;
   nickname?: string;
   baseUrl?: string;
+  locale?: string;
 };
 
 function getServerFallbackUserId() {
@@ -37,7 +38,9 @@ function extractUserFromStorage(): UserContext {
         })
       : null;
 
-    const baseUrl = sessionStorage.getItem("asset-hub:dootask-base-url") ?? undefined;
+    const baseUrl =
+      sessionStorage.getItem("asset-hub:dootask-base-url") ?? undefined;
+    const locale = sessionStorage.getItem("asset-hub:locale") ?? undefined;
 
     return parsed
       ? {
@@ -48,11 +51,19 @@ function extractUserFromStorage(): UserContext {
           token: parsed.token ?? undefined,
           nickname: parsed.nickname ?? undefined,
           baseUrl: baseUrl ?? undefined,
+          locale: locale ?? undefined,
         }
-      : { baseUrl: baseUrl ?? undefined };
+      : { baseUrl: baseUrl ?? undefined, locale: locale ?? undefined };
   } catch {
     return {};
   }
+}
+
+function detectLocaleFromDom() {
+  if (typeof document === "undefined") return undefined;
+  const lang = document.documentElement.lang;
+  if (lang) return lang;
+  return navigator.language?.split("-")?.[0];
 }
 
 function encodeHeaderValue(value: string) {
@@ -96,6 +107,10 @@ function attachUserHeaders(
     config.headers["x-base-url"] ??= context.baseUrl;
   }
 
+  if (context.locale) {
+    config.headers["x-user-locale"] ??= context.locale;
+  }
+
   return config;
 }
 
@@ -109,6 +124,9 @@ function createBrowserClient(): AxiosInstance {
   const client = axios.create({ baseURL });
   client.interceptors.request.use((config) => {
     const context = extractUserFromStorage();
+    if (!context.locale) {
+      context.locale = detectLocaleFromDom();
+    }
     return attachUserHeaders(config, context);
   });
   return client;
@@ -127,6 +145,7 @@ async function createServerClient(): Promise<AxiosInstance> {
     token: incomingHeaders.get("x-user-token") ?? undefined,
     nickname: decodeHeaderValue(incomingHeaders.get("x-user-nickname")),
     baseUrl: incomingHeaders.get("x-base-url") ?? undefined,
+    locale: incomingHeaders.get("x-user-locale") ?? undefined,
   };
   const client = axios.create({ baseURL });
   client.interceptors.request.use((config) => attachUserHeaders(config, context));

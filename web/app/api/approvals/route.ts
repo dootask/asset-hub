@@ -356,6 +356,7 @@ export async function POST(request: Request) {
       metadata: metadataWithConfig,
     };
     const approval = createApprovalRequest(safePayload);
+    const locale = request.headers.get("x-user-locale") ?? undefined;
 
     void (async () => {
       const externalId = await createExternalApprovalTodo(approval);
@@ -365,6 +366,7 @@ export async function POST(request: Request) {
       await notifyApprovalCreated({
         request,
         approval,
+        locale,
       });
     })();
 

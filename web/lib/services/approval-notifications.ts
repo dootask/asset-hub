@@ -2,15 +2,24 @@ import type { ApprovalRequest } from "@/lib/types/approval";
 import { createDooTaskClientFromRequest } from "@/lib/integrations/dootask-server-client";
 import { sendApprovalBotMessage } from "@/lib/integrations/dootask-notifications-server";
 
+function resolveLocale(locale?: string) {
+  const normalized = locale?.toLowerCase() ?? "";
+  if (normalized.startsWith("zh")) {
+    return "zh";
+  }
+  return "en";
+}
+
 function buildApprovalCreatedText(approval: ApprovalRequest, locale?: string) {
+  const lang = resolveLocale(locale);
   const lines = [
-    locale === "zh" ? "**资产审批提醒**" : "**Asset Approval Reminder**",
-    `- ${locale === "zh" ? "类型" : "Type"}：${approval.type}`,
-    `- ${locale === "zh" ? "标题" : "Title"}：${approval.title}`,
-    `- ${locale === "zh" ? "申请人" : "Applicant"}：${
+    lang === "zh" ? "**资产审批提醒**" : "**Asset Approval Reminder**",
+    `- ${lang === "zh" ? "类型" : "Type"}：${approval.type}`,
+    `- ${lang === "zh" ? "标题" : "Title"}：${approval.title}`,
+    `- ${lang === "zh" ? "申请人" : "Applicant"}：${
       approval.applicantName ?? approval.applicantId ?? "-"
     }`,
-    locale === "zh"
+    lang === "zh"
       ? "> 查看详情：请在应用中心查看"
       : "> Details: Please open Asset Hub inside DooTask.",
   ];
@@ -22,14 +31,15 @@ function buildApprovalUpdatedText(
   locale?: string,
   actorName?: string,
 ) {
+  const lang = resolveLocale(locale);
   const lines = [
-    locale === "zh" ? "**审批状态更新**" : "**Approval Status Update**",
-    `- ${locale === "zh" ? "标题" : "Title"}：${approval.title}`,
-    `- ${locale === "zh" ? "状态" : "Status"}：${approval.status}`,
+    lang === "zh" ? "**审批状态更新**" : "**Approval Status Update**",
+    `- ${lang === "zh" ? "标题" : "Title"}：${approval.title}`,
+    `- ${lang === "zh" ? "状态" : "Status"}：${approval.status}`,
     actorName
-      ? `- ${locale === "zh" ? "处理人" : "Actor"}：${actorName}`
+      ? `- ${lang === "zh" ? "处理人" : "Actor"}：${actorName}`
       : undefined,
-    locale === "zh"
+    lang === "zh"
       ? "> 查看详情：请在应用中心查看"
       : "> Details: Please open Asset Hub inside DooTask.",
   ].filter(Boolean);

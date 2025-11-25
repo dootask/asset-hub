@@ -43,6 +43,14 @@ export default function DooTaskBridge() {
           sessionStorage.removeItem("asset-hub:dootask-user");
         }
 
+        // Persist current locale from document for server requests
+        const locale =
+          document.documentElement.lang ||
+          window.navigator.language?.split("-")?.[0];
+        if (locale) {
+          sessionStorage.setItem("asset-hub:locale", locale);
+        }
+
         window.dispatchEvent(
           new CustomEvent("asset-hub:user-updated", { detail: payload }),
         );

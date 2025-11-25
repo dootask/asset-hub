@@ -33,25 +33,28 @@ export async function sendBorrowOverdueNotifications(options: NotifyOptions = {}
     }
 
     try {
-      const user = await client.getUserInfo();
-      if (!user?.id) {
+      const user = Object.assign({
+        lang: "en",
+      }, await client.getUserInfo());
+      if (!user?.userid) {
         skipped.push(record.id);
         continue;
       }
 
+      const lang = (user.lang ?? "en").toLowerCase().startsWith("zh") ? "zh" : "en";
       const lines = [
-        "**借用逾期提醒**",
-        `- 资产：${record.assetName} (#${record.assetId})`,
-        `- 借用人：${record.borrower ?? user.nickname ?? user.name ?? user.id}`,
+        lang === "zh" ? "**借用逾期提醒**" : "**Borrow Overdue Reminder**",
+        lang === "zh" ? `- 资产：${record.assetName} (#${record.assetId})` : `- Asset: ${record.assetName} (#${record.assetId})`,
+        lang === "zh" ? `- 借用人：${record.borrower ?? user.nickname ?? user.userid}` : `- Borrower: ${record.borrower ?? user.nickname ?? user.userid}`,
         record.plannedReturnDate
-          ? `- 计划归还：${record.plannedReturnDate}`
+          ? lang === "zh" ? `- 计划归还：${record.plannedReturnDate}` : `- Planned Return: ${record.plannedReturnDate}`
           : undefined,
-        `- 当前状态：未归还`,
+        lang === "zh" ? `- 当前状态：未归还` : `- Current Status: Not Returned`,
       ].filter(Boolean);
 
       await sendSystemBotMessage({
         client,
-        userId: user.id,
+        userId: user.userid,
         text: lines.join("\n"),
       });
 
