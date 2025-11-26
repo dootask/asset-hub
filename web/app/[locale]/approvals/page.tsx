@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { listApprovalRequests } from "@/lib/repositories/approvals";
+import { getServerUserId } from "@/lib/server/auth";
 import {
   APPROVAL_STATUSES,
   APPROVAL_TYPES,
@@ -23,6 +24,7 @@ import {
 } from "@/lib/types/approval";
 import type { OperationTemplateFieldWidget } from "@/lib/types/operation-template";
 import { extractOperationTemplateMetadata } from "@/lib/utils/operation-template";
+import { isAdminUser } from "@/lib/utils/permissions";
 
 type PageParams = { locale: string };
 type PageProps = {
@@ -117,9 +119,30 @@ export default async function ApprovalsPage({ params, searchParams }: PageProps)
   const statusFilter = ensureSingle(search.status);
   const typeFilter = ensureSingle(search.type);
   const roleFilter = ensureSingle(search.role);
-  const userId = ensureSingle(search.userId);
   const pageParam = Number(ensureSingle(search.page));
   const page = Number.isNaN(pageParam) ? 1 : Math.max(1, pageParam);
+
+  // Get current user and check admin status for permission control
+  const currentUserId = await getServerUserId();
+  const isAdmin = isAdminUser(currentUserId);
+
+  // Security: Enforce user context for non-admins (same logic as API)
+  let userId = ensureSingle(search.userId);
+  let roleSelection: "my-requests" | "my-tasks" | undefined =
+    roleFilter === "my-requests" || roleFilter === "my-tasks"
+      ? (roleFilter as "my-requests" | "my-tasks")
+      : undefined;
+
+  if (!isAdmin && currentUserId !== null) {
+    // For non-admins, ignore the passed userId and enforce the current session user
+    userId = String(currentUserId);
+
+    // If no specific view role is requested, default to "my-requests"
+    // This prevents non-admins from listing all approvals by simply omitting parameters
+    if (!roleSelection) {
+      roleSelection = "my-requests";
+    }
+  }
 
   const statusValue = APPROVAL_STATUSES.find(
     (entry) => entry.value === statusFilter,
@@ -128,11 +151,6 @@ export default async function ApprovalsPage({ params, searchParams }: PageProps)
   const typeValue = APPROVAL_TYPES.find(
     (entry) => entry.value === typeFilter,
   )?.value as ApprovalType | undefined;
-
-  const roleSelection =
-    roleFilter === "my-requests" || roleFilter === "my-tasks"
-      ? (roleFilter as "my-requests" | "my-tasks")
-      : undefined;
 
   const { data: approvals, meta } = listApprovalRequests({
     status: statusValue ? [statusValue] : undefined,
