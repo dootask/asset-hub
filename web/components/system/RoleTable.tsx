@@ -44,6 +44,7 @@ import { Badge } from "@/components/ui/badge";
 import type { Role } from "@/lib/types/system";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
+import { extractApiErrorMessage } from "@/lib/utils/api-error";
 
 interface Props {
   initialRoles: Role[];
@@ -249,12 +250,10 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
               : "Role created",
         );
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : isChinese
-              ? "保存失败，请稍后再试。"
-              : "Save failed, please try again.";
+        const message = extractApiErrorMessage(
+          err,
+          isChinese ? "保存失败，请稍后再试。" : "Save failed, please try again.",
+        );
         feedback.error(message, {
           blocking: true,
           title: isChinese ? "保存失败" : "Save failed",
@@ -280,12 +279,10 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
         setDialogRole(null);
         feedback.success(isChinese ? "删除成功" : "Deleted successfully");
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : isChinese
-              ? "删除失败，请稍后再试。"
-              : "Failed to delete role.";
+        const message = extractApiErrorMessage(
+          err,
+          isChinese ? "删除失败，请稍后再试。" : "Failed to delete role.",
+        );
         feedback.error(message, {
           blocking: true,
           title: isChinese ? "删除失败" : "Delete failed",
@@ -339,12 +336,10 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
         return next;
       });
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : isChinese
-            ? "选择成员失败，请稍后再试。"
-            : "Failed to pick members.";
+      const message = extractApiErrorMessage(
+        err,
+        isChinese ? "选择成员失败，请稍后再试。" : "Failed to pick members.",
+      );
       feedback.error(message, {
         blocking: true,
         title: isChinese ? "操作失败" : "Operation failed",

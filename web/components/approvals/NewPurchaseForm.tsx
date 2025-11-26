@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
+import { extractApiErrorMessage } from "@/lib/utils/api-error";
 import type { AssetCategory } from "@/lib/types/asset-category";
 import type { Company } from "@/lib/types/system";
 import type { Role } from "@/lib/types/system";
@@ -187,12 +188,12 @@ export default function NewPurchaseForm({
         }
       } catch (err) {
         if (!cancelled) {
-          const message =
-            err instanceof Error
-              ? err.message
-              : isChinese
-                ? "无法加载操作模板，请稍后再试。"
-                : "Failed to load operation templates.";
+          const message = extractApiErrorMessage(
+            err,
+            isChinese
+              ? "无法加载操作模板，请稍后再试。"
+              : "Failed to load operation templates.",
+          );
           setTemplateError(message);
           feedback.error(message);
         }
@@ -750,14 +751,11 @@ export default function NewPurchaseForm({
       router.push(`/${locale}/approvals?role=my-requests`);
       router.refresh();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed";
-      // Extract API error message if possible
-      if (typeof msg === 'string' && msg.includes("Request failed with status code 400")) {
-         // General fallback for 400 if no details
-         feedback.error(isChinese ? "请求参数有误，请检查表单。" : "Invalid request parameters.");
-      } else {
-         feedback.error(msg);
-      }
+      const message = extractApiErrorMessage(
+        err,
+        isChinese ? "请求参数有误，请检查表单。" : "Invalid request parameters.",
+      );
+      feedback.error(message);
     } finally {
       setSubmitting(false);
     }

@@ -18,6 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
+import { extractApiErrorMessage } from "@/lib/utils/api-error";
 
 interface Props {
   locale: string;
@@ -81,12 +82,10 @@ export default function ConsumableInventoryCreateDialog({
         router.refresh();
         feedback.success(isChinese ? "盘点任务已创建" : "Inventory task created");
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : isChinese
-              ? "创建失败，请稍后重试。"
-              : "Failed to create task.";
+        const message = extractApiErrorMessage(
+          err,
+          isChinese ? "创建失败，请稍后重试。" : "Failed to create task.",
+        );
         feedback.error(message, {
           blocking: true,
           title: isChinese ? "创建失败" : "Create failed",

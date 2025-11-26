@@ -41,6 +41,7 @@ import {
   type AssetOperationType,
 } from "@/lib/types/operation";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
+import { extractApiErrorMessage } from "@/lib/utils/api-error";
 import { AttachmentUploadField } from "@/components/attachments/AttachmentUploadField";
 
 interface Props {
@@ -185,12 +186,12 @@ export default function OperationForm({
       } catch (err) {
         if (!cancelled) {
           setActionConfigs([]);
-          const message =
-            err instanceof Error
-              ? err.message
-              : isChinese
-                ? "无法加载操作配置，请稍后重试。"
-                : "Failed to load operation configuration.";
+          const message = extractApiErrorMessage(
+            err,
+            isChinese
+              ? "无法加载操作配置，请稍后重试。"
+              : "Failed to load operation configuration.",
+          );
           setConfigError(message);
           feedback.error(message, {
             blocking: true,
@@ -404,12 +405,12 @@ export default function OperationForm({
       onSuccess?.();
       feedback.success(isChinese ? "操作记录已创建" : "Operation created");
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : isChinese
-            ? "无法创建操作记录，请稍后重试。"
-            : "Failed to create operation, please try again.";
+      const message = extractApiErrorMessage(
+        err,
+        isChinese
+          ? "无法创建操作记录，请稍后重试。"
+          : "Failed to create operation, please try again.",
+      );
       feedback.error(message, {
         blocking: true,
         title: isChinese ? "提交失败" : "Submit failed",

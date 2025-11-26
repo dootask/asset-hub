@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import clsx from "clsx";
 import { getUserInfo } from "@dootask/tools";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
+import { extractApiErrorMessage } from "@/lib/utils/api-error";
 
 type RoleValue = "all" | "my-requests" | "my-tasks";
 
@@ -78,12 +79,10 @@ export default function ApprovalRoleTabs({ locale = "en" }: Props) {
         params.set("userId", String(resolvedUserId));
         router.push(`${pathname}?${params.toString()}`);
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : isChinese
-              ? "无法获取用户信息"
-              : "Failed to resolve user info";
+        const message = extractApiErrorMessage(
+          err,
+          isChinese ? "无法获取用户信息" : "Failed to resolve user info",
+        );
         feedback.error(message, {
           blocking: true,
           title: isChinese ? "获取用户信息失败" : "Failed to fetch user",

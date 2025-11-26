@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
+import { extractApiErrorMessage } from "@/lib/utils/api-error";
 
 const CONFIG_MAP: Record<ConsumableOperationType, ConsumableActionConfig> =
   CONSUMABLE_ACTION_CONFIGS.reduce(
@@ -165,12 +166,10 @@ export default function ConsumableOperationForm({
       router.refresh();
       feedback.success(isChinese ? "操作已创建" : "Operation created");
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : isChinese
-            ? "提交失败，请稍后再试。"
-            : "Something went wrong, please retry.";
+      const message = extractApiErrorMessage(
+        err,
+        isChinese ? "提交失败，请稍后再试。" : "Something went wrong, please retry.",
+      );
       setError(message);
       feedback.error(message, {
         blocking: true,

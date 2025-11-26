@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
+import { extractApiErrorMessage } from "@/lib/utils/api-error";
 import { usePermissions } from "@/components/providers/PermissionProvider";
 
 const ACTIONS: { value: ApprovalAction; labelZh: string; labelEn: string }[] = [
@@ -109,12 +110,10 @@ export default function ApprovalActionForm({
       router.refresh();
       feedback.success(isChinese ? "审批动作已提交" : "Action submitted");
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : isChinese
-            ? "操作失败，请稍后重试。"
-            : "Failed to apply action, please try again.";
+      const message = extractApiErrorMessage(
+        err,
+        isChinese ? "操作失败，请稍后重试。" : "Failed to apply action, please try again.",
+      );
       feedback.error(message, {
         blocking: true,
         title: isChinese ? "提交失败" : "Submit failed",

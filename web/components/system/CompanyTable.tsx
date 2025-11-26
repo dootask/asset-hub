@@ -42,6 +42,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { Company } from "@/lib/types/system";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
+import { extractApiErrorMessage } from "@/lib/utils/api-error";
 
 interface Props {
   initialCompanies: Company[];
@@ -160,12 +161,10 @@ const CompanyTable = forwardRef<CompanyTableHandle, Props>(function CompanyTable
               : "Company created",
         );
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : isChinese
-              ? "保存失败，请稍后重试。"
-              : "Failed to save company.";
+        const message = extractApiErrorMessage(
+          err,
+          isChinese ? "保存失败，请稍后重试。" : "Failed to save company.",
+        );
         feedback.error(message, {
           blocking: true,
           title: isChinese ? "保存失败" : "Save failed",
@@ -185,12 +184,10 @@ const CompanyTable = forwardRef<CompanyTableHandle, Props>(function CompanyTable
         setCompanies((prev) => prev.filter((item) => item.id !== company.id));
         feedback.success(isChinese ? "删除成功" : "Deleted successfully");
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : isChinese
-              ? "删除失败，请稍后重试。"
-              : "Failed to delete company.";
+        const message = extractApiErrorMessage(
+          err,
+          isChinese ? "删除失败，请稍后重试。" : "Failed to delete company.",
+        );
         feedback.error(message, {
           blocking: true,
           title: isChinese ? "删除失败" : "Delete failed",
@@ -299,7 +296,6 @@ const CompanyTable = forwardRef<CompanyTableHandle, Props>(function CompanyTable
                             variant="ghost"
                             size="sm"
                             className="rounded-full px-3 text-destructive hover:text-destructive"
-                            onClick={() => handleDelete(company)}
                           >
                             {isChinese ? "删除" : "Delete"}
                           </Button>

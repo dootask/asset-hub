@@ -19,6 +19,7 @@ import type { InventoryTask, InventoryTaskStatus } from "@/lib/types/inventory";
 import { ASSET_STATUSES } from "@/lib/types/asset";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
+import { extractApiErrorMessage } from "@/lib/utils/api-error";
 
 interface Props {
   locale: string;
@@ -94,12 +95,10 @@ export default function InventoryTaskList({ locale, baseUrl, initialTasks }: Pro
         setFormState(DEFAULT_FORM);
         feedback.success(isChinese ? "盘点任务已创建" : "Inventory task created");
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : isChinese
-              ? "创建失败，请稍后重试。"
-              : "Failed to create task.";
+        const message = extractApiErrorMessage(
+          err,
+          isChinese ? "创建失败，请稍后重试。" : "Failed to create task.",
+        );
         feedback.error(message, {
           blocking: true,
           title: isChinese ? "创建失败" : "Create failed",
@@ -122,12 +121,10 @@ export default function InventoryTaskList({ locale, baseUrl, initialTasks }: Pro
         );
         feedback.success(isChinese ? "状态已更新" : "Status updated");
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : isChinese
-              ? "更新失败，请稍后重试。"
-              : "Failed to update task.";
+        const message = extractApiErrorMessage(
+          err,
+          isChinese ? "更新失败，请稍后重试。" : "Failed to update task.",
+        );
         feedback.error(message, {
           blocking: true,
           title: isChinese ? "更新失败" : "Update failed",

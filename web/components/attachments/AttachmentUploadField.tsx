@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getApiClient } from "@/lib/http/client";
+import { extractApiErrorMessage } from "@/lib/utils/api-error";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import type { UploadedFile } from "@/lib/types/upload";
 
@@ -146,12 +147,10 @@ export function AttachmentUploadField({
         feedback.warning(response.data.errors.join("；"));
       }
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : isChinese
-            ? "上传失败，请稍后重试。"
-            : "Upload failed. Please try again.";
+      const message = extractApiErrorMessage(
+        error,
+        isChinese ? "上传失败，请稍后重试。" : "Upload failed. Please try again.",
+      );
       files.forEach((file) => helpers.onError(file, new Error(message)));
       feedback.error(message);
     }

@@ -28,6 +28,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { ConsumableCategory } from "@/lib/types/consumable";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
+import { extractApiErrorMessage } from "@/lib/utils/api-error";
 
 export interface ConsumableCategoryTableHandle {
   openCreateDialog: () => void;
@@ -136,12 +137,10 @@ const ConsumableCategoryTable = forwardRef<ConsumableCategoryTableHandle, Props>
               : "Category created",
         );
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : isChinese
-              ? "保存失败，请稍后重试。"
-              : "Failed to save category.";
+        const message = extractApiErrorMessage(
+          err,
+          isChinese ? "保存失败，请稍后重试。" : "Failed to save category.",
+        );
         feedback.error(message, {
           blocking: true,
           title: isChinese ? "保存失败" : "Save failed",
@@ -161,12 +160,10 @@ const ConsumableCategoryTable = forwardRef<ConsumableCategoryTableHandle, Props>
         setCategories((prev) => prev.filter((item) => item.id !== category.id));
         feedback.success(isChinese ? "删除成功" : "Deleted successfully");
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : isChinese
-              ? "删除失败，请稍后重试。"
-              : "Failed to delete category.";
+        const message = extractApiErrorMessage(
+          err,
+          isChinese ? "删除失败，请稍后重试。" : "Failed to delete category.",
+        );
         feedback.error(message, {
           blocking: true,
           title: isChinese ? "删除失败" : "Delete failed",

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
+import { extractApiErrorMessage } from "@/lib/utils/api-error";
 
 interface Props {
   locale: string;
@@ -26,12 +27,12 @@ export default function AlertSettingsForm({ locale, initialSettings }: Props) {
         await client.put("/apps/asset-hub/api/system/settings/alerts", settings);
         feedback.success(isChinese ? "已保存告警设置。" : "Alert settings saved.");
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : isChinese
-              ? "保存失败，请稍后再试。"
-              : "Failed to save settings. Please try again.";
+        const message = extractApiErrorMessage(
+          err,
+          isChinese
+            ? "保存失败，请稍后再试。"
+            : "Failed to save settings. Please try again.",
+        );
         feedback.error(message, {
           blocking: true,
           title: isChinese ? "保存失败" : "Save failed",

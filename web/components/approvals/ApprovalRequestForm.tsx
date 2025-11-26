@@ -49,6 +49,7 @@ import {
 import type { Role } from "@/lib/types/system";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
+import { extractApiErrorMessage } from "@/lib/utils/api-error";
 import { readBrowserUserCookie } from "@/lib/utils/user-cookie";
 
 type Applicant = {
@@ -223,19 +224,13 @@ export default function ApprovalRequestForm({
         }
       } catch (err) {
         if (!cancelled) {
-          setConfigError(
-            err instanceof Error
-              ? err.message
-              : isChinese
-                ? "无法加载审批配置，请稍后重试。"
-                : "Failed to load approval configurations.",
+          const message = extractApiErrorMessage(
+            err,
+            isChinese
+              ? "无法加载审批配置，请稍后重试。"
+              : "Failed to load approval configurations.",
           );
-          const message =
-            err instanceof Error
-              ? err.message
-              : isChinese
-                ? "无法加载审批配置，请稍后重试。"
-                : "Failed to load approval configurations.";
+          setConfigError(message);
           feedback.error(message, {
             blocking: true,
             title: isChinese ? "加载失败" : "Load failed",
@@ -511,12 +506,10 @@ export default function ApprovalRequestForm({
         }));
       }
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : isChinese
-            ? "选择审批人失败。"
-            : "Failed to select approver.";
+      const message = extractApiErrorMessage(
+        err,
+        isChinese ? "选择审批人失败。" : "Failed to select approver.",
+      );
       feedback.error(message, {
         blocking: true,
         title: isChinese ? "选择失败" : "Selection failed",
@@ -762,12 +755,10 @@ export default function ApprovalRequestForm({
       router.refresh();
       feedback.success(isChinese ? "审批已提交" : "Approval submitted");
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : isChinese
-            ? "提交失败，请稍后再试。"
-            : "Failed to create approval request.";
+      const message = extractApiErrorMessage(
+        err,
+        isChinese ? "提交失败，请稍后再试。" : "Failed to create approval request.",
+      );
       feedback.error(message, {
         blocking: true,
         title: isChinese ? "提交失败" : "Submit failed",

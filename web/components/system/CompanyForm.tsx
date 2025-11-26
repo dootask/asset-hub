@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { Company } from "@/lib/types/system";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
+import { extractApiErrorMessage } from "@/lib/utils/api-error";
 
 interface CompanyFormProps {
   company?: Company;
@@ -66,12 +67,10 @@ export default function CompanyForm({ company, locale = "en" }: CompanyFormProps
             : "Company created",
       );
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : isChinese
-            ? "提交失败，请稍后重试。"
-            : "Submission failed, please try again later.";
+      const message = extractApiErrorMessage(
+        err,
+        isChinese ? "提交失败，请稍后重试。" : "Submission failed, please try again later.",
+      );
       feedback.error(message, {
         blocking: true,
         title: isChinese ? "提交失败" : "Submit failed",

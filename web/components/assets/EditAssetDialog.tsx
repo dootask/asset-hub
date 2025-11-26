@@ -41,6 +41,7 @@ import { cn } from "@/lib/utils";
 import type { CreateAssetPayload } from "@/lib/types/asset";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
+import { extractApiErrorMessage } from "@/lib/utils/api-error";
 
 type Props = {
   asset: Asset;
@@ -134,12 +135,10 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
       router.refresh();
       feedback.success(isChinese ? "资产已更新" : "Asset updated");
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : isChinese
-            ? "更新失败，请稍后重试。"
-            : "Failed to update asset.";
+      const message = extractApiErrorMessage(
+        err,
+        isChinese ? "更新失败，请稍后重试。" : "Failed to update asset.",
+      );
       feedback.error(message, {
         blocking: true,
         title: isChinese ? "更新失败" : "Update failed",

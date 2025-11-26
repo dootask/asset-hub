@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
+import { extractApiErrorMessage } from "@/lib/utils/api-error";
 import { readBrowserUserCookie } from "@/lib/utils/user-cookie";
 
 interface Props {
@@ -71,12 +72,10 @@ export default function DisposeAssetButton({ assetId, locale }: Props) {
       router.refresh();
       feedback.success(locale === "zh" ? "资产已报废" : "Asset disposed");
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : locale === "zh"
-            ? "报废失败，请稍后再试。"
-            : "Failed to dispose asset.";
+      const message = extractApiErrorMessage(
+        err,
+        locale === "zh" ? "报废失败，请稍后再试。" : "Failed to dispose asset.",
+      );
       feedback.error(message, {
         blocking: true,
         title: locale === "zh" ? "操作失败" : "Action failed",

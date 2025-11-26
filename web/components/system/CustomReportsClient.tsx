@@ -21,6 +21,7 @@ import { APPROVAL_TYPES } from "@/lib/types/approval";
 import { ASSET_STATUSES } from "@/lib/types/asset";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
+import { extractApiErrorMessage } from "@/lib/utils/api-error";
 
 interface CustomReportsClientProps {
   locale: string;
@@ -163,12 +164,10 @@ export default function CustomReportsClient({
               : "Report view created",
         );
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : isChinese
-              ? "保存失败，请稍后重试。"
-              : "Failed to save report view.";
+        const message = extractApiErrorMessage(
+          err,
+          isChinese ? "保存失败，请稍后重试。" : "Failed to save report view.",
+        );
         feedback.error(message, {
           blocking: true,
           title: isChinese ? "保存失败" : "Save failed",
@@ -188,12 +187,10 @@ export default function CustomReportsClient({
         setViews((prev) => prev.filter((item) => item.id !== view.id));
         feedback.success(isChinese ? "删除成功" : "Deleted successfully");
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : isChinese
-              ? "删除失败，请稍后重试。"
-              : "Failed to delete report view.";
+        const message = extractApiErrorMessage(
+          err,
+          isChinese ? "删除失败，请稍后重试。" : "Failed to delete report view.",
+        );
         feedback.error(message, {
           blocking: true,
           title: isChinese ? "删除失败" : "Delete failed",
@@ -216,11 +213,10 @@ export default function CustomReportsClient({
       setPreviewResult(response.data.data);
     } catch (err) {
       setPreviewError(
-        err instanceof Error
-          ? err.message
-          : isChinese
-            ? "预览失败，请稍后再试。"
-            : "Preview failed. Please try again.",
+        extractApiErrorMessage(
+          err,
+          isChinese ? "预览失败，请稍后再试。" : "Preview failed. Please try again.",
+        ),
       );
     } finally {
       setPreviewLoading(false);

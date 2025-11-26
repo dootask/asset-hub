@@ -43,6 +43,7 @@ import {
 } from "@/lib/config/operation-template-fields";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
+import { extractApiErrorMessage } from "@/lib/utils/api-error";
 
 interface Props {
   templates: OperationTemplate[];
@@ -273,12 +274,10 @@ export default function OperationTemplateList({
         setJsonErrors((prev) => ({ ...prev, [data.type]: null }));
         feedback.success(isChinese ? "保存成功" : "Saved successfully");
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : isChinese
-              ? "保存失败，请稍后重试。"
-              : "Failed to save template.";
+        const message = extractApiErrorMessage(
+          err,
+          isChinese ? "保存失败，请稍后重试。" : "Failed to save template.",
+        );
         feedback.error(message, {
           blocking: true,
           title: isChinese ? "保存失败" : "Save failed",

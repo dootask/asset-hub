@@ -16,6 +16,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
+import { extractApiErrorMessage } from "@/lib/utils/api-error";
 import {
   Accordion,
   AccordionContent,
@@ -202,12 +203,10 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
           isChinese ? "配置已保存" : "Configuration saved",
         );
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : isChinese
-              ? "保存审批配置失败。"
-              : "Failed to save configuration.";
+        const message = extractApiErrorMessage(
+          err,
+          isChinese ? "保存审批配置失败。" : "Failed to save configuration.",
+        );
         feedback.error(message, {
           blocking: true,
           title: isChinese ? "保存失败" : "Save failed",
@@ -283,12 +282,10 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
         return next;
       });
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : isChinese
-            ? "选择审批人失败。"
-            : "Failed to pick approvers.";
+      const message = extractApiErrorMessage(
+        err,
+        isChinese ? "选择审批人失败。" : "Failed to pick approvers.",
+      );
       feedback.error(message, {
         blocking: true,
         title: isChinese ? "选择失败" : "Selection failed",
