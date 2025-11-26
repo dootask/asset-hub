@@ -292,7 +292,7 @@ export default function OperationTemplateList({
   return (
     <div className="space-y-6">
       {items.length === 0 && (
-        <div className="rounded-3xl border border-dashed border-muted-foreground/40 bg-muted/20 p-6 text-sm text-muted-foreground">
+        <div className="rounded-2xl border bg-muted/30 p-12 text-center text-sm text-muted-foreground">
           {isChinese
             ? "尚未配置任何操作模板。"
             : "No operation templates configured yet."}

@@ -376,7 +376,7 @@ export default function CustomReportsClient({
       </div>
 
       {views.length === 0 ? (
-        <div className="rounded-2xl border border-dashed bg-muted/30 p-12 text-center text-sm text-muted-foreground">
+        <div className="rounded-2xl border bg-muted/30 p-12 text-center text-sm text-muted-foreground">
           {isChinese
             ? "尚未创建任何自定义报表。"
             : "No custom report views yet. Create one to get started."}

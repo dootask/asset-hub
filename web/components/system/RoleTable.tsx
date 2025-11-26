@@ -383,12 +383,18 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border">
-        {filteredRoles.length === 0 ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">
-            {isChinese ? "暂无匹配的角色。" : "No roles match the current filters."}
-          </div>
-        ) : (
+      {filteredRoles.length === 0 ? (
+        <div className="rounded-2xl border bg-muted/30 p-12 text-center text-sm text-muted-foreground">
+          {roles.length === 0 && !search.trim()
+            ? isChinese
+              ? "尚未创建任何角色。"
+              : "No roles yet. Create one to get started."
+            : isChinese
+              ? "没有匹配的角色，请调整搜索条件。"
+              : "No roles match the current search."}
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-2xl border">
           <Table className="text-sm">
             <TableHeader className="bg-muted/50">
               <TableRow className="text-left text-xs uppercase tracking-wide text-muted-foreground hover:bg-transparent">
@@ -450,8 +456,8 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
               ))}
             </TableBody>
           </Table>
-        )}
-      </div>
+        </div>
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
         <DialogContent className="sm:max-w-lg">

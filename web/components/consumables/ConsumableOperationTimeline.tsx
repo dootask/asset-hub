@@ -54,9 +54,9 @@ export default function ConsumableOperationTimeline({
 
   if (operations.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
+      <div className="rounded-2xl border bg-muted/30 p-12 text-center text-sm text-muted-foreground">
         {isChinese ? "尚无耗材操作记录。" : "No consumable operations yet."}
-      </p>
+      </div>
     );
   }
 

@@ -299,7 +299,7 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
   return (
     <div className="space-y-6">
       {sortedConfigs.length === 0 && (
-        <div className="rounded-3xl border border-dashed border-muted-foreground/40 bg-muted/20 p-6 text-sm text-muted-foreground">
+        <div className="rounded-2xl border bg-muted/30 p-12 text-center text-sm text-muted-foreground">
           {isChinese
             ? "暂无可用的审批配置。"
             : "No approval configurations available yet."}

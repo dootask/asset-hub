@@ -170,7 +170,7 @@ export default async function ConsumableOperationsPage({
       />
 
       {report.items.length === 0 ? (
-        <div className="rounded-3xl border border-dashed bg-muted/30 p-10 text-center text-sm text-muted-foreground">
+        <div className="rounded-2xl border bg-muted/30 p-12 text-center text-sm text-muted-foreground">
           {isChinese
             ? "暂无符合条件的操作记录，请调整筛选条件。"
             : "No operations match the current filters."}

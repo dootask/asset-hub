@@ -53,7 +53,7 @@ export default function ConsumableAlertTable({ locale, alerts }: Props) {
 
   if (alerts.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed bg-muted/30 p-10 text-center text-sm text-muted-foreground">
+      <div className="rounded-2xl border bg-muted/30 p-12 text-center text-sm text-muted-foreground">
         {isChinese ? "暂无告警。" : "No alerts."}
       </div>
     );

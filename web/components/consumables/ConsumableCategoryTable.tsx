@@ -175,19 +175,26 @@ const ConsumableCategoryTable = forwardRef<ConsumableCategoryTableHandle, Props>
 
   return (
     <>
-      <section className="overflow-hidden rounded-2xl border bg-card">
-        <Table className="text-sm">
-          <TableHeader className="bg-muted/30">
-            <TableRow className="text-xs uppercase tracking-wide text-muted-foreground">
-              <TableHead className="px-4 py-3">{isChinese ? "显示名称" : "Display name"}</TableHead>
-              <TableHead className="px-4 py-3">{isChinese ? "编码" : "Code"}</TableHead>
-              <TableHead className="px-4 py-3">{isChinese ? "单位" : "Unit"}</TableHead>
-              <TableHead className="px-4 py-3">{isChinese ? "描述" : "Description"}</TableHead>
-              <TableHead className="px-4 py-3 text-right">{isChinese ? "操作" : "Actions"}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {categories.map((category) => (
+      {categories.length === 0 ? (
+        <div className="rounded-2xl border bg-muted/30 p-12 text-center text-sm text-muted-foreground">
+          {isChinese
+            ? "尚未创建任何耗材类别。"
+            : "No consumable categories yet. Create one to get started."}
+        </div>
+      ) : (
+        <section className="overflow-hidden rounded-2xl border bg-card">
+          <Table className="text-sm">
+            <TableHeader className="bg-muted/30">
+              <TableRow className="text-xs uppercase tracking-wide text-muted-foreground">
+                <TableHead className="px-4 py-3">{isChinese ? "显示名称" : "Display name"}</TableHead>
+                <TableHead className="px-4 py-3">{isChinese ? "编码" : "Code"}</TableHead>
+                <TableHead className="px-4 py-3">{isChinese ? "单位" : "Unit"}</TableHead>
+                <TableHead className="px-4 py-3">{isChinese ? "描述" : "Description"}</TableHead>
+                <TableHead className="px-4 py-3 text-right">{isChinese ? "操作" : "Actions"}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {categories.map((category) => (
               <TableRow key={category.id}>
                 <TableCell className="px-4 py-3">
                   <div className="font-medium text-foreground">
@@ -262,6 +269,7 @@ const ConsumableCategoryTable = forwardRef<ConsumableCategoryTableHandle, Props>
           </TableBody>
         </Table>
       </section>
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-lg">

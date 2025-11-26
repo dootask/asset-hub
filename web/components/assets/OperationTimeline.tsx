@@ -50,9 +50,9 @@ export default function OperationTimeline({ operations, locale }: Props) {
 
   if (operations.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
-        {isChinese ? "暂无操作记录" : "No operations yet."}
-      </p>
+      <div className="rounded-2xl border bg-muted/30 p-12 text-center text-sm text-muted-foreground">
+        {isChinese ? "暂无操作记录。" : "No operations yet."}
+      </div>
     );
   }
 
