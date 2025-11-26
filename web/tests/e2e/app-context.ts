@@ -41,8 +41,11 @@ export async function openApp(page: Page, path = "/en"): Promise<AppContext> {
         nickname: user.nickname,
       };
       try {
-        sessionStorage.setItem("asset-hub:dootask-user", JSON.stringify(payload));
-        window.dispatchEvent(new CustomEvent("asset-hub:user-updated", { detail: payload }));
+        const encoded = encodeURIComponent(JSON.stringify(payload));
+        document.cookie = `asset_hub_user=${encoded}; Path=/apps/asset-hub; SameSite=Lax`;
+        window.dispatchEvent(
+          new CustomEvent("asset-hub:user-updated", { detail: payload }),
+        );
       } catch {
         // ignore access errors in non-browser contexts
       }

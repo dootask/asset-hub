@@ -43,6 +43,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Calendar as CalendarIcon, X as XICon } from "lucide-react";
 import { AttachmentUploadField } from "@/components/attachments/AttachmentUploadField";
+import { readBrowserUserCookie } from "@/lib/utils/user-cookie";
 
 type Props = {
   locale?: string;
@@ -135,15 +136,13 @@ export default function NewPurchaseForm({
       } catch {}
 
       try {
-        const raw = sessionStorage.getItem("asset-hub:dootask-user");
-        if (raw) {
-          const parsed = JSON.parse(raw);
+        const stored = readBrowserUserCookie();
+        if (stored) {
           setApplicant({
-            id: String(parsed.id ?? ""),
-            name: parsed.nickname ?? "",
+            id: String(stored.id),
+            name: stored.nickname ?? "",
           });
         }
-      } catch {
       } finally {
         setLoadingUser(false);
       }

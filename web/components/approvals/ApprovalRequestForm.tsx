@@ -49,6 +49,7 @@ import {
 import type { Role } from "@/lib/types/system";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
+import { readBrowserUserCookie } from "@/lib/utils/user-cookie";
 
 type Applicant = {
   id: string;
@@ -177,19 +178,13 @@ export default function ApprovalRequestForm({
 
   useEffect(() => {
     try {
-      const raw = sessionStorage.getItem("asset-hub:dootask-user");
-      if (raw) {
-        const parsed = JSON.parse(raw) as {
-          id?: number;
-          nickname?: string;
-        };
+      const stored = readBrowserUserCookie();
+      if (stored) {
         setApplicant({
-          id: parsed.id !== undefined ? String(parsed.id) : "",
-          name: parsed.nickname ?? "",
+          id: String(stored.id),
+          name: stored.nickname ?? "",
         });
       }
-    } catch {
-      // ignore
     } finally {
       setLoadingUser(false);
     }

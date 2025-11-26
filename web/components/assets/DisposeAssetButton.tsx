@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
+import { readBrowserUserCookie } from "@/lib/utils/user-cookie";
 
 interface Props {
   assetId: string;
@@ -33,16 +34,9 @@ export default function DisposeAssetButton({ assetId, locale }: Props) {
   const feedback = useAppFeedback();
 
   useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem("asset-hub:dootask-user");
-      if (raw) {
-        const parsed = JSON.parse(raw) as { id?: number; nickname?: string };
-        if (parsed.id !== undefined) {
-          setCurrentUser({ id: String(parsed.id), name: parsed.nickname });
-        }
-      }
-    } catch {
-      // ignore
+    const stored = readBrowserUserCookie();
+    if (stored) {
+      setCurrentUser({ id: String(stored.id), name: stored.nickname });
     }
   }, []);
 

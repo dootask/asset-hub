@@ -1,9 +1,11 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, useMemo } from "react";
-import { normalizeUserId } from "@/lib/utils/user-id";
+import {
+  readBrowserUserCookie,
+  type UserCookiePayload,
+} from "@/lib/utils/user-cookie";
 
-const USER_STORAGE_KEY = "asset-hub:dootask-user";
 const USER_EVENT = "asset-hub:user-updated";
 
 type SessionUser = {
@@ -41,35 +43,30 @@ export function PermissionProvider({
     if (typeof window === "undefined") return;
 
     const readStoredUser = () => {
-      try {
-        const stored = sessionStorage.getItem(USER_STORAGE_KEY);
-        if (!stored) {
-          setUser(null);
-          setUserReady(false);
-          return;
-        }
-        const parsed = JSON.parse(stored) as SessionUser;
-        const normalizedId = normalizeUserId(parsed?.id);
-        if (normalizedId === null) {
-          setUser(null);
-          setUserReady(false);
-          return;
-        }
-        setUser({ ...parsed, id: normalizedId });
-        setUserReady(true);
-      } catch {
+      const stored = readBrowserUserCookie();
+      if (!stored) {
         setUser(null);
         setUserReady(false);
+        return;
       }
+      setUser({
+        id: stored.id,
+        nickname: stored.nickname,
+        email: stored.email,
+      });
+      setUserReady(true);
     };
 
     readStoredUser();
 
     const handleUserUpdated = (event: Event) => {
-      const detail = (event as CustomEvent<SessionUser | null>).detail;
-      const normalizedId = normalizeUserId(detail?.id);
-      if (normalizedId !== null && detail) {
-        setUser({ ...detail, id: normalizedId });
+      const detail = (event as CustomEvent<UserCookiePayload | null>).detail;
+      if (detail && typeof detail.id === "number") {
+        setUser({
+          id: detail.id,
+          nickname: detail.nickname,
+          email: detail.email,
+        });
       } else {
         setUser(null);
       }

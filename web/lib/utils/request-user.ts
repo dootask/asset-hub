@@ -1,3 +1,5 @@
+import { readUserCookieFromString } from "@/lib/utils/user-cookie";
+
 export interface RequestUser {
   id: string;
   nickname?: string;
@@ -16,7 +18,16 @@ export function extractUserFromRequest(request: Request): RequestUser | null {
     firstNonEmpty([headers.get("x-user-id")]) ?? null;
 
   if (!id) {
-    return null;
+    const cookieUser = readUserCookieFromString(headers.get("cookie"));
+    if (!cookieUser) {
+      return null;
+    }
+    return {
+      id: String(cookieUser.id),
+      nickname: cookieUser.nickname,
+      email: cookieUser.email,
+      token: cookieUser.token,
+    };
   }
 
   const nicknameRaw =

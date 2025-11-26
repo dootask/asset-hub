@@ -2,6 +2,10 @@ import axios, {
   type AxiosInstance,
   type InternalAxiosRequestConfig,
 } from "axios";
+import {
+  readBrowserUserCookie,
+  readUserCookieFromString,
+} from "@/lib/utils/user-cookie";
 
 type UserContext = {
   userId?: string;
@@ -29,27 +33,17 @@ function getServerFallbackUserId() {
 function extractUserFromStorage(): UserContext {
   if (typeof window === "undefined") return {};
   try {
-    const raw = sessionStorage.getItem("asset-hub:dootask-user");
-    const parsed = raw
-      ? (JSON.parse(raw) as {
-          id?: string | number;
-          nickname?: string;
-          token?: string;
-        })
-      : null;
+    const storedUser = readBrowserUserCookie();
 
     const baseUrl =
       sessionStorage.getItem("asset-hub:dootask-base-url") ?? undefined;
     const locale = sessionStorage.getItem("asset-hub:locale") ?? undefined;
 
-    return parsed
+    return storedUser
       ? {
-          userId:
-            parsed.id !== undefined && parsed.id !== null
-              ? String(parsed.id)
-              : undefined,
-          token: parsed.token ?? undefined,
-          nickname: parsed.nickname ?? undefined,
+          userId: String(storedUser.id),
+          token: storedUser.token ?? undefined,
+          nickname: storedUser.nickname ?? undefined,
           baseUrl: baseUrl ?? undefined,
           locale: locale ?? undefined,
         }
@@ -137,13 +131,18 @@ async function createServerClient(): Promise<AxiosInstance> {
   const baseURL = await getRequestBaseUrl();
   const { headers } = await import("next/headers");
   const incomingHeaders = await headers();
+  const cookieUser = readUserCookieFromString(incomingHeaders.get("cookie"));
   const context: UserContext = {
     userId:
       incomingHeaders.get("x-user-id") ??
+      (cookieUser ? String(cookieUser.id) : undefined) ??
       getServerFallbackUserId() ??
       undefined,
-    token: incomingHeaders.get("x-user-token") ?? undefined,
-    nickname: decodeHeaderValue(incomingHeaders.get("x-user-nickname")),
+    token:
+      incomingHeaders.get("x-user-token") ?? cookieUser?.token ?? undefined,
+    nickname:
+      decodeHeaderValue(incomingHeaders.get("x-user-nickname")) ??
+      cookieUser?.nickname,
     baseUrl: incomingHeaders.get("x-base-url") ?? undefined,
     locale: incomingHeaders.get("x-user-locale") ?? undefined,
   };

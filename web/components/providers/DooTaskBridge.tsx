@@ -10,6 +10,10 @@ import {
   getBaseUrl,
 } from "@dootask/tools";
 import { normalizeUserId } from "@/lib/utils/user-id";
+import {
+  writeBrowserUserCookie,
+  type UserCookiePayload,
+} from "@/lib/utils/user-cookie";
 
 export default function DooTaskBridge() {
   const { setTheme } = useTheme();
@@ -25,7 +29,7 @@ export default function DooTaskBridge() {
 
         const user = await getUserInfo();
         const normalizedId = normalizeUserId((user as { userid?: unknown })?.userid);
-        const payload =
+        const payload: UserCookiePayload | null =
           normalizedId === null
             ? null
             : {
@@ -37,11 +41,7 @@ export default function DooTaskBridge() {
                   (user as { user_token?: string })?.user_token,
               };
 
-        if (payload) {
-          sessionStorage.setItem("asset-hub:dootask-user", JSON.stringify(payload));
-        } else {
-          sessionStorage.removeItem("asset-hub:dootask-user");
-        }
+        writeBrowserUserCookie(payload);
 
         // Persist current locale from document for server requests
         const locale =
