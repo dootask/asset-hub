@@ -48,8 +48,10 @@ function DialogOverlay({
 }
 
 function DialogInterceptor() {
-  useInterceptBack()
-  return null
+  const closeRef = React.useRef<HTMLButtonElement>(null)
+  const close = React.useCallback(() => closeRef.current?.click(), [])
+  useInterceptBack(close)
+  return <DialogClose data-slot="dialog-close" ref={closeRef} className="hidden" />
 }
 
 function DialogContent({

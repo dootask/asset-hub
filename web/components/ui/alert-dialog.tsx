@@ -46,18 +46,20 @@ function AlertDialogOverlay({
 }
 
 function AlertDialogInterceptor() {
-  useInterceptBack()
-  return null
+  const closeRef = React.useRef<HTMLButtonElement>(null)
+  const close = React.useCallback(() => closeRef.current?.click(), [])
+  useInterceptBack(close)
+  return <AlertDialogCancel ref={closeRef} className="hidden" />
 }
 
 function AlertDialogContent({
   className,
+  children,
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Content>) {
   return (
     <AlertDialogPortal>
       <AlertDialogOverlay />
-      <AlertDialogInterceptor />
       <AlertDialogPrimitive.Content
         data-slot="alert-dialog-content"
         className={cn(
@@ -65,7 +67,10 @@ function AlertDialogContent({
           className
         )}
         {...props}
-      />
+      >
+        {children}
+        <AlertDialogInterceptor />
+      </AlertDialogPrimitive.Content>
     </AlertDialogPortal>
   )
 }
