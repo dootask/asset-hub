@@ -3,12 +3,18 @@ set -euo pipefail
 
 CRON_SCHEDULE="${ASSET_HUB_CRON_SCHEDULE:-0 * * * *}"
 CRON_DISABLED="${ASSET_HUB_CRON_DISABLE:-0}"
-CRON_USER_ID="${ASSET_HUB_CRON_ADMIN_USER_ID:-}"
 CRON_TARGET_URL="${ASSET_HUB_CRON_OVERDUE_URL:-http://127.0.0.1:3000/apps/asset-hub/api/assets/borrows/overdue}"
+
+# Derive cron user from ASSET_HUB_ADMIN_USER_IDS (first ID)
+CRON_USER_ID=""
+if [[ -n "${ASSET_HUB_ADMIN_USER_IDS:-}" ]]; then
+  IFS=',' read -r first_admin _ <<<"${ASSET_HUB_ADMIN_USER_IDS}"
+  CRON_USER_ID="$(echo "${first_admin}" | xargs)" # trim whitespace around the first ID
+fi
 
 run_overdue() {
   if [[ -z "${CRON_USER_ID}" ]]; then
-    echo "[asset-hub] overdue cron skipped: ASSET_HUB_CRON_ADMIN_USER_ID not set"
+    echo "[asset-hub] overdue cron skipped: ASSET_HUB_ADMIN_USER_IDS not set"
     exit 0
   fi
   curl -sS -X POST \
@@ -30,7 +36,7 @@ setup_cron() {
   fi
 
   if [[ -z "${CRON_USER_ID}" ]]; then
-    echo "[asset-hub] skip cron: ASSET_HUB_CRON_ADMIN_USER_ID is not set"
+    echo "[asset-hub] skip cron: ASSET_HUB_ADMIN_USER_IDS is not set"
     return
   fi
 
