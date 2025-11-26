@@ -111,7 +111,7 @@ export default function ApprovalRequestForm({
   const [configError, setConfigError] = useState<string | null>(null);
   
   // Role-based approver states
-  const [loadingRole, setLoadingRole] = useState(false);
+  const [, setLoadingRole] = useState(false);
   const [roleMembers, setRoleMembers] = useState<Array<{id: string, name: string}>>([]);
   
   const feedback = useAppFeedback();
@@ -331,22 +331,22 @@ export default function ApprovalRequestForm({
           .map(id => Number(id))
           .filter(n => Number.isFinite(n));
           
-        const nonNumericIds = memberIds.filter(id => !Number.isFinite(Number(id)));
+        // const nonNumericIds = memberIds.filter(id => !Number.isFinite(Number(id)));
 
         if (numericIds.length > 0) {
           try {
             const users = await fetchUserBasic(numericIds);
-             if (Array.isArray(users)) {
-              users.forEach(u => {
-                const uid = u.id || u.userid;
-                if (uid) {
-                  memberDetails.push({
-                    id: String(uid),
-                    name: u.nickname || u.name || String(uid)
-                  });
-                }
-              });
-             }
+              if (Array.isArray(users)) {
+                users.forEach(u => {
+                  const uid = u.id || u.userid;
+                  if (uid) {
+                    memberDetails.push({
+                      id: String(uid),
+                      name: u.nickname || u.name || String(uid)
+                    });
+                  }
+                });
+              }
           } catch {
              // Ignore fetch errors, fallback to IDs
           }
@@ -375,10 +375,10 @@ export default function ApprovalRequestForm({
           });
         }
       } catch (err) {
-         if (!active) return;
-         console.error("Failed to resolve role members", err);
+          if (!active) return;
+          console.error("Failed to resolve role members", err);
       } finally {
-         if (active) setLoadingRole(false);
+          if (active) setLoadingRole(false);
       }
     }
 
@@ -498,7 +498,7 @@ export default function ApprovalRequestForm({
         multipleMax: 1,
         showSelectAll: false,
         showDialog: false,
-      })) as SelectUsersReturn;
+      }).catch(() => null)) as SelectUsersReturn;
       const entry = normalizeSelectedUser(result);
       const pick = await resolveSelectedApprover(entry);
       if (!pick) {
@@ -729,7 +729,7 @@ export default function ApprovalRequestForm({
       })();
       const endpoint = `/apps/asset-hub/api/approvals${searchSuffix}`;
       const client = await getApiClient();
-      const response = await client.post<{
+      await client.post<{
         data?: ApprovalRequest;
         message?: string;
       }>(endpoint, {
@@ -750,8 +750,6 @@ export default function ApprovalRequestForm({
             : undefined,
         metadata: metadataPayload,
       });
-
-      const payload = response.data;
 
       setFormState({
         type: APPROVAL_TYPES[0].value,

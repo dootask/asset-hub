@@ -313,7 +313,7 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
         value: formState.members
           .map((id) => Number(id))
           .filter((id) => Number.isFinite(id)),
-      })) as SelectUsersReturn;
+      }).catch(() => null)) as SelectUsersReturn;
       const entries = Array.isArray(result) ? result : result?.users ?? [];
       if (!entries.length) {
         return;

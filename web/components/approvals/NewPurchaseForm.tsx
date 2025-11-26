@@ -591,7 +591,7 @@ export default function NewPurchaseForm({
         multipleMax: 1,
         showSelectAll: false,
         showDialog: false,
-      })) as SelectUsersReturn;
+      }).catch(() => null)) as SelectUsersReturn;
 
       let entry: DootaskUser | null = null;
       if (Array.isArray(result)) entry = result[0];
