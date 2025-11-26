@@ -47,6 +47,11 @@ function DialogOverlay({
   )
 }
 
+function DialogInterceptor() {
+  useInterceptBack()
+  return null
+}
+
 function DialogContent({
   className,
   children,
@@ -58,10 +63,10 @@ function DialogContent({
   showCloseButton?: boolean
   disableAutoFocus?: boolean
 }) {
-  useInterceptBack()
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
+      <DialogInterceptor />
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(

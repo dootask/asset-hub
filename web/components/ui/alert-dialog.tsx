@@ -45,14 +45,19 @@ function AlertDialogOverlay({
   )
 }
 
+function AlertDialogInterceptor() {
+  useInterceptBack()
+  return null
+}
+
 function AlertDialogContent({
   className,
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Content>) {
-  useInterceptBack()
   return (
     <AlertDialogPortal>
       <AlertDialogOverlay />
+      <AlertDialogInterceptor />
       <AlertDialogPrimitive.Content
         data-slot="alert-dialog-content"
         className={cn(

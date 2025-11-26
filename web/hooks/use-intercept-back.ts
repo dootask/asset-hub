@@ -27,7 +27,9 @@ export function useInterceptBack(active: boolean = true) {
     interceptCount += 1
 
     return () => {
-      interceptCount = Math.max(0, interceptCount - 1)
+      setTimeout(() => {
+        interceptCount = Math.max(0, interceptCount - 1)
+      }, 300)
     }
   }, [active])
 }
