@@ -1,0 +1,14 @@
+services:
+  asset-hub:
+    image: dootask/asset-hub:${PLUGIN_VERSION}
+    environment:
+      - ASSET_HUB_ADMIN_USER_IDS=${ASSET_HUB_ADMIN_USER_IDS}
+      - ASSET_HUB_APPROVER_USER_IDS=${ASSET_HUB_APPROVER_USER_IDS}
+      - ASSET_HUB_VERSION=${PLUGIN_VERSION}
+      - ASSET_HUB_RELEASED_AT=
+    volumes:
+      - asset-hub-data:/app/data
+    restart: unless-stopped
+    
+volumes:
+  asset-hub-data:

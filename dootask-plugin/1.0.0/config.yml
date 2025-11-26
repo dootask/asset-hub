@@ -1,30 +1,25 @@
-menu_items:
-  - location: application
+fields:
+  - name: ASSET_HUB_ADMIN_USER_IDS
     label:
-      en: Dashboard
-      zh: 首页概览
-    url: "apps/asset-hub/{system_lang}?theme={system_theme}&user_id={user_id}&user_token={user_token}"
-    url_type: iframe
-    keep_alive: true
-    icon: ../logo.svg
-    background: "#ffffff|#111827"
-
+      en: Administrator
+      zh: 管理员
+    placeholder:
+      en: Select users with admin privileges
+      zh: 选择具有管理员权限的用户
+    type: user_select
+  - name: ASSET_HUB_APPROVER_USER_IDS
+    label:
+      en: Approver
+      zh: 审批员
+    placeholder:
+      en: Select users with approver privileges
+      zh: 选择具有审批权限的用户
+    type: user_select
+menu_items:
   - location: application
     label:
       en: Assets
       zh: 资产管理
-    url: "apps/asset-hub/{system_lang}/assets/list?theme={system_theme}&user_id={user_id}&user_token={user_token}"
+    url: "apps/asset-hub/{system_lang}?theme={system_theme}"
     url_type: iframe
-    keep_alive: true
-    background: "#ffffff|#111827"
-
-  - location: application/admin
-    label:
-      en: System Settings
-      zh: 系统管理
-    url: "apps/asset-hub/{system_lang}/system/company?theme={system_theme}&user_id={user_id}&user_token={user_token}"
-    url_type: iframe
-    visible_to: admin
-    keep_alive: true
-    background: "#ffffff|#111827"
-
+    background: "#ffffff|#0a0a0a"

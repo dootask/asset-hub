@@ -4,18 +4,10 @@ name:
 description:
   en: Asset lifecycle management plugin for DooTask.
   zh: 面向 DooTask 的资产全生命周期管理插件。
-identifier: asset-hub
-version: 1.0.0
-author: Asset Hub Team
-website: https://www.dootask.com
-logo: ./logo.svg
 tags:
   - asset
-  - approval
   - inventory
   - 资产管理
-  - 审批
-versions:
-  - path: ./1.0.0
-    changelog: Initial Next.js integrated release.
+author: DooTask
+github: https://github.com/dootask/asset-hub
 
