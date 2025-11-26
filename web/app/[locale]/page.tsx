@@ -207,8 +207,8 @@ export default async function LocaleDashboard({
       adminOnly: true,
     },
     {
-      label: isChinese ? "系统配置" : "System Settings",
-      href: "/system/company",
+      label: isChinese ? "系统管理" : "System",
+      href: "/system",
       adminOnly: true,
     },
     {
