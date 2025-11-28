@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { Readable } from "node:stream";
 import { getBackupFileStream } from "@/lib/repositories/backups";
 import { isAdminUser } from "@/lib/utils/permissions";
@@ -21,13 +21,13 @@ function sanitizeFilename(id: string) {
 }
 
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } },
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const forbidden = ensureAdmin(request);
   if (forbidden) return forbidden;
 
-  const { id } = params;
+  const { id } = await params;
   if (!id) {
     return NextResponse.json(
       { error: "INVALID_ID", message: "缺少备份标识。" },

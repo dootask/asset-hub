@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { restoreBackup } from "@/lib/repositories/backups";
 import { isAdminUser } from "@/lib/utils/permissions";
 import { extractUserFromRequest } from "@/lib/utils/request-user";
 
-function ensureAdmin(request: Request) {
+function ensureAdmin(request: NextRequest) {
   const user = extractUserFromRequest(request);
   if (!isAdminUser(user?.id)) {
     return NextResponse.json(
@@ -15,14 +15,14 @@ function ensureAdmin(request: Request) {
 }
 
 export async function POST(
-  request: Request,
-  { params }: { params: { id: string } },
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const user = ensureAdmin(request);
   if (user instanceof NextResponse) {
     return user;
   }
-  const { id } = params;
+  const { id } = await params;
   if (!id) {
     return NextResponse.json(
       { error: "INVALID_ID", message: "缺少备份标识。" },

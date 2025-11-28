@@ -104,9 +104,13 @@ export default function BackupManager({ locale, dbPath, initialBackups }: Props)
         await client.post(
           `/apps/asset-hub/api/system/backups/${encodeURIComponent(backup.id)}/restore`,
         );
-        feedback.success(
+        feedback.error(
           isChinese ? "还原完成，请刷新页面查看最新数据。" : "Restore completed. Refresh to see latest data.",
-          { blocking: true },
+          {
+            blocking: true,
+            variant: "info",
+            acknowledgeLabel: isChinese ? "好的" : "Got it",
+          },
         );
       } catch (error) {
         const message = extractApiErrorMessage(
