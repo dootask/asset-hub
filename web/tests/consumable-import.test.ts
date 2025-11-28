@@ -18,7 +18,7 @@ beforeEach(() => {
 describe("Consumable import parser", () => {
   it("parses valid rows", () => {
     const csv = `name,category,status,companyCode,quantity,unit,keeper,location,safetyStock,description
-硒鼓,PrinterSupplies,in-stock,NEBULA,10,pcs,Admin,Shanghai,5,示例
+硒鼓,PrinterSupplies,in-stock,HITOSEA,10,pcs,Admin,Shanghai,5,示例
 `;
     const result = parseConsumableImportContent(csv);
     expect(result.errors).toHaveLength(0);
@@ -28,7 +28,7 @@ describe("Consumable import parser", () => {
 
   it("reports invalid status", () => {
     const csv = `name,category,status,companyCode,quantity,unit,keeper,location,safetyStock
-Bad,PrinterSupplies,unknown,NEBULA,10,pcs,Admin,SH,5
+Bad,PrinterSupplies,unknown,HITOSEA,10,pcs,Admin,SH,5
 `;
     const result = parseConsumableImportContent(csv);
     expect(result.rows).toHaveLength(0);

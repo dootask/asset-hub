@@ -23,27 +23,27 @@ beforeEach(() => {
 describe("Company repository", () => {
   it("creates and lists companies", () => {
     createCompany({
-      name: "Nebula Group",
-      code: "NEBULA",
+      name: "HITOSEA Group",
+      code: "HITOSEA",
       description: "Shanghai HQ",
     });
     const companies = listCompanies();
     expect(companies.length).toBeGreaterThan(0);
-    expect(companies[0].code).toBe("NEBULA");
+    expect(companies[0].code).toBe("HITOSEA");
   });
 
   it("updates and deletes a company", () => {
     const company = createCompany({
-      name: "Voyager",
-      code: "VOYAGER",
+      name: "HITOFLY",
+      code: "HITOFLY",
       description: "SZ Branch",
     });
     const updated = updateCompany(company.id, {
-      name: "Voyager Labs",
-      code: "VOYAGER",
+      name: "HITOFLY Labs",
+      code: "HITOFLY",
       description: "Updated",
     });
-    expect(updated?.name).toBe("Voyager Labs");
+    expect(updated?.name).toBe("HITOFLY Labs");
     const removed = deleteCompany(company.id);
     expect(removed).toBe(true);
   });

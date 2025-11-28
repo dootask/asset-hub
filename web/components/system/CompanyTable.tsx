@@ -371,7 +371,7 @@ const CompanyTable = forwardRef<CompanyTableHandle, Props>(function CompanyTable
                   onChange={(event) =>
                     setFormState((prev) => ({ ...prev, code: event.target.value }))
                   }
-                  placeholder={isChinese ? "例如：NEBULA" : "e.g. NEBULA"}
+                  placeholder={isChinese ? "例如：HITOSEA" : "e.g. HITOSEA"}
                   required
                   disabled={!!editingId}
                 />

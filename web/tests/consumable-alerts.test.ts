@@ -50,7 +50,7 @@ describe("Consumable alerts repository", () => {
       name: overrides?.name ?? "Test Consumable",
       category: "Office",
       status: overrides?.status ?? "in-stock",
-      companyCode: "NEBULA",
+      companyCode: "HITOSEA",
       quantity: overrides?.quantity ?? 10,
       reservedQuantity: overrides?.reservedQuantity ?? 0,
       unit: "pcs",

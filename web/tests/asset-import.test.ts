@@ -18,8 +18,8 @@ beforeEach(() => {
 describe("Asset import parser", () => {
   it("parses valid CSV content", () => {
     const csv = `name,category,status,companyCode,owner,location,purchaseDate
-MacBook Pro,Laptop,in-use,NEBULA,Alice,Shanghai,2024-01-01
-Server Rack,Server,idle,VOYAGER,Infra,Beijing,2023-12-12
+MacBook Pro,Laptop,in-use,HITOSEA,Alice,Shanghai,2024-01-01
+Server Rack,Server,idle,HITOFLY,Infra,Beijing,2023-12-12
 `;
     const result = parseAssetImportContent(csv);
     expect(result.errors).toHaveLength(0);
