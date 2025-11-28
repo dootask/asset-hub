@@ -61,7 +61,10 @@ jobs:
           compose_file="$version_dir/docker-compose.yml"
           if [ -f "$compose_file" ]; then
             released_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+            plugin_hash="$(git rev-parse --short HEAD)"
+            plugin_version="\${PLUGIN_VERSION} (${plugin_hash})"
             sed -i "s|ASSET_HUB_RELEASED_AT=.*|ASSET_HUB_RELEASED_AT=${released_at}|" "$compose_file"
+            sed -i "s|ASSET_HUB_VERSION=.*|ASSET_HUB_VERSION=${plugin_version}|" "$compose_file"
           fi
           tar -czf ../dootask-plugin.tar.gz .
           cd ..
