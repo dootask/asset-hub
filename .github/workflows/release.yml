@@ -53,10 +53,12 @@ jobs:
         run: |
           cd dootask-plugin
           base_version="1.0.0"
+          raw_tag="${{ github.ref_name }}"
+          normalized_tag="${raw_tag#v}"
           version_dir="$base_version"
-          if [ "${{ github.ref_name }}" != "$base_version" ]; then
-            mv "$base_version" "${{ github.ref_name }}"
-            version_dir="${{ github.ref_name }}"
+          if [ "$normalized_tag" != "$base_version" ]; then
+            mv "$base_version" "$normalized_tag"
+            version_dir="$normalized_tag"
           fi
           compose_file="$version_dir/docker-compose.yml"
           if [ -f "$compose_file" ]; then
