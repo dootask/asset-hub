@@ -83,6 +83,11 @@ function seedSystemConfig(database: Database.Database) {
  * 插入示例数据（仅当 SKIP_SEED 未设置时执行）
  */
 function seedSampleData(database: Database.Database) {
+  // 在测试环境下不插入示例数据，避免与单测自行构造的数据发生唯一约束冲突
+  if (appConfig.env === "test") {
+    return;
+  }
+
   seedTableIfEmpty(database, "companies", seedCompanies, [
     "id", "name", "code", "description",
   ]);
