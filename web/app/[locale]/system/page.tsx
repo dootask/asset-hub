@@ -73,6 +73,15 @@ const CARDS = [
     descriptionEn:
       "Check the current plugin version, plan, and available upgrade paths.",
   },
+  {
+    id: "backup",
+    href: "backup",
+    titleZh: "备份与还原",
+    titleEn: "Backup & Restore",
+    descriptionZh: "创建数据库备份、下载存档或从备份恢复数据。",
+    descriptionEn:
+      "Create database backups, download archives, or restore from history.",
+  },
 ];
 
 export default async function SystemOverviewPage({ params }: PageProps) {

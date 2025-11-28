@@ -41,6 +41,12 @@ export const appConfig = {
   db: {
     filePath: getDbFilePath(),
   },
+  backup: {
+    directory: resolvePath(
+      process.env.ASSET_HUB_BACKUP_DIR,
+      path.join(getDataDirectory(), "backups"),
+    ),
+  },
   permissions: {
     adminUserIds: parseNumberCsv(process.env.ASSET_HUB_ADMIN_USER_IDS),
     approverUserIds: parseNumberCsv(process.env.ASSET_HUB_APPROVER_USER_IDS),
@@ -63,4 +69,8 @@ export const appConfig = {
 
 export function getDataDirectory() {
   return path.dirname(getDbFilePath());
+}
+
+export function getBackupDirectory() {
+  return appConfig.backup.directory;
 }

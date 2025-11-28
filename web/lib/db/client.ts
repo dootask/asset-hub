@@ -37,3 +37,23 @@ export function resetDbForTesting() {
   }
 }
 
+export function checkpointDb() {
+  if (!db) return;
+  try {
+    db.pragma("wal_checkpoint(TRUNCATE)");
+  } catch {
+    // best-effort: ignore checkpoint failures
+  }
+}
+
+export function closeDb() {
+  if (db) {
+    try {
+      db.close();
+    } catch {
+      // ignore close errors
+    } finally {
+      db = null;
+    }
+  }
+}
