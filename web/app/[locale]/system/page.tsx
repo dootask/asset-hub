@@ -65,15 +65,6 @@ const CARDS = [
       "Configure asset operation templates and requirements for forms and approvals.",
   },
   {
-    id: "upgrade",
-    href: "upgrade",
-    titleZh: "升级与版本",
-    titleEn: "Upgrade & Version",
-    descriptionZh: "查看当前插件版本、套餐与升级渠道信息。",
-    descriptionEn:
-      "Check the current plugin version, plan, and available upgrade paths.",
-  },
-  {
     id: "backup",
     href: "backup",
     titleZh: "备份与还原",
@@ -81,6 +72,15 @@ const CARDS = [
     descriptionZh: "创建数据库备份、下载存档或从备份恢复数据。",
     descriptionEn:
       "Create database backups, download archives, or restore from history.",
+  },
+  {
+    id: "upgrade",
+    href: "upgrade",
+    titleZh: "升级与版本",
+    titleEn: "Upgrade & Version",
+    descriptionZh: "查看当前插件版本、套餐与升级渠道信息。",
+    descriptionEn:
+      "Check the current plugin version, plan, and available upgrade paths.",
   },
 ];
 

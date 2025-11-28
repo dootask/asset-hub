@@ -1,6 +1,17 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -46,7 +57,7 @@ function formatDate(value: string, locale: string) {
   });
 }
 
-export default function BackupManager({ locale, dbPath, initialBackups }: Props) {
+export default function BackupManager({ locale, initialBackups }: Props) {
   const isChinese = locale === "zh";
   const feedback = useAppFeedback();
   const [backups, setBackups] = useState<BackupRecord[]>(initialBackups);
@@ -91,13 +102,6 @@ export default function BackupManager({ locale, dbPath, initialBackups }: Props)
   };
 
   const handleRestore = (backup: BackupRecord) => {
-    const confirmed = window.confirm(
-      isChinese
-        ? `确定要从备份「${backup.filename}」还原吗？当前数据将被覆盖，请在业务低峰执行。`
-        : `Restore from backup "${backup.filename}"? This will overwrite current data. Proceed during maintenance window.`,
-    );
-    if (!confirmed) return;
-
     startTransition(async () => {
       try {
         const client = await getApiClient();
@@ -123,13 +127,6 @@ export default function BackupManager({ locale, dbPath, initialBackups }: Props)
   };
 
   const handleDelete = (backup: BackupRecord) => {
-    const confirmed = window.confirm(
-      isChinese
-        ? `确定要删除备份「${backup.filename}」吗？操作不可撤销。`
-        : `Delete backup "${backup.filename}"? This cannot be undone.`,
-    );
-    if (!confirmed) return;
-
     startTransition(async () => {
       try {
         const client = await getApiClient();
@@ -169,11 +166,6 @@ export default function BackupManager({ locale, dbPath, initialBackups }: Props)
           </li>
           <li>
             {isChinese
-              ? `当前数据库文件：${dbPath}`
-              : `Current database file: ${dbPath}`}
-          </li>
-          <li>
-            {isChinese
               ? "下载的备份文件包含所有数据，请妥善存储。"
               : "Downloaded backups contain all data; store them securely."}
           </li>
@@ -210,81 +202,153 @@ export default function BackupManager({ locale, dbPath, initialBackups }: Props)
         </div>
       </div>
 
-      <div className="rounded-2xl border bg-card p-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">
+      <div className="space-y-2 rounded-2xl border bg-muted/20 p-4 text-sm text-muted-foreground">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <h2 className="text-base font-semibold text-foreground">
             {isChinese ? "备份列表" : "Backup list"}
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p>
             {isChinese
               ? "包含手动创建和自动生成的备份（如还原前的安全副本）。"
               : "Includes manual backups and auto safety snapshots created before restores."}
           </p>
         </div>
-        <div className="mt-4 overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{isChinese ? "文件名" : "Filename"}</TableHead>
-                <TableHead>{isChinese ? "创建时间" : "Created"}</TableHead>
-                <TableHead>{isChinese ? "大小" : "Size"}</TableHead>
-                <TableHead>{isChinese ? "备注" : "Note"}</TableHead>
-                <TableHead className="text-right">
+      </div>
+
+      {hasBackups ? (
+        <section className="overflow-hidden rounded-2xl border bg-card">
+          <Table className="text-sm">
+            <TableHeader className="bg-muted/30">
+              <TableRow className="text-xs uppercase tracking-wide text-muted-foreground">
+                <TableHead className="px-4 py-3">
+                  {isChinese ? "文件名" : "Filename"}
+                </TableHead>
+                <TableHead className="px-4 py-3">
+                  {isChinese ? "创建时间" : "Created"}
+                </TableHead>
+                <TableHead className="px-4 py-3">
+                  {isChinese ? "大小" : "Size"}
+                </TableHead>
+                <TableHead className="px-4 py-3">
+                  {isChinese ? "备注" : "Note"}
+                </TableHead>
+                <TableHead className="px-4 py-3 text-right">
                   {isChinese ? "操作" : "Actions"}
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {hasBackups ? (
-                sortedBackups.map((backup) => (
-                  <TableRow key={backup.id}>
-                    <TableCell className="font-mono text-xs md:text-sm">
+              {sortedBackups.map((backup) => (
+                <TableRow key={backup.id}>
+                  <TableCell className="px-4 py-3">
+                    <div className="font-mono text-xs md:text-sm">
                       {backup.filename}
-                    </TableCell>
-                    <TableCell>{formatDate(backup.createdAt, locale)}</TableCell>
-                    <TableCell>{formatSize(backup.size)}</TableCell>
-                    <TableCell className="max-w-[280px] truncate text-muted-foreground">
-                      {backup.note ?? (isChinese ? "—" : "—")}
-                    </TableCell>
-                    <TableCell className="flex items-center justify-end gap-2">
+                    </div>
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-muted-foreground">
+                    {formatDate(backup.createdAt, locale)}
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-muted-foreground">
+                    {formatSize(backup.size)}
+                  </TableCell>
+                  <TableCell className="px-4 py-3 max-w-[280px] truncate text-muted-foreground">
+                    {backup.note ?? "—"}
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-right">
+                    <div className="flex items-center justify-end gap-2">
                       <Button
                         variant="outline"
                         size="sm"
+                        className="rounded-full px-3"
                         onClick={() => handleDownload(backup)}
                         disabled={pending}
                       >
                         {isChinese ? "下载" : "Download"}
                       </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleRestore(backup)}
-                        disabled={pending}
-                      >
-                        {isChinese ? "还原" : "Restore"}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(backup)}
-                        disabled={pending}
-                      >
-                        {isChinese ? "删除" : "Delete"}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
-                    {isChinese ? "暂无备份" : "No backups yet"}
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            className="rounded-full px-3"
+                            disabled={pending}
+                          >
+                            {isChinese ? "还原" : "Restore"}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              {isChinese ? "确认还原备份" : "Restore backup?"}
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {isChinese
+                                ? `确定要从备份「${backup.filename}」还原吗？当前数据将被覆盖，请在业务低峰执行。`
+                                : `Restore from backup "${backup.filename}"? This will overwrite current data. Proceed during maintenance window.`}
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>
+                              {isChinese ? "取消" : "Cancel"}
+                            </AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-amber-600 text-white hover:bg-amber-600/90"
+                              onClick={() => handleRestore(backup)}
+                              disabled={pending}
+                            >
+                              {isChinese ? "确认还原" : "Restore"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="rounded-full px-3 text-destructive hover:text-destructive"
+                            disabled={pending}
+                          >
+                            {isChinese ? "删除" : "Delete"}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              {isChinese ? "确认删除备份" : "Delete backup?"}
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {isChinese
+                                ? `确定要删除备份「${backup.filename}」吗？操作不可撤销。`
+                                : `Delete backup "${backup.filename}"? This cannot be undone.`}
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>
+                              {isChinese ? "取消" : "Cancel"}
+                            </AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              onClick={() => handleDelete(backup)}
+                              disabled={pending}
+                            >
+                              {isChinese ? "确认删除" : "Delete"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </TableCell>
                 </TableRow>
-              )}
+              ))}
             </TableBody>
           </Table>
+        </section>
+      ) : (
+        <div className="rounded-2xl border bg-muted/30 p-12 text-center text-sm text-muted-foreground">
+          {isChinese ? "暂无备份" : "No backups yet"}
         </div>
-      </div>
+      )}
     </div>
   );
 }
