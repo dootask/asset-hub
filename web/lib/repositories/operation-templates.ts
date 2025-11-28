@@ -39,57 +39,8 @@ const TEMPLATE_ORDER = new Map<OperationTemplateId, number>(
   seedOperationTemplates.map((tpl, index) => [tpl.type as OperationTemplateId, index]),
 );
 
-function ensureSeeded(db: ReturnType<typeof getDb>) {
-  const { count } = db
-    .prepare(`SELECT COUNT(1) as count FROM asset_operation_templates`)
-    .get() as { count: number };
-  if (count > 0) {
-    return;
-  }
-
-  const insert = db.prepare(
-    `INSERT INTO asset_operation_templates (
-      id,
-      type,
-      label_zh,
-      label_en,
-      description_zh,
-      description_en,
-      require_attachment,
-      metadata
-    ) VALUES (
-      @id,
-      @type,
-      @label_zh,
-      @label_en,
-      @description_zh,
-      @description_en,
-      @require_attachment,
-      @metadata
-    )`,
-  );
-
-  const insertMany = db.transaction((rows: typeof seedOperationTemplates) => {
-    rows.forEach((row) => {
-      insert.run({
-        id: row.id,
-        type: row.type,
-        label_zh: row.label_zh,
-        label_en: row.label_en,
-        description_zh: row.description_zh ?? null,
-        description_en: row.description_en ?? null,
-        require_attachment: row.require_attachment ?? 0,
-        metadata: row.metadata ?? null,
-      });
-    });
-  });
-
-  insertMany(seedOperationTemplates);
-}
-
 export function listOperationTemplates(): OperationTemplate[] {
   const db = getDb();
-  ensureSeeded(db);
   const rows = db
     .prepare(`SELECT * FROM asset_operation_templates`)
     .all() as OperationTemplateRow[];
@@ -110,7 +61,6 @@ export function getOperationTemplateByType(
   type: OperationTemplateId,
 ): OperationTemplate | null {
   const db = getDb();
-  ensureSeeded(db);
   const row = db
     .prepare(`SELECT * FROM asset_operation_templates WHERE type = ?`)
     .get(type) as OperationTemplateRow | undefined;
@@ -122,7 +72,6 @@ export function updateOperationTemplate(
   input: OperationTemplateInput,
 ): OperationTemplate {
   const db = getDb();
-  ensureSeeded(db);
   const existing = getOperationTemplateByType(type);
   if (!existing) {
     throw new Error("TEMPLATE_NOT_FOUND");

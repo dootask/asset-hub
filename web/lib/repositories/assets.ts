@@ -1,6 +1,5 @@
 import { randomUUID } from "crypto";
 import { getDb } from "@/lib/db/client";
-import { seedAssets } from "@/lib/db/schema";
 import type { Asset, CreateAssetPayload } from "@/lib/types/asset";
 
 type AssetRow = {
@@ -43,34 +42,7 @@ function mapRow(row: AssetRow): Asset {
   };
 }
 
-function seedIfEmpty() {
-  const db = getDb();
-  const count = db.prepare("SELECT COUNT(1) as count FROM assets").get() as {
-    count: number;
-  };
-
-  if (count.count === 0) {
-    const insert = db.prepare(
-      `INSERT INTO assets (id, name, category, status, company_code, owner, location, purchase_date)
-       VALUES (@id, @name, @category, @status, @company_code, @owner, @location, @purchaseDate)
-      `,
-    );
-
-    const insertMany = db.transaction((rows: typeof seedAssets) => {
-      rows.forEach((row) =>
-        insert.run({
-          ...row,
-          id: row.id ?? randomUUID(),
-        }),
-      );
-    });
-
-    insertMany(seedAssets);
-  }
-}
-
 export function listAssets(query: AssetQuery = {}): AssetListResult {
-  seedIfEmpty();
   const db = getDb();
 
   const page = Math.max(1, query.page ?? 1);
@@ -135,7 +107,6 @@ export function listAssets(query: AssetQuery = {}): AssetListResult {
 }
 
 export function getAssetById(id: string): Asset | null {
-  seedIfEmpty();
   const db = getDb();
   const row = db.prepare("SELECT * FROM assets WHERE id = ?").get(id) as AssetRow | undefined;
   return row ? mapRow(row) : null;

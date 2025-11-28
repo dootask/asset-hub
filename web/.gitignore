@@ -28,6 +28,7 @@
 *.pem
 /data/*.db*
 /data/uploads/
+/data/backups/
 
 # debug
 npm-debug.log*
