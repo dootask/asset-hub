@@ -43,6 +43,7 @@ import {
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { extractApiErrorMessage } from "@/lib/utils/api-error";
 import { AttachmentUploadField } from "@/components/attachments/AttachmentUploadField";
+import { enUS, zhCN } from "react-day-picker/locale";
 
 interface Props {
   assetId: string;
@@ -487,7 +488,11 @@ export default function OperationForm({
               <Calendar
                 mode="single"
                 selected={value ? new Date(value) : undefined}
-                initialFocus
+                locale={isChinese ? zhCN : enUS}
+                captionLayout="dropdown"
+                weekStartsOn={0}
+                startMonth={new Date(new Date().getFullYear() - 5, 0)}
+                endMonth={new Date(new Date().getFullYear() + 5, 11)}
                 onSelect={(date) => {
                   if (!date) return;
                   handleFieldChange(field.key, date.toISOString().slice(0, 10));

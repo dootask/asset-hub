@@ -29,6 +29,7 @@ import type { Company } from "@/lib/types/system";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
 import { extractApiErrorMessage } from "@/lib/utils/api-error";
+import { enUS, zhCN } from "react-day-picker/locale";
 
 type Props = {
   locale?: string;
@@ -263,7 +264,11 @@ export default function NewAssetForm({ locale = "en", categories, companies }: P
               <Calendar
                 mode="single"
                 selected={purchaseDateValue}
-                initialFocus
+                locale={isChinese ? zhCN : enUS}
+                captionLayout="dropdown"
+                weekStartsOn={0}
+                startMonth={new Date(new Date().getFullYear() - 5, 0)}
+                endMonth={new Date(new Date().getFullYear() + 5, 11)}
                 onSelect={(date: Date | undefined) => {
                   if (!date) return;
                   handleChange("purchaseDate", date.toISOString().slice(0, 10));

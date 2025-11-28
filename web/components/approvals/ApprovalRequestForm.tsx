@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/popover";
 import { Calendar as CalendarIcon, X as XICon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
+import { enUS, zhCN } from "react-day-picker/locale";
 import { AttachmentUploadField } from "@/components/attachments/AttachmentUploadField";
 import { cn } from "@/lib/utils";
 import type {
@@ -839,7 +840,11 @@ export default function ApprovalRequestForm({
               <Calendar
                 mode="single"
                 selected={value ? new Date(value) : undefined}
-                initialFocus
+                locale={isChinese ? zhCN : enUS}
+                captionLayout="dropdown"
+                weekStartsOn={0}
+                startMonth={new Date(new Date().getFullYear() - 5, 0)}
+                endMonth={new Date(new Date().getFullYear() + 5, 11)}
                 onSelect={(date) => {
                   if (!date) return;
                   handleOperationFieldChange(

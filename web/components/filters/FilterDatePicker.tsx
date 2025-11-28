@@ -10,6 +10,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { enUS, zhCN } from "react-day-picker/locale";
 
 interface Props {
   name: string;
@@ -76,7 +77,11 @@ export default function FilterDatePicker({
               setValue(nextDate);
               setOpen(false);
             }}
-            initialFocus
+            locale={locale === "zh" ? zhCN : enUS}
+            captionLayout="dropdown"
+            weekStartsOn={0}
+            startMonth={new Date(new Date().getFullYear() - 5, 0)}
+            endMonth={new Date(new Date().getFullYear() + 5, 11)}
           />
           {value && (
             <div className="border-t bg-muted/30 px-3 py-2 text-right">

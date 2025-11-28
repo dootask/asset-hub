@@ -45,6 +45,7 @@ import { cn } from "@/lib/utils";
 import { Calendar as CalendarIcon, X as XICon } from "lucide-react";
 import { AttachmentUploadField } from "@/components/attachments/AttachmentUploadField";
 import { readBrowserUserCookie } from "@/lib/utils/user-cookie";
+import { enUS, zhCN } from "react-day-picker/locale";
 
 type Props = {
   locale?: string;
@@ -87,7 +88,7 @@ export default function NewPurchaseForm({
   const [loadingConfig, setLoadingConfig] = useState(true);
 
   // Role resolution
-  const [loadingRole, setLoadingRole] = useState(false);
+  const [, setLoadingRole] = useState(false);
   const [roleMembers, setRoleMembers] = useState<
     Array<{ id: string; name: string }>
   >([]);
@@ -491,7 +492,11 @@ export default function NewPurchaseForm({
               <Calendar
                 mode="single"
                 selected={value ? new Date(value) : undefined}
-                initialFocus
+                locale={isChinese ? zhCN : enUS}
+                captionLayout="dropdown"
+                weekStartsOn={0}
+                startMonth={new Date(new Date().getFullYear() - 5, 0)}
+                endMonth={new Date(new Date().getFullYear() + 5, 11)}
                 onSelect={(date) => {
                   if (!date) return;
                   setOperationFieldValues((prev) => ({
