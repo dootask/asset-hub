@@ -1,6 +1,6 @@
 import Database from "better-sqlite3";
 import fs from "fs";
-import { getDataDirectory, getDbFilePath } from "@/lib/config";
+import { appConfig, getDataDirectory, getDbFilePath } from "@/lib/config";
 import {
   CREATE_TABLES,
   seedAssetCategories,
@@ -58,13 +58,31 @@ function ensureSystemSetting(database: Database.Database, key: string, value: st
   ).run({ key, value });
 }
 
-function seedDatabase(database: Database.Database) {
-  // 确保默认系统配置
+/**
+ * 初始化系统必需的配置数据（无论 SKIP_SEED 如何设置都会执行）
+ */
+function seedSystemConfig(database: Database.Database) {
+  // 系统设置
   Object.entries(DEFAULT_SYSTEM_SETTINGS).forEach(([key, value]) => {
     ensureSystemSetting(database, key, value);
   });
 
-  // 按依赖顺序插入种子数据
+  // 操作配置（定义哪些操作需要审批）
+  seedTableIfEmpty(database, "asset_action_configs", seedActionConfigs, [
+    "id", "label_zh", "label_en", "requires_approval", "default_approver_type",
+    "default_approver_refs", "allow_override", "metadata",
+  ]);
+
+  // 操作模板（定义各操作类型的字段）
+  seedTableIfEmpty(database, "asset_operation_templates", seedOperationTemplates, [
+    "id", "type", "label_zh", "label_en", "description_zh", "description_en", "require_attachment", "metadata",
+  ]);
+}
+
+/**
+ * 插入示例数据（仅当 SKIP_SEED 未设置时执行）
+ */
+function seedSampleData(database: Database.Database) {
   seedTableIfEmpty(database, "companies", seedCompanies, [
     "id", "name", "code", "description",
   ]);
@@ -91,19 +109,10 @@ function seedDatabase(database: Database.Database) {
     "id", "asset_id", "type", "description", "actor", "status",
   ]);
 
-  seedTableIfEmpty(database, "asset_operation_templates", seedOperationTemplates, [
-    "id", "type", "label_zh", "label_en", "description_zh", "description_en", "require_attachment", "metadata",
-  ]);
-
   seedTableIfEmpty(database, "asset_approval_requests", seedApprovalRequests, [
     "id", "asset_id", "consumable_id", "operation_id", "consumable_operation_id",
     "type", "status", "title", "reason", "applicant_id", "applicant_name",
     "approver_id", "approver_name", "result", "external_todo_id", "metadata", "completed_at",
-  ]);
-
-  seedTableIfEmpty(database, "asset_action_configs", seedActionConfigs, [
-    "id", "label_zh", "label_en", "requires_approval", "default_approver_type",
-    "default_approver_refs", "allow_override", "metadata",
   ]);
 
   seedTableIfEmpty(database, "consumable_categories", seedConsumableCategories, [
@@ -132,8 +141,13 @@ function ensureDatabase() {
     db!.exec(sql);
   });
 
-  // 插入种子数据（如果表为空）
-  seedDatabase(db);
+  // 系统配置（必须插入）
+  seedSystemConfig(db);
+
+  // 示例数据（可选）
+  if (!appConfig.db.skipSeed) {
+    seedSampleData(db);
+  }
 }
 
 export function getDb() {

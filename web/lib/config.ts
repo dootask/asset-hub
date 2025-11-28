@@ -40,6 +40,7 @@ export const appConfig = {
   baseUrl: process.env.ASSET_HUB_BASE_URL,
   db: {
     filePath: getDbFilePath(),
+    skipSeed: process.env.ASSET_HUB_SKIP_SEED === "true",
   },
   backup: {
     directory: resolvePath(
