@@ -15,6 +15,24 @@ fields:
       en: Select users with approver privileges
       zh: 选择具有审批权限的用户
     type: user_select
+  - name: ASSET_HUB_SKIP_SEED
+    label:
+      en: Sample Data
+      zh: 示例数据
+    placeholder:
+      en: Add sample data only on first installation
+      zh: 仅首次安装时添加示例数据
+    type: select
+    options:
+      - label:
+          en: Add Sample Data
+          zh: 添加示例数据
+        value: false
+      - label:
+          en: Skip Adding Sample Data
+          zh: 跳过添加示例数据
+        value: true
+    default: false
 menu_items:
   - location: application
     label:
