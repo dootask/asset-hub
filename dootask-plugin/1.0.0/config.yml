@@ -19,9 +19,9 @@ fields:
     label:
       en: Sample Data
       zh: 示例数据
-    placeholder:
-      en: Add sample data only on first installation
-      zh: 仅首次安装时添加示例数据
+    description:
+      en: This option only takes effect on first installation
+      zh: 此选项仅在首次安装时生效
     type: select
     options:
       - label:
