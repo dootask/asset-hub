@@ -27,12 +27,12 @@ fields:
       - label:
           en: Add Sample Data
           zh: 添加示例数据
-        value: false
+        value: "false"
       - label:
           en: Skip Adding Sample Data
           zh: 跳过添加示例数据
-        value: true
-    default: false
+        value: "true"
+    default: "false"
 menu_items:
   - location: application
     label:
