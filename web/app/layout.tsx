@@ -35,7 +35,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <FeedbackProvider>
             {children}
-            <Toaster position="top-center" richColors />
+            <Toaster position="top-center" />
           </FeedbackProvider>
         </ThemeProvider>
       </body>
