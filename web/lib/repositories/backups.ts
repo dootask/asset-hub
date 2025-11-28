@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
-import { getBackupDirectory, getDbFilePath } from "@/lib/config";
-import { checkpointDb, closeDb } from "@/lib/db/client";
+import { getBackupDirectory } from "@/lib/config";
+import { getDb } from "@/lib/db/client";
 import type { BackupRecord } from "@/lib/types/backup";
 
 type BackupMetadata = {
@@ -96,14 +96,15 @@ export function listBackups(): BackupRecord[] {
 
 export function createBackup(options?: { note?: string; createdBy?: string | number }) {
   const dir = ensureBackupDirectory();
-  const dbPath = getDbFilePath();
-  checkpointDb();
+  const db = getDb();
 
   const now = new Date();
   const id = `asset-hub-backup-${formatTimestamp(now)}`;
   const targetPath = path.join(dir, `${id}${BACKUP_EXTENSION}`);
 
-  fs.copyFileSync(dbPath, targetPath);
+  // Use SQLite VACUUM INTO for a consistent snapshot without closing the live DB.
+  db.prepare("VACUUM main INTO ?").run(targetPath);
+
   const stats = fs.statSync(targetPath);
   const metadata: BackupMetadata = {
     createdAt: now.toISOString(),
@@ -112,20 +113,6 @@ export function createBackup(options?: { note?: string; createdBy?: string | num
   };
   writeMetadata(id, metadata);
   return toRecord(id, stats, metadata);
-}
-
-function removeWalFiles(dbPath: string) {
-  const walPath = `${dbPath}-wal`;
-  const shmPath = `${dbPath}-shm`;
-  [walPath, shmPath].forEach((file) => {
-    if (fs.existsSync(file)) {
-      try {
-        fs.rmSync(file);
-      } catch {
-        // ignore cleanup failures
-      }
-    }
-  });
 }
 
 export function deleteBackup(id: string) {
@@ -145,32 +132,48 @@ export function restoreBackup(id: string, options?: { actor?: string | number })
   if (!fs.existsSync(backupPath)) {
     throw new Error("指定的备份不存在。");
   }
-  const dbPath = getDbFilePath();
-  checkpointDb();
-  closeDb();
-  removeWalFiles(dbPath);
 
-  // safety snapshot before overwrite
+  const db = getDb();
+
+  // safety snapshot before data replacement
   try {
-    const now = new Date();
-    const safetyId = `auto-pre-restore-${formatTimestamp(now)}`;
-    const safetyPath = getBackupFilePath(safetyId);
-    fs.copyFileSync(dbPath, safetyPath);
-    const stats = fs.statSync(safetyPath);
-    writeMetadata(safetyId, {
-      createdAt: now.toISOString(),
+    createBackup({
       note: `Auto backup before restoring from ${id}`,
-      createdBy: options?.actor ? String(options.actor) : undefined,
-      source: id,
+      createdBy: options?.actor,
     });
-    // keep record for listing
-    toRecord(safetyId, stats, readMetadata(safetyId));
   } catch {
-    // best-effort safety snapshot
+    // best-effort
   }
 
-  fs.copyFileSync(backupPath, dbPath);
-  removeWalFiles(dbPath);
+  db.exec("PRAGMA foreign_keys = OFF;");
+  db.exec(`ATTACH DATABASE '${backupPath.replace(/'/g, "''")}' AS backup_db;`);
+  const tables = (
+    db
+      .prepare(
+        `
+        SELECT name
+        FROM backup_db.sqlite_master
+        WHERE type = 'table'
+          AND name NOT LIKE 'sqlite_%'
+      `,
+      )
+      .all() as Array<{ name: string }>
+  ).map((row) => row.name);
+  try {
+    db.exec("BEGIN IMMEDIATE;");
+    tables.forEach((table) => {
+      const quoted = `"${table}"`;
+      db.exec(`DELETE FROM ${quoted};`);
+      db.exec(`INSERT INTO ${quoted} SELECT * FROM backup_db.${quoted};`);
+    });
+    db.exec("COMMIT;");
+  } catch (error) {
+    db.exec("ROLLBACK;");
+    throw error;
+  } finally {
+    db.exec("DETACH DATABASE backup_db;");
+    db.exec("PRAGMA foreign_keys = ON;");
+  }
 }
 
 export function getBackupFileStream(id: string) {
