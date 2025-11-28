@@ -37,7 +37,6 @@ export interface AssetCategoryTableHandle {
 interface Props {
   initialCategories: AssetCategory[];
   locale?: string;
-  baseUrl?: string;
 }
 
 type FormState = {
@@ -57,7 +56,7 @@ const DEFAULT_FORM: FormState = {
 };
 
 const AssetCategoryTable = forwardRef<AssetCategoryTableHandle, Props>(function AssetCategoryTable(
-  { initialCategories, locale = "en", baseUrl = "" }: Props,
+  { initialCategories, locale = "en" }: Props,
   ref,
 ) {
   const [categories, setCategories] = useState(initialCategories);
@@ -124,11 +123,11 @@ const AssetCategoryTable = forwardRef<AssetCategoryTableHandle, Props>(function 
         };
         const response = editing
           ? await client.put<{ data: AssetCategory }>(
-              `${baseUrl}/apps/asset-hub/api/assets/categories/${editing.id}`,
+              `/apps/asset-hub/api/assets/categories/${editing.id}`,
               payload,
             )
           : await client.post<{ data: AssetCategory }>(
-              `${baseUrl}/apps/asset-hub/api/assets/categories`,
+              `/apps/asset-hub/api/assets/categories`,
               {
                 ...payload,
                 code: formState.code.trim() || undefined,
@@ -172,7 +171,7 @@ const AssetCategoryTable = forwardRef<AssetCategoryTableHandle, Props>(function 
       try {
         const client = await getApiClient();
         await client.delete(
-          `${baseUrl}/apps/asset-hub/api/assets/categories/${category.id}`,
+          `/apps/asset-hub/api/assets/categories/${category.id}`,
         );
         setCategories((prev) => prev.filter((item) => item.id !== category.id));
         feedback.success(isChinese ? "删除成功" : "Deleted successfully");

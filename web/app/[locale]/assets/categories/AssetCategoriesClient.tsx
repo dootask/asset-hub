@@ -9,10 +9,9 @@ import type { AssetCategory } from "@/lib/types/asset-category";
 interface AssetCategoriesClientProps {
   initialCategories: AssetCategory[];
   locale: string;
-  baseUrl: string;
 }
 
-export default function AssetCategoriesClient({ initialCategories, locale, baseUrl }: AssetCategoriesClientProps) {
+export default function AssetCategoriesClient({ initialCategories, locale }: AssetCategoriesClientProps) {
   const isChinese = locale === "zh";
   const assetCategoryTableRef = useRef<AssetCategoryTableHandle>(null);
 
@@ -52,11 +51,9 @@ export default function AssetCategoriesClient({ initialCategories, locale, baseU
         ref={assetCategoryTableRef}
         initialCategories={initialCategories}
         locale={locale}
-        baseUrl={baseUrl}
       />
     </div>
   );
 }
-
 
 

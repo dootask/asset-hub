@@ -111,10 +111,7 @@ function attachUserHeaders(
 let browserClient: AxiosInstance | null = null;
 
 function createBrowserClient(): AxiosInstance {
-  const baseURL =
-    typeof window !== "undefined"
-      ? window.location.origin
-      : undefined;
+  const baseURL = typeof window !== "undefined" ? window.location.origin : undefined;
   const client = axios.create({ baseURL });
   client.interceptors.request.use((config) => {
     const context = extractUserFromStorage();
@@ -127,22 +124,15 @@ function createBrowserClient(): AxiosInstance {
 }
 
 async function createServerClient(): Promise<AxiosInstance> {
-  const { getRequestBaseUrl } = await import("@/lib/utils/server-url");
-  const baseURL = await getRequestBaseUrl();
+  const preset = process.env.ASSET_HUB_BASE_URL ?? process.env.NEXT_PUBLIC_ASSET_HUB_BASE_URL;
+  const baseURL = (preset ? preset.replace(/\/$/, "") : "http://127.0.0.1:3000");
   const { headers } = await import("next/headers");
   const incomingHeaders = await headers();
   const cookieUser = readUserCookieFromString(incomingHeaders.get("cookie"));
   const context: UserContext = {
-    userId:
-      incomingHeaders.get("x-user-id") ??
-      (cookieUser ? String(cookieUser.id) : undefined) ??
-      getServerFallbackUserId() ??
-      undefined,
-    token:
-      incomingHeaders.get("x-user-token") ?? cookieUser?.token ?? undefined,
-    nickname:
-      decodeHeaderValue(incomingHeaders.get("x-user-nickname")) ??
-      cookieUser?.nickname,
+    userId: incomingHeaders.get("x-user-id") ?? (cookieUser ? String(cookieUser.id) : undefined) ?? getServerFallbackUserId() ?? undefined,
+    token: incomingHeaders.get("x-user-token") ?? cookieUser?.token ?? undefined,
+    nickname: decodeHeaderValue(incomingHeaders.get("x-user-nickname")) ?? cookieUser?.nickname,
     baseUrl: incomingHeaders.get("x-base-url") ?? undefined,
     locale: incomingHeaders.get("x-user-locale") ?? undefined,
   };

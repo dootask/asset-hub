@@ -25,7 +25,6 @@ import { extractApiErrorMessage } from "@/lib/utils/api-error";
 
 interface CustomReportsClientProps {
   locale: string;
-  baseUrl: string;
   initialViews: ReportView[];
 }
 
@@ -66,7 +65,6 @@ const DEFAULT_FORM: FormState = {
 
 export default function CustomReportsClient({
   locale,
-  baseUrl,
   initialViews,
 }: CustomReportsClientProps) {
   const isChinese = locale === "zh";
@@ -132,8 +130,8 @@ export default function CustomReportsClient({
           );
         }
         const endpoint = formState.id
-          ? `${baseUrl}/apps/asset-hub/api/system/report-views/${formState.id}`
-          : `${baseUrl}/apps/asset-hub/api/system/report-views`;
+          ? `/apps/asset-hub/api/system/report-views/${formState.id}`
+          : `/apps/asset-hub/api/system/report-views`;
         const client = await getApiClient();
         const response = await client.request<{ data: ReportView; message?: string }>({
           url: endpoint,
@@ -182,7 +180,7 @@ export default function CustomReportsClient({
       try {
         const client = await getApiClient();
         await client.delete(
-          `${baseUrl}/apps/asset-hub/api/system/report-views/${view.id}`,
+          `/apps/asset-hub/api/system/report-views/${view.id}`,
         );
         setViews((prev) => prev.filter((item) => item.id !== view.id));
         feedback.success(isChinese ? "删除成功" : "Deleted successfully");
@@ -208,7 +206,7 @@ export default function CustomReportsClient({
     try {
       const client = await getApiClient();
       const response = await client.get<{ data: ReportExecutionResult }>(
-        `${baseUrl}/apps/asset-hub/api/system/report-views/${view.id}/run`,
+        `/apps/asset-hub/api/system/report-views/${view.id}/run`,
       );
       setPreviewResult(response.data.data);
     } catch (err) {

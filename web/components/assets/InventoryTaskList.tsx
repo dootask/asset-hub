@@ -23,7 +23,6 @@ import { extractApiErrorMessage } from "@/lib/utils/api-error";
 
 interface Props {
   locale: string;
-  baseUrl: string;
   initialTasks: InventoryTask[];
 }
 
@@ -49,7 +48,7 @@ const STATUS_LABELS: Record<InventoryTaskStatus, { zh: string; en: string; tone:
   completed: { zh: "已完成", en: "Completed", tone: "text-emerald-600" },
 };
 
-export default function InventoryTaskList({ locale, baseUrl, initialTasks }: Props) {
+export default function InventoryTaskList({ locale, initialTasks }: Props) {
   const isChinese = locale === "zh";
   const [tasks, setTasks] = useState(initialTasks);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -81,7 +80,7 @@ export default function InventoryTaskList({ locale, baseUrl, initialTasks }: Pro
         }
         const client = await getApiClient();
         const response = await client.post<{ data: InventoryTask }>(
-          `${baseUrl}/apps/asset-hub/api/assets/inventory-tasks`,
+          `/apps/asset-hub/api/assets/inventory-tasks`,
           {
             name: formState.name.trim(),
             scope: formState.scope.trim() || undefined,
@@ -113,7 +112,7 @@ export default function InventoryTaskList({ locale, baseUrl, initialTasks }: Pro
       try {
         const client = await getApiClient();
         const response = await client.put<{ data: InventoryTask }>(
-          `${baseUrl}/apps/asset-hub/api/assets/inventory-tasks/${task.id}`,
+          `/apps/asset-hub/api/assets/inventory-tasks/${task.id}`,
           { status },
         );
         setTasks((prev) =>

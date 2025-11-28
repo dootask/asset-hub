@@ -1,6 +1,5 @@
 import RoleManagementClient from "./RoleManagementClient";
 import type { Role } from "@/lib/types/system";
-import { getRequestBaseUrl } from "@/lib/utils/server-url";
 import { getApiClient } from "@/lib/http/client";
 
 async function fetchRoles() {
@@ -19,13 +18,11 @@ export default async function RolePage({
 }) {
   const { locale } = await params;
   const result = await fetchRoles();
-  const baseUrl = await getRequestBaseUrl();
 
   return (
     <RoleManagementClient
       locale={locale}
       initialRoles={result.data}
-      baseUrl={baseUrl}
     />
   );
 }

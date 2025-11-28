@@ -49,7 +49,6 @@ import { extractApiErrorMessage } from "@/lib/utils/api-error";
 interface Props {
   initialRoles: Role[];
   locale: string;
-  baseUrl: string;
 }
 
 export type RoleTableHandle = {
@@ -83,7 +82,7 @@ const DEFAULT_FORM: FormState = {
 };
 
 const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
-  { initialRoles, locale, baseUrl },
+  { initialRoles, locale },
   ref,
 ) {
   const isChinese = locale === "zh";
@@ -225,8 +224,8 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
           members: formState.members,
         };
         const url = editing
-          ? `${baseUrl}/apps/asset-hub/api/system/roles/${editing.id}`
-          : `${baseUrl}/apps/asset-hub/api/system/roles`;
+          ? `/apps/asset-hub/api/system/roles/${editing.id}`
+          : `/apps/asset-hub/api/system/roles`;
         const client = await getApiClient();
         const response = await client.request<{ data: Role }>({
           url,
@@ -273,7 +272,7 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
     startTransition(async () => {
       try {
         const client = await getApiClient();
-        await client.delete(`${baseUrl}/apps/asset-hub/api/system/roles/${dialogRole.id}`);
+        await client.delete(`/apps/asset-hub/api/system/roles/${dialogRole.id}`);
         setRoles((prev) => prev.filter((role) => role.id !== dialogRole.id));
         setDeleteDialogOpen(false);
         setDialogRole(null);

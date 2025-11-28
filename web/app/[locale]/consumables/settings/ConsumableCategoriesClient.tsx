@@ -10,13 +10,11 @@ import type { ConsumableCategory } from "@/lib/types/consumable";
 type Props = {
   locale: string;
   initialCategories: ConsumableCategory[];
-  baseUrl: string;
 };
 
 export default function ConsumableCategoriesClient({
   locale,
   initialCategories,
-  baseUrl,
 }: Props) {
   const tableRef = useRef<ConsumableCategoryTableHandle>(null);
   const isChinese = locale === "zh";
@@ -57,10 +55,8 @@ export default function ConsumableCategoriesClient({
         ref={tableRef}
         locale={locale}
         initialCategories={initialCategories}
-        baseUrl={baseUrl}
       />
     </div>
   );
 }
-
 

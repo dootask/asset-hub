@@ -33,10 +33,6 @@ const APPROVAL_STATUS_LABELS: Record<
 
 export default function ReportsClient({ locale, categories, summary }: Props) {
   const isChinese = locale === "zh";
-  const baseUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}`
-      : "";
 
   const categoryTableRef = useRef<AssetCategoryTableHandle>(null);
   const approvalTypeLabelMap = useMemo(() => {
@@ -197,12 +193,10 @@ export default function ReportsClient({ locale, categories, summary }: Props) {
             ref={categoryTableRef}
             initialCategories={categories}
             locale={locale}
-            baseUrl={baseUrl}
           />
         </div>
       </section>
     </>
   );
 }
-
 

@@ -9,13 +9,11 @@ import { Button } from "@/components/ui/button";
 type Props = {
   locale: string;
   initialRoles: Role[];
-  baseUrl: string;
 };
 
 export default function RoleManagementClient({
   locale,
   initialRoles,
-  baseUrl,
 }: Props) {
   const tableRef = useRef<RoleTableHandle>(null);
   const isChinese = locale === "zh";
@@ -55,10 +53,8 @@ export default function RoleManagementClient({
         ref={tableRef}
         initialRoles={initialRoles}
         locale={locale}
-        baseUrl={baseUrl}
       />
     </div>
   );
 }
-
 

@@ -37,7 +37,6 @@ export interface ConsumableCategoryTableHandle {
 interface Props {
   initialCategories: ConsumableCategory[];
   locale: string;
-  baseUrl: string;
 }
 
 type FormState = {
@@ -57,7 +56,7 @@ const DEFAULT_FORM: FormState = {
 };
 
 const ConsumableCategoryTable = forwardRef<ConsumableCategoryTableHandle, Props>(function ConsumableCategoryTable(
-  { initialCategories, locale, baseUrl }: Props,
+  { initialCategories, locale }: Props,
   ref,
 ) {
   const [categories, setCategories] = useState(initialCategories);
@@ -108,8 +107,8 @@ const ConsumableCategoryTable = forwardRef<ConsumableCategoryTableHandle, Props>
         const response = await client.request<{ data: ConsumableCategory }>({
           url:
             editing
-              ? `${baseUrl}/apps/asset-hub/api/consumables/categories/${editing.id}`
-            : `${baseUrl}/apps/asset-hub/api/consumables/categories`,
+              ? `/apps/asset-hub/api/consumables/categories/${editing.id}`
+            : `/apps/asset-hub/api/consumables/categories`,
           method: editing ? "PUT" : "POST",
           data: editing
             ? payload
@@ -155,7 +154,7 @@ const ConsumableCategoryTable = forwardRef<ConsumableCategoryTableHandle, Props>
       try {
         const client = await getApiClient();
         await client.delete(
-          `${baseUrl}/apps/asset-hub/api/consumables/categories/${category.id}`,
+          `/apps/asset-hub/api/consumables/categories/${category.id}`,
         );
         setCategories((prev) => prev.filter((item) => item.id !== category.id));
         feedback.success(isChinese ? "删除成功" : "Deleted successfully");

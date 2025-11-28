@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import InventoryTaskList from "@/components/assets/InventoryTaskList";
 import PageHeader from "@/components/layout/PageHeader";
 import { listInventoryTasks } from "@/lib/repositories/inventory-tasks";
-import { getRequestBaseUrl } from "@/lib/utils/server-url";
 
 export const metadata: Metadata = {
   title: "资产盘点 - Asset Hub",
@@ -15,7 +14,6 @@ export default async function InventoryListPage({
 }) {
   const { locale } = await params;
   const tasks = listInventoryTasks();
-  const baseUrl = await getRequestBaseUrl();
   const isChinese = locale === "zh";
 
   return (
@@ -42,10 +40,8 @@ export default async function InventoryListPage({
       />
       <InventoryTaskList
         locale={locale}
-        baseUrl={baseUrl}
         initialTasks={tasks}
       />
     </div>
   );
 }
-

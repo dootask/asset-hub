@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import CustomReportsClient from "@/components/system/CustomReportsClient";
 import PageHeader from "@/components/layout/PageHeader";
 import { listReportViews } from "@/lib/repositories/report-views";
-import { getRequestBaseUrl } from "@/lib/utils/server-url";
 
 export const metadata: Metadata = {
   title: "自定义报表 - Asset Hub",
@@ -15,7 +14,6 @@ export default async function CustomReportsPage({
 }) {
   const { locale } = await params;
   const views = listReportViews();
-  const baseUrl = await getRequestBaseUrl();
   const isChinese = locale === "zh";
 
   return (
@@ -47,10 +45,8 @@ export default async function CustomReportsPage({
       />
       <CustomReportsClient
         locale={locale}
-        baseUrl={baseUrl}
         initialViews={views}
       />
     </div>
   );
 }
-

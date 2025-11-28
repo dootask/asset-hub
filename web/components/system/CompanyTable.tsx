@@ -47,7 +47,6 @@ import { extractApiErrorMessage } from "@/lib/utils/api-error";
 interface Props {
   initialCompanies: Company[];
   locale: string;
-  baseUrl: string;
 }
 
 export type CompanyTableHandle = {
@@ -67,7 +66,7 @@ const DEFAULT_FORM: FormState = {
 };
 
 const CompanyTable = forwardRef<CompanyTableHandle, Props>(function CompanyTable(
-  { initialCompanies, locale, baseUrl }: Props,
+  { initialCompanies, locale }: Props,
   ref,
 ) {
   const isChinese = locale === "zh";
@@ -133,8 +132,8 @@ const CompanyTable = forwardRef<CompanyTableHandle, Props>(function CompanyTable
           );
         }
         const endpoint = editingId
-          ? `${baseUrl}/apps/asset-hub/api/system/companies/${editingId}`
-          : `${baseUrl}/apps/asset-hub/api/system/companies`;
+          ? `/apps/asset-hub/api/system/companies/${editingId}`
+          : `/apps/asset-hub/api/system/companies`;
         const client = await getApiClient();
         const response = await client.request<{ data: Company }>({
           url: endpoint,
@@ -179,7 +178,7 @@ const CompanyTable = forwardRef<CompanyTableHandle, Props>(function CompanyTable
       try {
         const client = await getApiClient();
         await client.delete(
-          `${baseUrl}/apps/asset-hub/api/system/companies/${company.id}`,
+          `/apps/asset-hub/api/system/companies/${company.id}`,
         );
         setCompanies((prev) => prev.filter((item) => item.id !== company.id));
         feedback.success(isChinese ? "删除成功" : "Deleted successfully");

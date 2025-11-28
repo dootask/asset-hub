@@ -10,13 +10,11 @@ import type { Company } from "@/lib/types/system";
 type Props = {
   locale: string;
   initialCompanies: Company[];
-  baseUrl: string;
 };
 
 export default function CompanyManagementClient({
   locale,
   initialCompanies,
-  baseUrl,
 }: Props) {
   const tableRef = useRef<CompanyTableHandle>(null);
   const isChinese = locale === "zh";
@@ -57,10 +55,8 @@ export default function CompanyManagementClient({
         ref={tableRef}
         initialCompanies={initialCompanies}
         locale={locale}
-        baseUrl={baseUrl}
       />
     </div>
   );
 }
-
 
