@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { forwardRef, useImperativeHandle, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +25,7 @@ import { extractApiErrorMessage } from "@/lib/utils/api-error";
 interface Props {
   locale: string;
   initialTasks: InventoryTask[];
+  hideCreateButton?: boolean;
 }
 
 type FormState = {
@@ -48,13 +50,25 @@ const STATUS_LABELS: Record<InventoryTaskStatus, { zh: string; en: string; tone:
   completed: { zh: "已完成", en: "Completed", tone: "text-emerald-600" },
 };
 
-export default function InventoryTaskList({ locale, initialTasks }: Props) {
+export type InventoryTaskListHandle = {
+  openCreateDialog: () => void;
+};
+
+const InventoryTaskList = forwardRef<InventoryTaskListHandle, Props>(
+({ locale, initialTasks, hideCreateButton = false }, ref) => {
   const isChinese = locale === "zh";
   const [tasks, setTasks] = useState(initialTasks);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formState, setFormState] = useState<FormState>(DEFAULT_FORM);
   const [pending, startTransition] = useTransition();
   const feedback = useAppFeedback();
+  const router = useRouter();
+
+  const openCreateDialog = () => setDialogOpen(true);
+
+  useImperativeHandle(ref, () => ({
+    openCreateDialog,
+  }));
 
   const handleFilterToggle = (status: string) => {
     setFormState((prev) => {
@@ -92,6 +106,7 @@ export default function InventoryTaskList({ locale, initialTasks }: Props) {
         setTasks((prev) => [response.data.data, ...prev]);
         setDialogOpen(false);
         setFormState(DEFAULT_FORM);
+        router.refresh();
         feedback.success(isChinese ? "盘点任务已创建" : "Inventory task created");
       } catch (err) {
         const message = extractApiErrorMessage(
@@ -118,6 +133,7 @@ export default function InventoryTaskList({ locale, initialTasks }: Props) {
         setTasks((prev) =>
           prev.map((item) => (item.id === task.id ? response.data.data : item)),
         );
+        router.refresh();
         feedback.success(isChinese ? "状态已更新" : "Status updated");
       } catch (err) {
         const message = extractApiErrorMessage(
@@ -150,21 +166,13 @@ export default function InventoryTaskList({ locale, initialTasks }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">
-            {isChinese ? "盘点任务列表" : "Inventory Tasks"}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {isChinese
-              ? "创建盘点范围，导出资产清单供线下核对。"
-              : "Create inventory scopes and export asset lists for offline checks."}
-          </p>
+      {!hideCreateButton && (
+        <div className="flex items-center justify-end">
+          <Button onClick={openCreateDialog} className="rounded-2xl px-4 py-2 text-sm">
+            {isChinese ? "新建盘点任务" : "New Inventory Task"}
+          </Button>
         </div>
-        <Button onClick={() => setDialogOpen(true)} className="rounded-2xl px-4 py-2 text-sm">
-          {isChinese ? "新建盘点任务" : "New Inventory Task"}
-        </Button>
-      </div>
+      )}
 
       {tasks.length === 0 ? (
         <div className="rounded-2xl border bg-muted/30 p-12 text-center text-sm text-muted-foreground">
@@ -394,4 +402,8 @@ export default function InventoryTaskList({ locale, initialTasks }: Props) {
       </Dialog>
     </div>
   );
-}
+});
+
+InventoryTaskList.displayName = "InventoryTaskList";
+
+export default InventoryTaskList;
