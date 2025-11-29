@@ -7,7 +7,7 @@ import { getConsumableById } from "@/lib/repositories/consumables";
 import { listOperationsForConsumable } from "@/lib/repositories/consumable-operations";
 import { getConsumableStatusLabel } from "@/lib/types/consumable";
 import { listCompanies } from "@/lib/repositories/companies";
-import AdminOnly from "@/components/auth/AdminOnly";
+import { listApprovalRequests } from "@/lib/repositories/approvals";
 
 type PageParams = { locale: string; id: string };
 
@@ -26,6 +26,7 @@ export default async function ConsumableDetailPage({ params }: PageProps) {
   const { locale, id } = await params;
   const consumable = getConsumableById(id);
   const operations = listOperationsForConsumable(id);
+  const approvals = listApprovalRequests({ consumableId: id }).data;
   const isChinese = locale === "zh";
   const companies = listCompanies();
 
@@ -116,36 +117,35 @@ export default async function ConsumableDetailPage({ params }: PageProps) {
           <ConsumableOperationTimeline
             operations={operations}
             unit={consumable.unit}
+            approvalsByOperation={approvals.reduce(
+              (acc, approval) => {
+                if (approval.consumableOperationId) {
+                  acc[approval.consumableOperationId] = approval;
+                }
+                return acc;
+              },
+              {} as Record<string, (typeof approvals)[number]>,
+            )}
             locale={locale}
           />
         </section>
         <section className="rounded-2xl border bg-card/70 p-4">
-          <AdminOnly
-            fallback={
-              <div className="h-full flex items-center justify-center p-6 text-center text-sm text-muted-foreground border border-dashed rounded-2xl">
-                {isChinese
-                  ? "如需调整库存，请联系管理员。"
-                  : "Contact admin to adjust stock."}
-              </div>
-            }
-          >
-            <h2 className="text-base font-semibold">
-              {isChinese ? "记录操作" : "Log Operation"}
-            </h2>
-            <p className="mb-4 text-sm text-muted-foreground">
-              {isChinese
-                ? "适用于无需审批的快速库存变更。"
-                : "Use for quick adjustments that do not require approval."}
-            </p>
-            <ConsumableOperationForm
-              consumableId={consumable.id}
-              locale={locale}
-              unit={consumable.unit}
-            />
-          </AdminOnly>
+          <h2 className="text-base font-semibold">
+            {isChinese ? "记录操作 / 发起审批" : "Log Operation / Start Approval"}
+          </h2>
+          <p className="mb-4 text-sm text-muted-foreground">
+            {isChinese
+              ? "无需审批的操作将直接入账；需要审批的操作会生成待审批记录，审批通过后自动更新库存。"
+              : "Operations that do not require approval post immediately; those requiring approval will create a pending request and update stock after approval."}
+          </p>
+          <ConsumableOperationForm
+            consumableId={consumable.id}
+            consumableName={consumable.name}
+            locale={locale}
+            unit={consumable.unit}
+          />
         </section>
       </div>
     </div>
   );
 }
-

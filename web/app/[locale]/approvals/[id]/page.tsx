@@ -16,6 +16,9 @@ const knownLabels: Array<{ key: string; labelZh: string; labelEn: string }> = [
   { key: "currency", labelZh: "币种", labelEn: "Currency" },
   { key: "initiatedFrom", labelZh: "来源", labelEn: "Source" },
   { key: "reason", labelZh: "原因", labelEn: "Reason" },
+  { key: "quantityDelta", labelZh: "库存变更", labelEn: "Quantity Delta" },
+  { key: "reservedDelta", labelZh: "预留变更", labelEn: "Reserved Delta" },
+  { key: "unit", labelZh: "单位", labelEn: "Unit" },
 ];
 const RESERVED_METADATA_KEYS = new Set(["operationTemplate", "configSnapshot"]);
 
@@ -213,6 +216,7 @@ export default async function ApprovalDetailPage({ params }: PageProps) {
               </p>
               <OperationTemplateView
                 metadata={operationTemplateMetadata}
+                labels={metadataSplit.labels}
                 locale={locale}
                 className="mt-2"
               />

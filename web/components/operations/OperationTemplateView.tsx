@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 
 type Props = {
   metadata?: OperationTemplateMetadata | null;
+  labels?: Record<string, { key: string; labelZh: string; labelEn: string }>;
   locale?: string;
   title?: string;
   emptyHint?: string;
@@ -134,6 +135,7 @@ function buildEntries(
 
 export default function OperationTemplateView({
   metadata,
+  labels,
   locale = "en",
   title,
   emptyHint,
@@ -171,6 +173,15 @@ export default function OperationTemplateView({
       ? "rounded-xl bg-muted/40 p-3"
       : "rounded-2xl border bg-background/60 p-4";
 
+  const getLabel = (key: string, defaultLabel?: string) => {
+    if (labels && labels[key]) {
+      return locale === "zh"
+        ? labels[key].labelZh
+        : labels[key].labelEn;
+    }
+    return defaultLabel ?? key;
+  }
+
   return (
     <div className={cn(containerClasses, "space-y-3 text-sm", className)}>
       {heading && (
@@ -183,7 +194,9 @@ export default function OperationTemplateView({
       <dl className="grid gap-3 sm:grid-cols-2">
         {entries.map((entry) => (
           <div key={entry.key} className="space-y-1">
-            <dt className="text-xs text-muted-foreground">{entry.label}</dt>
+            <dt className="text-xs text-muted-foreground">
+              {getLabel(entry.key, entry.label)}
+            </dt>
             <dd className="text-sm font-medium text-foreground">
               {renderValue(entry, locale)}
             </dd>

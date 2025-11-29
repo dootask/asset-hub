@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import clsx from "clsx";
+import ApprovalStatusBadge from "@/components/approvals/ApprovalStatusBadge";
 import type { ConsumableOperation } from "@/lib/types/consumable-operation";
 import {
   getConsumableOperationTypeLabel,
@@ -8,6 +10,7 @@ import {
 } from "@/lib/types/consumable-operation";
 import { extractOperationTemplateMetadata } from "@/lib/utils/operation-template";
 import OperationTemplateView from "@/components/operations/OperationTemplateView";
+import type { ApprovalRequest } from "@/lib/types/approval";
 
 const STATUS_LABELS: Record<
   ConsumableOperation["status"],
@@ -42,12 +45,14 @@ const TYPES_USING_RESERVED: ConsumableOperationType[] = ["reserve", "release"];
 type Props = {
   operations: ConsumableOperation[];
   unit: string;
+  approvalsByOperation?: Record<string, ApprovalRequest>;
   locale?: string;
 };
 
 export default function ConsumableOperationTimeline({
   operations,
   unit,
+  approvalsByOperation,
   locale = "en",
 }: Props) {
   const isChinese = locale === "zh";
@@ -69,6 +74,7 @@ export default function ConsumableOperationTimeline({
         const templateMetadata = extractOperationTemplateMetadata(
           operation.metadata ?? undefined,
         );
+        const linkedApproval = approvalsByOperation?.[operation.id];
         const showQuantity = TYPES_USING_QUANTITY.includes(operation.type);
         const showReserved = TYPES_USING_RESERVED.includes(operation.type);
         return (
@@ -108,6 +114,22 @@ export default function ConsumableOperationTimeline({
               {operation.description || (isChinese ? "无描述" : "No description")}
             </p>
             <p className="text-xs text-muted-foreground">{operation.actor}</p>
+            {linkedApproval && (
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                <Link
+                  href={`/${locale}/approvals/${linkedApproval.id}`}
+                  className="font-medium text-primary hover:underline"
+                >
+                  {isChinese
+                    ? `关联审批：${linkedApproval.id}`
+                    : `Approval ${linkedApproval.id}`}
+                </Link>
+                <ApprovalStatusBadge
+                  status={linkedApproval.status}
+                  locale={locale}
+                />
+              </div>
+            )}
             {templateMetadata && (
               <div className="mt-3">
                 <OperationTemplateView
@@ -125,4 +147,3 @@ export default function ConsumableOperationTimeline({
     </ul>
   );
 }
-

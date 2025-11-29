@@ -144,12 +144,7 @@ export async function GET(_: Request, { params }: RouteContext) {
 
 export async function POST(request: Request, { params }: RouteContext) {
   const user = extractUserFromRequest(request);
-  if (!isAdminUser(user?.id)) {
-    return NextResponse.json(
-      { error: "FORBIDDEN", message: "只有系统管理员可以手动录入耗材操作。" },
-      { status: 403 },
-    );
-  }
+  const isAdmin = isAdminUser(user?.id);
 
   const { id } = await params;
   const consumable = getConsumableById(id);
@@ -164,14 +159,26 @@ export async function POST(request: Request, { params }: RouteContext) {
     const payload = sanitizeOperationPayload(await request.json());
     const actionConfig = getConsumableActionConfig(payload.type);
     const requiresApproval = actionConfig?.requiresApproval ?? false;
-    const nextStatus: ConsumableOperationStatus =
-      payload.status ?? (requiresApproval ? "pending" : "done");
 
-    if (requiresApproval && nextStatus === "done") {
+    if (!isAdmin && !requiresApproval) {
+      return NextResponse.json(
+        {
+          error: "FORBIDDEN",
+          message: "该操作类型无需审批，只有管理员可以直接记账。",
+        },
+        { status: 403 },
+      );
+    }
+
+    const nextStatus: ConsumableOperationStatus = isAdmin
+      ? payload.status ?? (requiresApproval ? "pending" : "done")
+      : "pending";
+
+    if (requiresApproval && nextStatus === "done" && !isAdmin) {
       return NextResponse.json(
         {
           error: "APPROVAL_REQUIRED",
-          message: "该操作需要审批，请保持 status=pending 并发起审批。",
+          message: "该操作需要审批，请以待审批状态提交。",
         },
         { status: 400 },
       );
@@ -197,4 +204,3 @@ export async function POST(request: Request, { params }: RouteContext) {
     );
   }
 }
-
