@@ -44,6 +44,7 @@ import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { extractApiErrorMessage } from "@/lib/utils/api-error";
 import { AttachmentUploadField } from "@/components/attachments/AttachmentUploadField";
 import { enUS, zhCN } from "react-day-picker/locale";
+import { readBrowserUserCookie } from "@/lib/utils/user-cookie";
 
 interface Props {
   assetId: string;
@@ -123,6 +124,16 @@ export default function OperationForm({
       return { ...prev, type: preferredDefaultType };
     });
   }, [preferredDefaultType]);
+
+  useEffect(() => {
+    const stored = readBrowserUserCookie();
+    if (!stored) return;
+    const name = stored.nickname;
+    if (!name) return;
+    setFormState((prev) =>
+      prev.actor ? prev : { ...prev, actor: name },
+    );
+  }, []);
 
   const templateType = normalizeOperationTypeToTemplateType(
     formState.type as AssetOperationType,
