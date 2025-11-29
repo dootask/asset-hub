@@ -30,6 +30,13 @@ export default async function ConsumablesOverviewPage({
       descriptionEn: "Review purchase/inbound/outbound logs and export audit reports.",
     },
     {
+      href: `/${locale}/consumables/import-export`,
+      titleZh: "导入 / 导出",
+      titleEn: "Import / Export",
+      descriptionZh: "批量导入或导出耗材数据，保持库存同步。",
+      descriptionEn: "Import or export consumable data in bulk to keep stock aligned.",
+    },
+    {
       href: `/${locale}/consumables/inventory`,
       titleZh: "耗材盘点",
       titleEn: "Inventory",
@@ -85,7 +92,11 @@ export default async function ConsumablesOverviewPage({
             </Link>
           );
 
-          if (section.href.includes("/settings") || section.href.includes("/inventory")) {
+          if (
+            section.href.includes("/settings") ||
+            section.href.includes("/inventory") ||
+            section.href.includes("/import-export")
+          ) {
             return <AdminOnly key={section.href}>{content}</AdminOnly>;
           }
           return <div key={section.href} className="contents">{content}</div>;
