@@ -4,6 +4,10 @@ import type { AssetOperation } from "@/lib/types/operation";
 import clsx from "clsx";
 import OperationTemplateView from "@/components/operations/OperationTemplateView";
 import { extractOperationTemplateMetadata } from "@/lib/utils/operation-template";
+import type {
+  OperationTemplateFieldValue,
+  OperationTemplateMetadata,
+} from "@/lib/types/operation-template";
 
 const TYPE_LABELS: Record<
   AssetOperation["type"],
@@ -45,6 +49,46 @@ type Props = {
   locale?: string;
 };
 
+function collectExtraValues(
+  metadata: AssetOperation["metadata"],
+): Record<string, OperationTemplateFieldValue> {
+  if (!metadata || typeof metadata !== "object") {
+    return {};
+  }
+  const extras: Record<string, OperationTemplateFieldValue> = {};
+
+  const deltas = (metadata as Record<string, unknown>).deltas;
+  if (deltas && typeof deltas === "object") {
+    const q = (deltas as Record<string, unknown>).quantityDelta;
+    const r = (deltas as Record<string, unknown>).reservedDelta;
+    const unit = (deltas as Record<string, unknown>).unit;
+    if (typeof q === "number" && Number.isFinite(q)) {
+      extras.quantityDelta = q;
+    }
+    if (typeof r === "number" && Number.isFinite(r)) {
+      extras.reservedDelta = r;
+    }
+    if (typeof unit === "string" && unit.trim()) {
+      extras.unit = unit;
+    }
+  }
+
+  (["amount", "currency", "initiatedFrom", "reason"] as const).forEach(
+    (key) => {
+      const value = (metadata as Record<string, unknown>)[key];
+      if (
+        typeof value === "string" ||
+        typeof value === "number" ||
+        value === null
+      ) {
+        extras[key] = value;
+      }
+    },
+  );
+
+  return extras;
+}
+
 export default function OperationTimeline({ operations, locale }: Props) {
   const isChinese = locale === "zh";
 
@@ -62,6 +106,17 @@ export default function OperationTimeline({ operations, locale }: Props) {
         const templateMetadata = extractOperationTemplateMetadata(
           operation.metadata ?? undefined,
         );
+        const extraValues = collectExtraValues(operation.metadata);
+        const mergedMetadata: OperationTemplateMetadata | null =
+          templateMetadata || Object.keys(extraValues).length
+            ? {
+                snapshot: templateMetadata?.snapshot,
+                values: {
+                  ...(templateMetadata?.values ?? {}),
+                  ...extraValues,
+                },
+              }
+            : null;
         return (
           <li key={operation.id} className="rounded-2xl border bg-card/60 p-4">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -86,10 +141,10 @@ export default function OperationTimeline({ operations, locale }: Props) {
               {operation.description || "-"}
             </p>
             <p className="text-xs text-muted-foreground">{operation.actor}</p>
-            {templateMetadata && (
+            {mergedMetadata && (
               <div className="mt-3">
                 <OperationTemplateView
-                  metadata={templateMetadata}
+                  metadata={mergedMetadata}
                   locale={locale}
                   variant="inline"
                   className="bg-transparent p-0"
@@ -103,4 +158,3 @@ export default function OperationTimeline({ operations, locale }: Props) {
     </ul>
   );
 }
-

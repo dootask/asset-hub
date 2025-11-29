@@ -11,6 +11,10 @@ import {
 import { extractOperationTemplateMetadata } from "@/lib/utils/operation-template";
 import OperationTemplateView from "@/components/operations/OperationTemplateView";
 import type { ApprovalRequest } from "@/lib/types/approval";
+import type {
+  OperationTemplateFieldValue,
+  OperationTemplateMetadata,
+} from "@/lib/types/operation-template";
 
 const STATUS_LABELS: Record<
   ConsumableOperation["status"],
@@ -74,6 +78,46 @@ export default function ConsumableOperationTimeline({
         const templateMetadata = extractOperationTemplateMetadata(
           operation.metadata ?? undefined,
         );
+        const extraValues: Record<string, OperationTemplateFieldValue> = {};
+        if (operation.metadata && typeof operation.metadata === "object") {
+          const deltas = (operation.metadata as Record<string, unknown>).deltas;
+          if (deltas && typeof deltas === "object") {
+            const q = (deltas as Record<string, unknown>).quantityDelta;
+            const r = (deltas as Record<string, unknown>).reservedDelta;
+            const unitValue = (deltas as Record<string, unknown>).unit;
+            if (typeof q === "number" && Number.isFinite(q)) {
+              extraValues.quantityDelta = q;
+            }
+            if (typeof r === "number" && Number.isFinite(r)) {
+              extraValues.reservedDelta = r;
+            }
+            if (typeof unitValue === "string" && unitValue.trim()) {
+              extraValues.unit = unitValue;
+            }
+          }
+          (["amount", "currency", "initiatedFrom", "reason"] as const).forEach(
+            (key) => {
+              const value = (operation.metadata as Record<string, unknown>)[key];
+              if (
+                typeof value === "string" ||
+                typeof value === "number" ||
+                value === null
+              ) {
+                extraValues[key] = value;
+              }
+            },
+          );
+        }
+        const mergedMetadata: OperationTemplateMetadata | null =
+          templateMetadata || Object.keys(extraValues).length
+            ? {
+                snapshot: templateMetadata?.snapshot,
+                values: {
+                  ...(templateMetadata?.values ?? {}),
+                  ...extraValues,
+                },
+              }
+            : null;
         const linkedApproval = approvalsByOperation?.[operation.id];
         const showQuantity = TYPES_USING_QUANTITY.includes(operation.type);
         const showReserved = TYPES_USING_RESERVED.includes(operation.type);
@@ -130,10 +174,10 @@ export default function ConsumableOperationTimeline({
                 />
               </div>
             )}
-            {templateMetadata && (
+            {mergedMetadata && (
               <div className="mt-3">
                 <OperationTemplateView
-                  metadata={templateMetadata}
+                  metadata={mergedMetadata}
                   locale={locale}
                   variant="inline"
                   className="bg-transparent p-0"

@@ -9,17 +9,10 @@ import ApprovalActionForm from "@/components/approvals/ApprovalActionForm";
 import PageHeader from "@/components/layout/PageHeader";
 import OperationTemplateView from "@/components/operations/OperationTemplateView";
 import { extractOperationTemplateMetadata } from "@/lib/utils/operation-template";
+import type { OperationTemplateMetadata } from "@/lib/types/operation-template";
 import { appConfig } from "@/lib/config";
+import { OPERATION_TEMPLATE_LABELS } from "@/lib/constants/operation-template-labels";
 
-const knownLabels: Array<{ key: string; labelZh: string; labelEn: string }> = [
-  { key: "amount", labelZh: "金额", labelEn: "Amount" },
-  { key: "currency", labelZh: "币种", labelEn: "Currency" },
-  { key: "initiatedFrom", labelZh: "来源", labelEn: "Source" },
-  { key: "reason", labelZh: "原因", labelEn: "Reason" },
-  { key: "quantityDelta", labelZh: "库存变更", labelEn: "Quantity Delta" },
-  { key: "reservedDelta", labelZh: "预留变更", labelEn: "Reserved Delta" },
-  { key: "unit", labelZh: "单位", labelEn: "Unit" },
-];
 const RESERVED_METADATA_KEYS = new Set(["operationTemplate", "configSnapshot"]);
 
 type PageParams = { locale: string; id: string };
@@ -38,9 +31,7 @@ export async function generateMetadata({
 
 function splitMetadata(metadata?: Record<string, unknown> | null) {
   if (!metadata) {
-    const labels = Object.fromEntries(
-      knownLabels.map((item) => [item.key, item]),
-    );
+    const labels = { ...OPERATION_TEMPLATE_LABELS };
     return {
       known: [] as Array<{ key: string; value: string }>,
       rest: null as Record<string, unknown> | null,
@@ -54,10 +45,9 @@ function splitMetadata(metadata?: Record<string, unknown> | null) {
     if (RESERVED_METADATA_KEYS.has(key)) {
       return;
     }
-    const match = knownLabels.find((item) => item.key === key);
-    if (match) {
+    if (OPERATION_TEMPLATE_LABELS[key]) {
       known.push({
-        key: match.key,
+        key,
         value: String(value ?? ""),
       });
     } else {
@@ -65,7 +55,7 @@ function splitMetadata(metadata?: Record<string, unknown> | null) {
     }
   });
 
-  const labels = Object.fromEntries(knownLabels.map((item) => [item.key, item]));
+  const labels = { ...OPERATION_TEMPLATE_LABELS };
   return {
     known,
     rest: Object.keys(rest).length ? rest : null,
@@ -90,6 +80,18 @@ export default async function ApprovalDetailPage({ params }: PageProps) {
   const operationTemplateMetadata =
     extractOperationTemplateMetadata(operation?.metadata ?? undefined) ??
     extractOperationTemplateMetadata(approval.metadata ?? undefined);
+  const mergedOperationMetadata: OperationTemplateMetadata | null =
+    operationTemplateMetadata || metadataSplit.known.length
+      ? {
+          snapshot: operationTemplateMetadata?.snapshot,
+          values: {
+            ...(operationTemplateMetadata?.values ?? {}),
+            ...Object.fromEntries(
+              metadataSplit.known.map((item) => [item.key, item.value]),
+            ),
+          },
+        }
+      : null;
 
   return (
     <div className="space-y-6">
@@ -209,50 +211,29 @@ export default async function ApprovalDetailPage({ params }: PageProps) {
               {approval.result ?? (isChinese ? "待处理" : "Pending")}
             </p>
           </div>
-          {operationTemplateMetadata && (
+          {mergedOperationMetadata && (
             <div>
               <p className="text-xs text-muted-foreground">
                 {isChinese ? "操作详情" : "Operation Details"}
               </p>
               <OperationTemplateView
-                metadata={operationTemplateMetadata}
+                metadata={mergedOperationMetadata}
                 labels={metadataSplit.labels}
                 locale={locale}
                 className="mt-2"
               />
             </div>
           )}
-          <div>
-            <p className="text-xs text-muted-foreground">
-              {isChinese ? "附加信息" : "Metadata"}
-            </p>
-            {metadataSplit.known.length > 0 && (
-              <dl className="mt-2 grid gap-3 sm:grid-cols-2">
-                {metadataSplit.known.map((item) => (
-                  <div key={item.key}>
-                    <dt className="text-xs text-muted-foreground">
-                      {isChinese
-                        ? metadataSplit.labels[item.key]?.labelZh ?? item.key
-                        : metadataSplit.labels[item.key]?.labelEn ?? item.key}
-                    </dt>
-                    <dd className="text-sm font-medium text-foreground">
-                      {item.value || "-"}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            )}
-            {metadataSplit.rest && (
+          {metadataSplit.rest && (
+            <div>
+              <p className="text-xs text-muted-foreground">
+                {isChinese ? "原始元数据" : "Raw Metadata"}
+              </p>
               <pre className="mt-2 rounded-xl bg-muted p-3 text-xs text-muted-foreground">
                 {JSON.stringify(metadataSplit.rest, null, 2)}
               </pre>
-            )}
-            {metadataSplit.known.length === 0 && !metadataSplit.rest && (
-              <p className="text-sm text-muted-foreground">
-                {isChinese ? "暂无附加信息" : "No metadata"}
-              </p>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </section>
 

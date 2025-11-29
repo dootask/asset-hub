@@ -7,6 +7,7 @@ import type {
   OperationTemplateSnapshotField,
 } from "@/lib/types/operation-template";
 import { cn } from "@/lib/utils";
+import { OPERATION_TEMPLATE_LABELS } from "@/lib/constants/operation-template-labels";
 
 type Props = {
   metadata?: OperationTemplateMetadata | null;
@@ -173,14 +174,14 @@ export default function OperationTemplateView({
       ? "rounded-xl bg-muted/40 p-3"
       : "rounded-2xl border bg-background/60 p-4";
 
+  const mergedLabels = { ...OPERATION_TEMPLATE_LABELS, ...(labels ?? {}) };
   const getLabel = (key: string, defaultLabel?: string) => {
-    if (labels && labels[key]) {
-      return locale === "zh"
-        ? labels[key].labelZh
-        : labels[key].labelEn;
+    const labelEntry = mergedLabels[key];
+    if (labelEntry) {
+      return locale === "zh" ? labelEntry.labelZh : labelEntry.labelEn;
     }
     return defaultLabel ?? key;
-  }
+  };
 
   return (
     <div className={cn(containerClasses, "space-y-3 text-sm", className)}>
