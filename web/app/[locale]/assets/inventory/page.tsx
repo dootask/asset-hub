@@ -22,8 +22,8 @@ export default async function InventoryListPage({
         locale={locale}
         items={[
           {
-            href: `/${locale}/assets/list`,
-            labelZh: "资产列表",
+            href: `/${locale}/assets`,
+            labelZh: "资产管理",
             labelEn: "Assets",
           },
           {

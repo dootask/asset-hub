@@ -40,6 +40,11 @@ export default async function InventoryDetailPage({ params }: PageProps) {
         locale={locale}
         items={[
           {
+            href: `/${locale}/assets`,
+            labelZh: "资产管理",
+            labelEn: "Assets",
+          },
+          {
             href: `/${locale}/assets/inventory`,
             labelZh: "盘点任务",
             labelEn: "Inventory",
@@ -143,4 +148,3 @@ export default async function InventoryDetailPage({ params }: PageProps) {
     </div>
   );
 }
-

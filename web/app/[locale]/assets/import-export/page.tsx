@@ -24,8 +24,8 @@ export default async function AssetImportExportPage({
         locale={locale}
         items={[
           {
-            href: `/${locale}/assets/list`,
-            labelZh: "资产列表",
+            href: `/${locale}/assets`,
+            labelZh: "资产管理",
             labelEn: "Assets",
           },
           {
@@ -48,4 +48,3 @@ export default async function AssetImportExportPage({
     </div>
   );
 }
-

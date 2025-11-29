@@ -15,7 +15,7 @@ const BASE_PATH = "/apps/asset-hub";
 const NAV_ITEMS = [
   { href: "/", match: "/", key: "dashboard" },
   { href: "/approvals", match: "/approvals", key: "approvals" },
-  { href: "/assets/list", match: "/assets", key: "assets" },
+  { href: "/assets", match: "/assets", key: "assets" },
   { href: "/consumables", match: "/consumables", key: "consumables" },
   { href: "/system", match: "/system", key: "system" },
   { href: "/help", match: "/help", key: "help" },

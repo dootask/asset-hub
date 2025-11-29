@@ -65,9 +65,14 @@ export default async function AssetDetailPage({ params }: PageProps) {
         locale={locale}
         items={[
           {
+            href: `/${locale}/assets`,
+            labelZh: "资产管理",
+            labelEn: "Assets",
+          },
+          {
             href: `/${locale}/assets/list`,
             labelZh: "资产列表",
-            labelEn: "Assets",
+            labelEn: "Asset List",
           },
           {
             labelZh: "资产详情",
@@ -233,4 +238,3 @@ export default async function AssetDetailPage({ params }: PageProps) {
     </div>
   );
 }
-

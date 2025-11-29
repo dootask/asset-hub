@@ -111,8 +111,13 @@ export default async function AssetListPage({
         locale={locale}
         items={[
           {
-            labelZh: "资产列表",
+            href: `/${locale}/assets`,
+            labelZh: "资产管理",
             labelEn: "Assets",
+          },
+          {
+            labelZh: "资产列表",
+            labelEn: "Asset List",
           },
         ]}
         title={isChinese ? "资产列表" : "Asset List"}

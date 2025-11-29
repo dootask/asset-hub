@@ -18,9 +18,14 @@ export default async function AssetCreatePage({
         locale={locale}
         items={[
           {
+            href: `/${locale}/assets`,
+            labelZh: "资产管理",
+            labelEn: "Assets",
+          },
+          {
             href: `/${locale}/assets/list`,
             labelZh: "资产列表",
-            labelEn: "Assets",
+            labelEn: "Asset List",
           },
           {
             labelZh: "新增资产",
@@ -41,4 +46,3 @@ export default async function AssetCreatePage({
     </div>
   );
 }
-
