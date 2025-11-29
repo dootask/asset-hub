@@ -110,7 +110,7 @@ export default function ConsumableImportExportClient({ locale, categories, compa
             {isChinese ? "按条件筛选后导出 CSV，以便备份或批量维护。" : "Filter consumables and export to CSV for backup or bulk editing."}
           </p>
         </div>
-        <div className="mt-4 grid gap-4 lg:grid-cols-3">
+        <div className="mt-4 grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-1.5">
             <Label>{isChinese ? "关键词" : "Keyword"}</Label>
             <Input
@@ -122,7 +122,7 @@ export default function ConsumableImportExportClient({ locale, categories, compa
           <div className="space-y-1.5">
             <Label>{isChinese ? "类别" : "Category"}</Label>
             <Select value={category || "all"} onValueChange={(value) => setCategory(value === "all" ? "" : value)}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -138,7 +138,7 @@ export default function ConsumableImportExportClient({ locale, categories, compa
           <div className="space-y-1.5">
             <Label>{isChinese ? "状态" : "Status"}</Label>
             <Select value={status || "all"} onValueChange={(value) => setStatus(value === "all" ? undefined : value)}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -154,7 +154,7 @@ export default function ConsumableImportExportClient({ locale, categories, compa
           <div className="space-y-1.5">
             <Label>{isChinese ? "所属公司" : "Company"}</Label>
             <Select value={company || "all"} onValueChange={(value) => setCompany(value === "all" ? "" : value)}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

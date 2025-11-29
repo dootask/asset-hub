@@ -145,98 +145,73 @@ export default function AssetImportExportClient({ locale, categories, companies 
           </p>
         </div>
         <div className="mt-4 flex flex-col gap-3">
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">
-              {isChinese ? "关键词搜索" : "Keyword"}
-            </Label>
-            <Input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder={
-                isChinese ? "资产名称、编号、位置..." : "Name, ID, location..."
-              }
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">
-              {isChinese ? "资产类别" : "Category"}
-            </Label>
-            <Select
-              value={category === "" ? ALL_CATEGORIES_VALUE : category}
-              onValueChange={(value) =>
-                setCategory(value === ALL_CATEGORIES_VALUE ? "" : value)
-              }
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue
-                  placeholder={isChinese ? "全部类别" : "All categories"}
-                />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL_CATEGORIES_VALUE}>
-                  {isChinese ? "全部类别" : "All categories"}
-                </SelectItem>
-                {categories.map((entry) => (
-                  <SelectItem key={entry.id} value={entry.code}>
-                    {isChinese ? entry.labelZh : entry.labelEn}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">
-            {isChinese ? "所属公司" : "Company"}
-          </Label>
-          <Select
-            value={company === "" ? ALL_COMPANIES_VALUE : company}
-            onValueChange={(value) =>
-              setCompany(value === ALL_COMPANIES_VALUE ? "" : value)
-            }
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue
-                placeholder={isChinese ? "全部公司" : "All companies"}
+          <div className="mt-4 grid gap-4 grid-cols-1 md:grid-cols-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">
+                {isChinese ? "关键词搜索" : "Keyword"}
+              </Label>
+              <Input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder={
+                  isChinese ? "资产名称、编号、位置..." : "Name, ID, location..."
+                }
               />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL_COMPANIES_VALUE}>
-                {isChinese ? "全部公司" : "All companies"}
-              </SelectItem>
-              {companies.map((entry) => (
-                <SelectItem key={entry.id} value={entry.code}>
-                  {entry.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">
-              {isChinese ? "所属公司" : "Company"}
-            </Label>
-            <Select
-              value={company === "" ? ALL_COMPANIES_VALUE : company}
-              onValueChange={(value) =>
-                setCompany(value === ALL_COMPANIES_VALUE ? "" : value)
-              }
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue
-                  placeholder={isChinese ? "全部公司" : "All companies"}
-                />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL_COMPANIES_VALUE}>
-                  {isChinese ? "全部公司" : "All companies"}
-                </SelectItem>
-                {companies.map((entry) => (
-                  <SelectItem key={entry.id} value={entry.code}>
-                    {entry.name}
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">
+                {isChinese ? "资产类别" : "Category"}
+              </Label>
+              <Select
+                value={category === "" ? ALL_CATEGORIES_VALUE : category}
+                onValueChange={(value) =>
+                  setCategory(value === ALL_CATEGORIES_VALUE ? "" : value)
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue
+                    placeholder={isChinese ? "全部类别" : "All categories"}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL_CATEGORIES_VALUE}>
+                    {isChinese ? "全部类别" : "All categories"}
                   </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                  {categories.map((entry) => (
+                    <SelectItem key={entry.id} value={entry.code}>
+                      {isChinese ? entry.labelZh : entry.labelEn}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">
+                {isChinese ? "所属公司" : "Company"}
+              </Label>
+              <Select
+                value={company === "" ? ALL_COMPANIES_VALUE : company}
+                onValueChange={(value) =>
+                  setCompany(value === ALL_COMPANIES_VALUE ? "" : value)
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue
+                    placeholder={isChinese ? "全部公司" : "All companies"}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL_COMPANIES_VALUE}>
+                    {isChinese ? "全部公司" : "All companies"}
+                  </SelectItem>
+                  {companies.map((entry) => (
+                    <SelectItem key={entry.id} value={entry.code}>
+                      {entry.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <Label className="text-xs text-muted-foreground">
             {isChinese ? "资产状态" : "Status"}
