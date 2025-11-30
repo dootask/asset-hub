@@ -23,6 +23,13 @@ export default async function ConsumablesOverviewPage({
       descriptionEn: "Manage consumable stock, status, and keeper info.",
     },
     {
+      href: `/${locale}/consumables/new`,
+      titleZh: "新增耗材",
+      titleEn: "New Consumable",
+      descriptionZh: "手动创建单条耗材，完善库存、保管人和安全库存信息。",
+      descriptionEn: "Create a single consumable with stock, keeper, and safety stock."
+    },
+    {
       href: `/${locale}/consumables/operations`,
       titleZh: "操作审计 / 报表",
       titleEn: "Operation Audit & Reports",
@@ -34,7 +41,7 @@ export default async function ConsumablesOverviewPage({
       titleZh: "导入 / 导出",
       titleEn: "Import / Export",
       descriptionZh: "批量导入或导出耗材数据，保持库存同步。",
-      descriptionEn: "Import or export consumable data in bulk to keep stock aligned.",
+      descriptionEn: "Import or export consumable data in bulk to keep stock aligned."
     },
     {
       href: `/${locale}/consumables/inventory`,
@@ -42,6 +49,7 @@ export default async function ConsumablesOverviewPage({
       titleEn: "Inventory",
       descriptionZh: "创建盘点任务、记录实盘数据并跟踪差异。",
       descriptionEn: "Create inventory tasks, record actual counts, and review variances.",
+      adminOnly: true,
     },
     {
       href: `/${locale}/consumables/alerts`,
@@ -56,6 +64,7 @@ export default async function ConsumablesOverviewPage({
       titleEn: "Settings",
       descriptionZh: "定义耗材类别与字段，为后续流程做准备。",
       descriptionEn: "Define consumable categories and metadata for downstream workflows.",
+      adminOnly: true,
     },
   ];
 
@@ -92,11 +101,7 @@ export default async function ConsumablesOverviewPage({
             </Link>
           );
 
-          if (
-            section.href.includes("/settings") ||
-            section.href.includes("/inventory") ||
-            section.href.includes("/import-export")
-          ) {
+          if (section.adminOnly) {
             return <AdminOnly key={section.href}>{content}</AdminOnly>;
           }
           return <div key={section.href} className="contents">{content}</div>;
