@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
-import type { Metadata } from "next";
+import { use, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import ApprovalFilters from "@/components/approvals/ApprovalFilters";
 import ApprovalRoleTabs from "@/components/approvals/ApprovalRoleTabs";
 import ApprovalStatusBadge from "@/components/approvals/ApprovalStatusBadge";
@@ -13,35 +16,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { listApprovalRequests } from "@/lib/repositories/approvals";
-import { getServerUserId } from "@/lib/server/auth";
 import {
-  APPROVAL_STATUSES,
   APPROVAL_TYPES,
   type ApprovalRequest,
-  type ApprovalStatus,
-  type ApprovalType,
 } from "@/lib/types/approval";
 import type { OperationTemplateFieldWidget } from "@/lib/types/operation-template";
 import { extractOperationTemplateMetadata } from "@/lib/utils/operation-template";
-import { isAdminUser } from "@/lib/utils/permissions";
+import { getApiClient } from "@/lib/http/client";
+import { extractApiErrorMessage } from "@/lib/utils/api-error";
 
 type PageParams = { locale: string };
 type PageProps = {
   params: Promise<PageParams>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
-
-export async function generateMetadata(): Promise<Metadata> {
-  return {
-    title: "Approvals - Asset Hub",
-  };
-}
-
-function ensureSingle(value?: string | string[] | null) {
-  if (!value) return undefined;
-  return Array.isArray(value) ? value[0] : value;
-}
 
 function formatSummaryValue(
   value: unknown,
@@ -112,57 +99,57 @@ function buildOperationSummary(
   return isChinese ? "暂无摘要" : "No additional details";
 }
 
-export default async function ApprovalsPage({ params, searchParams }: PageProps) {
-  const { locale } = await params;
-  const search = (await searchParams) ?? {};
-
-  const statusFilter = ensureSingle(search.status);
-  const typeFilter = ensureSingle(search.type);
-  const roleFilter = ensureSingle(search.role);
-  const pageParam = Number(ensureSingle(search.page));
-  const page = Number.isNaN(pageParam) ? 1 : Math.max(1, pageParam);
-
-  // Get current user and check admin status for permission control
-  const currentUserId = await getServerUserId();
-  const isAdmin = isAdminUser(currentUserId);
-
-  // Security: Enforce user context for non-admins (same logic as API)
-  let userId = ensureSingle(search.userId);
-  let roleSelection: "my-requests" | "my-tasks" | undefined =
-    roleFilter === "my-requests" || roleFilter === "my-tasks"
-      ? (roleFilter as "my-requests" | "my-tasks")
-      : undefined;
-
-  if (!isAdmin && currentUserId !== null) {
-    // For non-admins, ignore the passed userId and enforce the current session user
-    userId = String(currentUserId);
-
-    // If no specific view role is requested, default to "my-requests"
-    // This prevents non-admins from listing all approvals by simply omitting parameters
-    if (!roleSelection) {
-      roleSelection = "my-requests";
-    }
-  }
-
-  const statusValue = APPROVAL_STATUSES.find(
-    (entry) => entry.value === statusFilter,
-  )?.value as ApprovalStatus | undefined;
-
-  const typeValue = APPROVAL_TYPES.find(
-    (entry) => entry.value === typeFilter,
-  )?.value as ApprovalType | undefined;
-
-  const { data: approvals, meta } = listApprovalRequests({
-    status: statusValue ? [statusValue] : undefined,
-    type: typeValue ? [typeValue] : undefined,
-    role: roleSelection,
-    userId,
-    assetId: ensureSingle(search.assetId),
-    page,
-    pageSize: 10,
-  });
-
+export default function ApprovalsPage({ params }: PageProps) {
+  const { locale } = use(params);
+  const searchParams = useSearchParams();
   const isChinese = locale === "zh";
+  const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
+  const [meta, setMeta] = useState({ total: 0, page: 1, pageSize: 10 });
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const statusFilter = searchParams?.get("status") ?? undefined;
+  const typeFilter = searchParams?.get("type") ?? undefined;
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadApprovals() {
+      setLoading(true);
+      setErrorMessage(null);
+      try {
+        const client = await getApiClient();
+        const params = Object.fromEntries(searchParams?.entries() ?? []);
+        const { data } = await client.get<{
+          data: ApprovalRequest[];
+          meta: { total: number; page: number; pageSize: number };
+        }>("/apps/asset-hub/api/approvals", {
+          params,
+          headers: { "Cache-Control": "no-cache" },
+        });
+        if (cancelled) return;
+        setApprovals(data.data);
+        setMeta(data.meta);
+      } catch (err) {
+        if (cancelled) return;
+        const message = extractApiErrorMessage(
+          err,
+          isChinese ? "审批列表加载失败" : "Failed to load approvals.",
+        );
+        setErrorMessage(message);
+        setApprovals([]);
+        setMeta({ total: 0, page: 1, pageSize: 10 });
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+    loadApprovals();
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, isChinese]);
+
   const typeLabelMap = Object.fromEntries(
     APPROVAL_TYPES.map((entry) => [
       entry.value,
@@ -173,14 +160,7 @@ export default async function ApprovalsPage({ params, searchParams }: PageProps)
   const totalPages = Math.max(1, Math.ceil(meta.total / meta.pageSize));
 
   const buildQueryParams = () => {
-    const params = new URLSearchParams();
-    Object.entries(search).forEach(([key, value]) => {
-      if (Array.isArray(value)) {
-        value.forEach((entry) => entry && params.append(key, entry));
-      } else if (typeof value === "string" && value) {
-        params.set(key, value);
-      }
-    });
+    const params = new URLSearchParams(searchParams ?? undefined);
     return params;
   };
 
@@ -232,8 +212,17 @@ export default async function ApprovalsPage({ params, searchParams }: PageProps)
 
       <ApprovalRoleTabs locale={locale} />
 
-      <ApprovalFilters locale={locale} status={statusFilter} type={typeFilter} />
+      <ApprovalFilters locale={locale} status={statusFilter ?? undefined} type={typeFilter ?? undefined} />
 
+      {errorMessage ? (
+        <div className="rounded-2xl border border-dashed border-destructive/50 bg-destructive/5 p-6 text-sm text-destructive">
+          {errorMessage}
+        </div>
+      ) : loading ? (
+        <div className="rounded-2xl border bg-muted/30 p-12 text-center text-sm text-muted-foreground">
+          {isChinese ? "加载中..." : "Loading..."}
+        </div>
+      ) : (
       <section className="overflow-hidden rounded-2xl border bg-card">
         <Table className="text-sm">
           <TableHeader className="bg-muted/50">
@@ -298,8 +287,9 @@ export default async function ApprovalsPage({ params, searchParams }: PageProps)
           </TableBody>
         </Table>
       </section>
+      )}
 
-      {approvals.length > 0 && (
+      {approvals.length > 0 && !errorMessage && (
         <div className="flex flex-col gap-3 rounded-2xl border bg-card p-4 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
           <p className="shrink-0">
             {isChinese
@@ -318,5 +308,3 @@ export default async function ApprovalsPage({ params, searchParams }: PageProps)
     </div>
   );
 }
-
-
