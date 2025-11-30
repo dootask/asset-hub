@@ -17,8 +17,9 @@ run_overdue() {
     echo "[asset-hub] overdue cron skipped: ASSET_HUB_ADMIN_USER_IDS not set"
     exit 0
   fi
+  COOKIE_VALUE="$(node -e "console.log(encodeURIComponent(JSON.stringify({id:Number(process.argv[1])})))" "${CRON_USER_ID}")"
   curl -sS -X POST \
-    -H "x-user-id: ${CRON_USER_ID}" \
+    -H "Cookie: asset_hub_user=${COOKIE_VALUE}" \
     -H "Content-Length: 0" \
     "${CRON_TARGET_URL}" \
     || echo "[asset-hub] overdue cron request failed"

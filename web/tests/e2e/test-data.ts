@@ -1,12 +1,25 @@
 import type { APIRequestContext } from "@playwright/test";
 import { MICRO_APP_CONFIG } from "./config";
+import {
+  serializeUserCookieValue,
+  USER_COOKIE_NAME,
+} from "@/lib/utils/user-cookie";
+import { normalizeUserId } from "@/lib/utils/user-id";
 
 const API_ROOT = `${MICRO_APP_CONFIG.baseUrl}/api`;
+const cookieUserId = normalizeUserId(MICRO_APP_CONFIG.userId);
+if (cookieUserId === null) {
+  throw new Error("PLAYWRIGHT_USER_ID 必须是可解析的数字，用于写入认证 Cookie。");
+}
+const DEFAULT_COOKIE =
+  `${USER_COOKIE_NAME}=${serializeUserCookieValue({
+    id: cookieUserId,
+    nickname: "Playwright E2E",
+    token: MICRO_APP_CONFIG.token,
+  })}`;
 const DEFAULT_HEADERS = {
   "Content-Type": "application/json",
-  "x-user-id": MICRO_APP_CONFIG.userId,
-  "x-user-nickname": "Playwright E2E",
-  "x-user-token": MICRO_APP_CONFIG.token,
+  Cookie: DEFAULT_COOKIE,
 };
 
 type ApprovalStatus = "pending" | "approved" | "rejected" | "cancelled";
@@ -98,11 +111,11 @@ export async function createTestApproval(
       reason: options.reason ?? `Auto-generated at ${new Date(unique).toISOString()}`,
       assetId: options.assetId,
       applicant: {
-        id: MICRO_APP_CONFIG.userId,
+        id: cookieUserId ?? MICRO_APP_CONFIG.userId,
         name: "Playwright E2E",
       },
       approver: {
-        id: MICRO_APP_CONFIG.userId,
+        id: cookieUserId ?? MICRO_APP_CONFIG.userId,
         name: "Playwright E2E",
       },
       metadata: { initiatedFrom: "playwright" },
@@ -128,7 +141,7 @@ export async function createTestApproval(
       data: {
         action,
         actor: {
-          id: MICRO_APP_CONFIG.userId,
+          id: cookieUserId ?? MICRO_APP_CONFIG.userId,
           name: "Playwright E2E",
         },
       },
@@ -156,7 +169,9 @@ export async function patchActionConfig(
     metadata: Record<string, unknown> | null;
   }>,
 ) {
-  const configsResponse = await request.get(apiUrl("/config/approvals"));
+  const configsResponse = await request.get(apiUrl("/config/approvals"), {
+    headers: DEFAULT_HEADERS,
+  });
   if (!configsResponse.ok()) {
     throw new Error(
       `Failed to load action configs: ${configsResponse.status()} ${configsResponse.statusText()}`,

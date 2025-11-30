@@ -385,7 +385,7 @@ export async function POST(request: Request) {
       metadata: metadataWithConfig,
     };
     const approval = createApprovalRequest(safePayload);
-    const locale = request.headers.get("x-user-locale") ?? undefined;
+    const locale = new URL(request.url).searchParams.get("lang") ?? undefined;
 
     void (async () => {
       const externalId = await createExternalApprovalTodo(approval);

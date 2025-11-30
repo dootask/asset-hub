@@ -116,7 +116,7 @@ export async function POST(request: Request, { params }: RouteContext) {
       },
     });
     const actorName = currentUser.nickname ?? currentUser.id;
-    const locale = request.headers.get("x-user-locale") ?? undefined;
+    const locale = new URL(request.url).searchParams.get("lang") ?? undefined;
 
     void (async () => {
       await notifyApprovalUpdated({
