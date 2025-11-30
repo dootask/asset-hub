@@ -100,6 +100,10 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
   const feedback = useAppFeedback();
 
   useEffect(() => {
+    setRoles(initialRoles);
+  }, [initialRoles]);
+
+  useEffect(() => {
     let active = true;
     async function detectSelector() {
       try {

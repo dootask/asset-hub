@@ -3,62 +3,19 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from "axios";
 import {
-  readBrowserUserCookie,
-  readUserCookieFromString,
-} from "@/lib/utils/user-cookie";
+  getStoredAuth,
+  getStoredBaseUrl,
+  getStoredLocale,
+} from "@/lib/utils/auth-storage";
 
 type UserContext = {
   userId?: string;
   token?: string;
   nickname?: string;
+  email?: string;
   baseUrl?: string;
   locale?: string;
 };
-
-function getServerFallbackUserId() {
-  if (process.env.NODE_ENV === "production") {
-    return undefined;
-  }
-  const raw = process.env.ASSET_HUB_ADMIN_USER_IDS;
-  if (!raw) {
-    return undefined;
-  }
-  const first = raw
-    .split(",")
-    .map((entry) => entry.trim())
-    .find(Boolean);
-  return first;
-}
-
-function extractUserFromStorage(): UserContext {
-  if (typeof window === "undefined") return {};
-  try {
-    const storedUser = readBrowserUserCookie();
-
-    const baseUrl =
-      sessionStorage.getItem("asset-hub:dootask-base-url") ?? undefined;
-    const locale = sessionStorage.getItem("asset-hub:locale") ?? undefined;
-
-    return storedUser
-      ? {
-          userId: String(storedUser.id),
-          token: storedUser.token ?? undefined,
-          nickname: storedUser.nickname ?? undefined,
-          baseUrl: baseUrl ?? undefined,
-          locale: locale ?? undefined,
-        }
-      : { baseUrl: baseUrl ?? undefined, locale: locale ?? undefined };
-  } catch {
-    return {};
-  }
-}
-
-function detectLocaleFromDom() {
-  if (typeof document === "undefined") return undefined;
-  const lang = document.documentElement.lang;
-  if (lang) return lang;
-  return navigator.language?.split("-")?.[0];
-}
 
 function encodeHeaderValue(value: string) {
   try {
@@ -97,6 +54,10 @@ function attachUserHeaders(
     config.headers["x-user-nickname"] ??= encodeHeaderValue(context.nickname);
   }
 
+  if (context.email) {
+    config.headers["x-user-email"] ??= context.email;
+  }
+
   if (context.baseUrl) {
     config.headers["x-base-url"] ??= context.baseUrl;
   }
@@ -114,10 +75,15 @@ function createBrowserClient(): AxiosInstance {
   const baseURL = typeof window !== "undefined" ? window.location.origin : undefined;
   const client = axios.create({ baseURL });
   client.interceptors.request.use((config) => {
-    const context = extractUserFromStorage();
-    if (!context.locale) {
-      context.locale = detectLocaleFromDom();
-    }
+    const stored = getStoredAuth();
+    const context: UserContext = {
+      userId: stored?.userId,
+      token: stored?.token,
+      nickname: stored?.nickname,
+      email: stored?.email,
+      baseUrl: stored?.baseUrl ?? getStoredBaseUrl() ?? undefined,
+      locale: stored?.locale ?? getStoredLocale() ?? "en",
+    };
     return attachUserHeaders(config, context);
   });
   return client;
@@ -128,16 +94,28 @@ async function createServerClient(): Promise<AxiosInstance> {
   const baseURL = (preset ? preset.replace(/\/$/, "") : "http://127.0.0.1:3000");
   const { headers } = await import("next/headers");
   const incomingHeaders = await headers();
-  const cookieUser = readUserCookieFromString(incomingHeaders.get("cookie"));
   const context: UserContext = {
-    userId: incomingHeaders.get("x-user-id") ?? (cookieUser ? String(cookieUser.id) : undefined) ?? getServerFallbackUserId() ?? undefined,
-    token: incomingHeaders.get("x-user-token") ?? cookieUser?.token ?? undefined,
-    nickname: decodeHeaderValue(incomingHeaders.get("x-user-nickname")) ?? cookieUser?.nickname,
+    userId: incomingHeaders.get("x-user-id") ?? undefined,
+    token: incomingHeaders.get("x-user-token") ?? undefined,
+    nickname: decodeHeaderValue(incomingHeaders.get("x-user-nickname")) ?? undefined,
+    email: incomingHeaders.get("x-user-email") ?? undefined,
     baseUrl: incomingHeaders.get("x-base-url") ?? undefined,
     locale: incomingHeaders.get("x-user-locale") ?? undefined,
   };
   const client = axios.create({ baseURL });
-  client.interceptors.request.use((config) => attachUserHeaders(config, context));
+  client.interceptors.request.use((config) => {
+    const url = config.url ?? "";
+    const target = typeof url === "string" ? url : "";
+    const isProtectedApi =
+      target.startsWith("/apps/asset-hub/api") ||
+      target.startsWith("apps/asset-hub/api");
+    if (isProtectedApi && !context.userId) {
+      throw new Error(
+        "Authenticated API calls must be performed from the client with sessionStorage headers. Missing x-user-id on server.",
+      );
+    }
+    return attachUserHeaders(config, context);
+  });
   return client;
 }
 

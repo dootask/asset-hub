@@ -29,7 +29,7 @@ import {
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
 import { extractApiErrorMessage } from "@/lib/utils/api-error";
-import { readBrowserUserCookie } from "@/lib/utils/user-cookie";
+import { getStoredAuth } from "@/lib/utils/auth-storage";
 
 type DootaskUser =
   | string
@@ -153,10 +153,10 @@ export default function ConsumableOperationForm({
   }, [operationType, configMap]);
 
   useEffect(() => {
-    const cookieUser = readBrowserUserCookie();
-    if (cookieUser?.id) {
+    const cookieUser = getStoredAuth();
+    if (cookieUser?.userId) {
       setApplicant({
-        id: String(cookieUser.id),
+        id: String(cookieUser.userId),
         name: cookieUser.nickname ?? undefined,
       });
       if (!actor) {

@@ -51,7 +51,7 @@ import type { Role } from "@/lib/types/system";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
 import { extractApiErrorMessage } from "@/lib/utils/api-error";
-import { readBrowserUserCookie } from "@/lib/utils/user-cookie";
+import { getStoredAuth } from "@/lib/utils/auth-storage";
 
 type Applicant = {
   id: string;
@@ -180,10 +180,10 @@ export default function ApprovalRequestForm({
 
   useEffect(() => {
     try {
-      const stored = readBrowserUserCookie();
+      const stored = getStoredAuth();
       if (stored) {
         setApplicant({
-          id: String(stored.id),
+          id: String(stored.userId),
           name: stored.nickname ?? "",
         });
       }

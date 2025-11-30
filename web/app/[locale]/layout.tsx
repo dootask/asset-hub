@@ -6,7 +6,6 @@ import AppShell from "@/components/layout/AppShell";
 import { ThemeSync } from "@/components/providers/ThemeSync";
 import { normalizeLocale, isSupportedLocale } from "@/lib/i18n";
 import { appConfig } from "@/lib/config";
-import { getServerUserId } from "@/lib/server/auth";
 
 type LocaleLayoutProps = {
   children: ReactNode;
@@ -53,7 +52,6 @@ export default async function LocaleLayout({
   }
 
   const messages = await loadMessages(normalizedLocale);
-  const currentUserId = await getServerUserId();
 
   return (
     <NextIntlClientProvider locale={normalizedLocale} messages={messages}>
@@ -62,16 +60,10 @@ export default async function LocaleLayout({
         adminUserIds={appConfig.permissions.adminUserIds}
         approverUserIds={appConfig.permissions.approverUserIds}
       >
-        <AppShell
-          locale={normalizedLocale}
-          currentUserId={
-            typeof currentUserId === "number" ? currentUserId : undefined
-          }
-        >
+        <AppShell locale={normalizedLocale}>
           {children}
         </AppShell>
       </PermissionProvider>
     </NextIntlClientProvider>
   );
 }
-

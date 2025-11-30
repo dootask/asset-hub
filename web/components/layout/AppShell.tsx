@@ -24,7 +24,6 @@ const NAV_ITEMS = [
 type Props = {
   children: React.ReactNode;
   locale: string;
-  currentUserId?: number | null;
 };
 
 export default function AppShell({
@@ -112,7 +111,7 @@ export default function AppShell({
   const isGuest = userReady && !sessionUser;
   const waitingUserReady = isMicroEnv === true && !userReady;
 
-  const bridge = <DooTaskBridge />;
+  const bridge = <DooTaskBridge locale={locale} />;
 
   if (loadingEnv || waitingUserReady) {
     return (

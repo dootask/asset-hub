@@ -44,7 +44,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Calendar as CalendarIcon, X as XICon } from "lucide-react";
 import { AttachmentUploadField } from "@/components/attachments/AttachmentUploadField";
-import { readBrowserUserCookie } from "@/lib/utils/user-cookie";
+import { getStoredAuth } from "@/lib/utils/auth-storage";
 import { enUS, zhCN } from "react-day-picker/locale";
 
 type Props = {
@@ -138,10 +138,10 @@ export default function NewPurchaseForm({
       } catch {}
 
       try {
-        const stored = readBrowserUserCookie();
+        const stored = getStoredAuth();
         if (stored) {
           setApplicant({
-            id: String(stored.id),
+            id: String(stored.userId),
             name: stored.nickname ?? "",
           });
         }

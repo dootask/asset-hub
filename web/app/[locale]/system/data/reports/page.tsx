@@ -1,27 +1,6 @@
 import PageHeader from "@/components/layout/PageHeader";
 import ReportsClient from "./ReportsClient";
 import { listAssetCategories } from "@/lib/repositories/asset-categories";
-import { getApiClient } from "@/lib/http/client";
-
-interface SummaryResponse {
-  data: {
-    assetsByStatus: { label: string; count: number }[];
-    assetsByCategory: { label: string; count: number }[];
-    approvalsByStatus: { label: string; count: number }[];
-    approvalsByType: { label: string; count: number }[];
-    approvalsRecent30d: { label: string; count: number }[];
-    operationsByType: { label: string; count: number }[];
-  };
-}
-
-async function fetchSummary() {
-  const client = await getApiClient();
-  const response = await client.get<SummaryResponse>(
-    "/apps/asset-hub/api/reports/summary",
-    { headers: { "Cache-Control": "no-cache" } },
-  );
-  return response.data;
-}
 
 export default async function ReportsPage({
   params,
@@ -31,10 +10,7 @@ export default async function ReportsPage({
   const { locale } = await params;
   const isChinese = locale === "zh";
 
-  const [summary, categories] = await Promise.all([
-    fetchSummary(),
-    listAssetCategories(),
-  ]);
+  const categories = listAssetCategories();
 
   return (
     <div className="space-y-6">
@@ -59,8 +35,7 @@ export default async function ReportsPage({
         }
       />
 
-      <ReportsClient locale={locale} categories={categories} summary={summary.data} />
+      <ReportsClient locale={locale} categories={categories} />
     </div>
   );
 }
-

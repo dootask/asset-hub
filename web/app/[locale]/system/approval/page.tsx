@@ -1,21 +1,10 @@
 import type { Metadata } from "next";
-import type { ActionConfig } from "@/lib/types/action-config";
 import ActionConfigTable from "@/components/system/ActionConfigTable";
 import PageHeader from "@/components/layout/PageHeader";
-import { getApiClient } from "@/lib/http/client";
 
 export const metadata: Metadata = {
   title: "审批配置 - Asset Hub",
 };
-
-async function fetchConfigs() {
-  const client = await getApiClient();
-  const response = await client.get<{ data: ActionConfig[] }>(
-    "/apps/asset-hub/api/config/approvals",
-    { headers: { "Cache-Control": "no-cache" } },
-  );
-  return response.data.data;
-}
 
 export default async function ApprovalConfigPage({
   params,
@@ -23,7 +12,6 @@ export default async function ApprovalConfigPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const configs = await fetchConfigs();
   const isChinese = locale === "zh";
 
   return (
@@ -48,8 +36,7 @@ export default async function ApprovalConfigPage({
             : "Configure which actions require approval, default approvers, and override permissions."
         }
       />
-      <ActionConfigTable initialConfigs={configs} locale={locale} />
+      <ActionConfigTable initialConfigs={[]} locale={locale} />
     </div>
   );
 }
-

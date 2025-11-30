@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
 import { extractApiErrorMessage } from "@/lib/utils/api-error";
-import { readBrowserUserCookie } from "@/lib/utils/user-cookie";
+import { getStoredAuth } from "@/lib/utils/auth-storage";
 
 interface Props {
   assetId: string;
@@ -35,9 +35,9 @@ export default function DisposeAssetButton({ assetId, locale }: Props) {
   const feedback = useAppFeedback();
 
   useEffect(() => {
-    const stored = readBrowserUserCookie();
+    const stored = getStoredAuth();
     if (stored) {
-      setCurrentUser({ id: String(stored.id), name: stored.nickname });
+      setCurrentUser({ id: String(stored.userId), name: stored.nickname });
     }
   }, []);
 

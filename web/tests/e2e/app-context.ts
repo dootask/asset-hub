@@ -37,15 +37,12 @@ export async function openApp(page: Page, path = "/en"): Promise<AppContext> {
     (_, user) => {
       const resolvedId = Number(user.id);
       const payload = {
-        id: Number.isFinite(resolvedId) ? resolvedId : user.id,
+        userId: String(Number.isFinite(resolvedId) ? resolvedId : user.id),
         nickname: user.nickname,
       };
       try {
-        const encoded = encodeURIComponent(JSON.stringify(payload));
-        document.cookie = `asset_hub_user=${encoded}; Path=/apps/asset-hub; SameSite=Lax`;
-        window.dispatchEvent(
-          new CustomEvent("asset-hub:user-updated", { detail: payload }),
-        );
+        sessionStorage.setItem("asset-hub:auth", JSON.stringify(payload));
+        window.dispatchEvent(new CustomEvent("asset-hub:user-updated", { detail: payload }));
       } catch {
         // ignore access errors in non-browser contexts
       }

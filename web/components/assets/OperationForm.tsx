@@ -44,7 +44,7 @@ import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { extractApiErrorMessage } from "@/lib/utils/api-error";
 import { AttachmentUploadField } from "@/components/attachments/AttachmentUploadField";
 import { enUS, zhCN } from "react-day-picker/locale";
-import { readBrowserUserCookie } from "@/lib/utils/user-cookie";
+import { getStoredAuth } from "@/lib/utils/auth-storage";
 
 interface Props {
   assetId: string;
@@ -126,9 +126,9 @@ export default function OperationForm({
   }, [preferredDefaultType]);
 
   useEffect(() => {
-    const stored = readBrowserUserCookie();
+    const stored = getStoredAuth();
     if (!stored) return;
-    const name = stored.nickname;
+    const name = stored.nickname ?? stored.email;
     if (!name) return;
     setFormState((prev) =>
       prev.actor ? prev : { ...prev, actor: name },

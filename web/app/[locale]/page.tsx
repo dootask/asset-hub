@@ -1,4 +1,8 @@
+"use client";
+
 import Link from "next/link";
+import { use, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import type { DashboardOverview } from "@/lib/repositories/analytics";
 import {
   type AssetStatus,
@@ -8,10 +12,10 @@ import { getOperationTypeLabel } from "@/lib/types/operation";
 import RangeFilter from "@/components/dashboard/RangeFilter";
 import ApprovalStatusBadge from "@/components/approvals/ApprovalStatusBadge";
 import type { ApprovalStatus } from "@/lib/types/approval";
-import { listAssetCategories } from "@/lib/repositories/asset-categories";
-import { listInventoryTasks } from "@/lib/repositories/inventory-tasks";
 import { getApiClient } from "@/lib/http/client";
 import AdminOnly from "@/components/auth/AdminOnly";
+import type { AssetCategory } from "@/lib/types/asset-category";
+import type { InventoryTask } from "@/lib/types/inventory";
 
 const RANGE_OPTIONS = [7, 14, 30] as const;
 
@@ -20,101 +24,108 @@ function ensureSingle(value?: string | string[] | null) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-async function fetchSummary() {
-  const client = await getApiClient();
-  try {
-    const { data } = await client.get<{
-      data: {
-        assets: number;
-        companies: number;
-        roles: number;
-        consumables?: number;
-        lowStockConsumables?: number;
-      };
-    }>("/apps/asset-hub/api/system/config", {
-      headers: { "Cache-Control": "no-cache" },
-    });
-    return {
-      assets: data.data.assets,
-      companies: data.data.companies,
-      roles: data.data.roles,
-      consumables: data.data.consumables ?? 0,
-      lowStockConsumables: data.data.lowStockConsumables ?? 0,
-    };
-  } catch {
-    return {
-      assets: 0,
-      companies: 0,
-      roles: 0,
-      consumables: 0,
-      lowStockConsumables: 0,
-    };
-  }
-}
+const EMPTY_SUMMARY = {
+  assets: 0,
+  companies: 0,
+  roles: 0,
+  consumables: 0,
+  lowStockConsumables: 0,
+};
 
-async function fetchOverview(days: number) {
-  const client = await getApiClient();
-  try {
-    const { data } = await client.get<{ data: DashboardOverview }>(
-      "/apps/asset-hub/api/reports/overview",
-      {
-        params: { days },
-        headers: { "Cache-Control": "no-cache" },
-      },
-    );
-    return data.data;
-  } catch {
-    const fallback: DashboardOverview = {
-      stats: {
-        total: 0,
-        inUse: 0,
-        idle: 0,
-        maintenance: 0,
-        retired: 0,
-        pendingApprovals: 0,
-      },
-      assetsByStatus: [],
-      assetsByCategory: [],
-      approvalsByStatus: [],
-      approvalsTrend: [],
-      operationsByType: [],
-      operationsTrend: [],
-      pendingApprovals: 0,
-    };
-    return fallback;
-  }
-}
+const EMPTY_OVERVIEW: DashboardOverview = {
+  stats: {
+    total: 0,
+    inUse: 0,
+    idle: 0,
+    maintenance: 0,
+    retired: 0,
+    pendingApprovals: 0,
+  },
+  assetsByStatus: [],
+  assetsByCategory: [],
+  approvalsByStatus: [],
+  approvalsTrend: [],
+  operationsByType: [],
+  operationsTrend: [],
+  pendingApprovals: 0,
+};
 
-export default async function LocaleDashboard({
+export default function LocaleDashboard({
   params,
-  searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const [resolvedParams, resolvedSearchParams = {}] = await Promise.all([
-    params,
-    searchParams,
-  ]);
-  const { locale } = resolvedParams;
+  const { locale } = use(params);
   const isChinese = locale === "zh";
-  const rangeParam = ensureSingle(resolvedSearchParams.range ?? resolvedSearchParams.days);
+  const searchParams = useSearchParams();
+  const rangeParam = ensureSingle(searchParams.get("range") ?? searchParams.get("days"));
   const parsedRange = Number(rangeParam);
   const range = RANGE_OPTIONS.includes(parsedRange as (typeof RANGE_OPTIONS)[number])
     ? parsedRange
     : 14;
 
-  const [summary, overview, categories, inventoryTasks] = await Promise.all([
-    fetchSummary(),
-    fetchOverview(range),
-    listAssetCategories(),
-    listInventoryTasks(),
-  ]);
-  const categoryMap = new Map(
-    categories.map((category) => [
-      category.code,
-      locale === "zh" ? category.labelZh : category.labelEn,
-    ]),
+  const [summary, setSummary] = useState(EMPTY_SUMMARY);
+  const [overview, setOverview] = useState<DashboardOverview>(EMPTY_OVERVIEW);
+  const [categories, setCategories] = useState<AssetCategory[]>([]);
+  const [inventoryTasks, setInventoryTasks] = useState<InventoryTask[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadData() {
+      try {
+        const client = await getApiClient();
+        const [summaryResp, overviewResp, categoriesResp, inventoryResp] = await Promise.all([
+          client.get<{
+            data: {
+              assets: number;
+              companies: number;
+              roles: number;
+              consumables?: number;
+              lowStockConsumables?: number;
+            };
+          }>("/apps/asset-hub/api/system/config", { headers: { "Cache-Control": "no-cache" } }),
+          client.get<{ data: DashboardOverview }>("/apps/asset-hub/api/reports/overview", {
+            params: { days: range },
+            headers: { "Cache-Control": "no-cache" },
+          }),
+          client.get<{ data: AssetCategory[] }>("/apps/asset-hub/api/assets/categories"),
+          client.get<{ data: InventoryTask[] }>("/apps/asset-hub/api/assets/inventory-tasks"),
+        ]);
+        if (cancelled) return;
+        setSummary({
+          assets: summaryResp.data.data.assets,
+          companies: summaryResp.data.data.companies,
+          roles: summaryResp.data.data.roles,
+          consumables: summaryResp.data.data.consumables ?? 0,
+          lowStockConsumables: summaryResp.data.data.lowStockConsumables ?? 0,
+        });
+        setOverview(overviewResp.data.data ?? EMPTY_OVERVIEW);
+        setCategories(categoriesResp.data.data ?? []);
+        setInventoryTasks(inventoryResp.data.data ?? []);
+      } catch {
+        if (!cancelled) {
+          setSummary(EMPTY_SUMMARY);
+          setOverview(EMPTY_OVERVIEW);
+          setCategories([]);
+          setInventoryTasks([]);
+        }
+      }
+    }
+    loadData();
+    return () => {
+      cancelled = true;
+    };
+  }, [range]);
+
+  const categoryMap = useMemo(
+    () =>
+      new Map(
+        categories.map((category) => [
+          category.code,
+          locale === "zh" ? category.labelZh : category.labelEn,
+        ]),
+      ),
+    [categories, locale],
   );
   const recentOperations = overview.operationsTrend.reduce(
     (sum, item) => sum + item.count,

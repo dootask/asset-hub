@@ -98,6 +98,34 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
   };
 
   useEffect(() => {
+    setConfigs(initialConfigs);
+  }, [initialConfigs]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadConfigs() {
+      try {
+        const client = await getApiClient();
+        const response = await client.get<{ data: ActionConfig[] }>(
+          "/apps/asset-hub/api/config/approvals",
+          { headers: { "Cache-Control": "no-cache" } },
+        );
+        if (!cancelled) {
+          setConfigs(response.data.data);
+        }
+      } catch {
+        if (!cancelled && initialConfigs.length === 0) {
+          setConfigs([]);
+        }
+      }
+    }
+    loadConfigs();
+    return () => {
+      cancelled = true;
+    };
+  }, [initialConfigs.length]);
+
+  useEffect(() => {
     let active = true;
     async function detectSelector() {
       try {

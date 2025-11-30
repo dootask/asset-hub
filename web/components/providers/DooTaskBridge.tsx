@@ -8,14 +8,18 @@ import {
   isMicroApp,
   getUserInfo,
   getBaseUrl,
+  getUserToken,
 } from "@dootask/tools";
 import { normalizeUserId } from "@/lib/utils/user-id";
 import {
-  writeBrowserUserCookie,
-  type UserCookiePayload,
-} from "@/lib/utils/user-cookie";
+  dispatchAuthEvent,
+  setStoredAuth,
+  setStoredBaseUrl,
+  setStoredLocale,
+  type StoredAuth,
+} from "@/lib/utils/auth-storage";
 
-export default function DooTaskBridge() {
+export default function DooTaskBridge({ locale }: { locale?: string } = {}) {
   const { setTheme } = useTheme();
   useEffect(() => {
     async function syncThemeAndUser() {
@@ -27,50 +31,41 @@ export default function DooTaskBridge() {
         const theme = await getThemeName();
         setTheme(theme.includes("dark") ? "dark" : "light");
 
-        const user = await getUserInfo();
+        const [user, token, baseUrl] = await Promise.all([
+          getUserInfo(),
+          getUserToken().catch(() => null),
+          getBaseUrl().catch(() => null),
+        ]);
         const normalizedId = normalizeUserId((user as { userid?: unknown })?.userid);
-        const payload: UserCookiePayload | null =
+        const authPayload: StoredAuth | null =
           normalizedId === null
             ? null
             : {
-                id: normalizedId,
+                userId: String(normalizedId),
                 nickname: (user as { nickname?: string })?.nickname,
                 email: (user as { email?: string })?.email,
                 token:
+                  token ??
                   (user as { token?: string })?.token ??
                   (user as { user_token?: string })?.user_token,
+                locale,
+                baseUrl:
+                  typeof baseUrl === "string" && baseUrl.trim()
+                    ? baseUrl.trim()
+                    : undefined,
               };
 
-        writeBrowserUserCookie(payload);
-
-        // Persist current locale from document for server requests
-        const locale =
-          document.documentElement.lang ||
-          window.navigator.language?.split("-")?.[0];
-        if (locale) {
-          sessionStorage.setItem("asset-hub:locale", locale);
-        }
-
-        window.dispatchEvent(
-          new CustomEvent("asset-hub:user-updated", { detail: payload }),
-        );
-
-        const baseUrl = await getBaseUrl();
-        if (typeof baseUrl === "string" && baseUrl.trim()) {
-          sessionStorage.setItem(
-            "asset-hub:dootask-base-url",
-            baseUrl.trim(),
-          );
-        } else {
-          sessionStorage.removeItem("asset-hub:dootask-base-url");
-        }
+        setStoredAuth(authPayload);
+        setStoredLocale(authPayload?.locale ?? null);
+        setStoredBaseUrl(authPayload?.baseUrl ?? null);
+        dispatchAuthEvent(authPayload);
       } catch {
         // Ignore errors when运行在独立模式
       }
     }
 
     syncThemeAndUser();
-  }, [setTheme]);
+  }, [setTheme, locale]);
 
   return null;
 }

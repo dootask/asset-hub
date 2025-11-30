@@ -1,13 +1,18 @@
+"use client";
+
 import Link from "next/link";
+import { use, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import AssetFilters from "@/components/assets/AssetFilters";
 import ListPagination from "@/components/layout/ListPagination";
 import PageHeader from "@/components/layout/PageHeader";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { type Asset, getAssetStatusLabel } from "@/lib/types/asset";
-import { listAssetCategories } from "@/lib/repositories/asset-categories";
-import { listCompanies } from "@/lib/repositories/companies";
+import type { AssetCategory } from "@/lib/types/asset-category";
+import type { Company } from "@/lib/types/system";
 import { getApiClient } from "@/lib/http/client";
 import AdminOnly from "@/components/auth/AdminOnly";
+import { extractApiErrorMessage } from "@/lib/utils/api-error";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -22,66 +27,132 @@ function parseStatuses(value?: string | string[]) {
   return raw.filter(Boolean);
 }
 
-async function fetchAssets(searchParams: SearchParams) {
-  const qs = new URLSearchParams();
-
-  const allowList = ["search", "status", "category", "company", "page", "pageSize"];
-  allowList.forEach((key) => {
-    const value = searchParams[key];
-    if (Array.isArray(value)) {
-      value.forEach((entry) => entry && qs.append(key, entry));
-    } else if (typeof value === "string" && value) {
-      qs.set(key, value);
+function buildSearchParams(searchParams: URLSearchParams): SearchParams {
+  const result: Record<string, string | string[]> = {};
+  for (const [key, value] of searchParams.entries()) {
+    if (result[key]) {
+      const existing = result[key];
+      result[key] = Array.isArray(existing) ? [...existing, value] : [existing, value];
+    } else {
+      result[key] = value;
     }
-  });
-
-  const client = await getApiClient();
-  const response = await client.get<{
-    data: Asset[];
-    meta: { total: number; page: number; pageSize: number };
-  }>("/apps/asset-hub/api/assets", {
-    params: Object.fromEntries(qs.entries()),
-    headers: { "Cache-Control": "no-cache" },
-  });
-
-  return response.data;
+  }
+  return result;
 }
 
-export default async function AssetListPage({
+export default function AssetListPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<SearchParams>;
 }) {
-  const [{ locale }, resolvedSearchParams] = await Promise.all([
-    params,
-    searchParams,
-  ]);
+  const { locale } = use(params);
   const isChinese = locale === "zh";
-  const categories = listAssetCategories();
-  const companies = listCompanies();
-  const companyMap = new Map(companies.map((company) => [company.code, company.name]));
-  const categoryMap = new Map(
-    categories.map((category) => [
-      category.code,
-      isChinese ? category.labelZh : category.labelEn,
-    ]),
+  const searchParams = useSearchParams();
+  const [categories, setCategories] = useState<AssetCategory[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [meta, setMeta] = useState({ total: 0, page: 1, pageSize: 10 });
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const resolvedSearchParams = useMemo(
+    () => buildSearchParams(searchParams ?? new URLSearchParams()),
+    [searchParams],
   );
 
-  let assets: Asset[] = [];
-  let meta = { total: 0, page: 1, pageSize: 10 };
-  let errorMessage: string | null = null;
+  const companyMap = useMemo(
+    () => new Map(companies.map((company) => [company.code, company.name])),
+    [companies],
+  );
 
-  try {
-    const response = await fetchAssets(resolvedSearchParams);
-    assets = response.data;
-    meta = response.meta;
-  } catch {
-    errorMessage = isChinese
-      ? "资产列表加载失败"
-      : "Failed to load asset list.";
-  }
+  const categoryMap = useMemo(
+    () =>
+      new Map(
+        categories.map((category) => [
+          category.code,
+          isChinese ? category.labelZh : category.labelEn,
+        ]),
+      ),
+    [categories, isChinese],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadDictionaries() {
+      try {
+        const client = await getApiClient();
+        const [categoryResp, companyResp] = await Promise.all([
+          client.get<{ data: AssetCategory[] }>("/apps/asset-hub/api/assets/categories"),
+          client.get<{ data: Company[] }>("/apps/asset-hub/api/system/companies"),
+        ]);
+        if (!cancelled) {
+          setCategories(categoryResp.data.data);
+          setCompanies(companyResp.data.data);
+        }
+      } catch {
+        if (!cancelled) {
+          setCategories([]);
+          setCompanies([]);
+        }
+      }
+    }
+    loadDictionaries();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadAssets() {
+      setLoading(true);
+      setErrorMessage(null);
+      try {
+        const qs = new URLSearchParams();
+        const allowList = ["search", "status", "category", "company", "page", "pageSize"];
+        allowList.forEach((key) => {
+          const value = resolvedSearchParams[key];
+          if (Array.isArray(value)) {
+            value.forEach((entry) => entry && qs.append(key, entry));
+          } else if (typeof value === "string" && value) {
+            qs.set(key, value);
+          }
+        });
+
+        const client = await getApiClient();
+        const response = await client.get<{
+          data: Asset[];
+          meta: { total: number; page: number; pageSize: number };
+        }>("/apps/asset-hub/api/assets", {
+          params: Object.fromEntries(qs.entries()),
+          headers: { "Cache-Control": "no-cache" },
+        });
+
+        if (!cancelled) {
+          setAssets(response.data.data);
+          setMeta(response.data.meta);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          const message = extractApiErrorMessage(
+            err,
+            isChinese ? "资产列表加载失败" : "Failed to load asset list.",
+          );
+          setErrorMessage(message);
+          setAssets([]);
+          setMeta({ total: 0, page: 1, pageSize: 10 });
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+    loadAssets();
+    return () => {
+      cancelled = true;
+    };
+  }, [resolvedSearchParams, isChinese]);
 
   const buildQueryParams = () => {
     const params = new URLSearchParams();
@@ -166,6 +237,10 @@ export default async function AssetListPage({
         <div className="rounded-2xl border border-dashed border-destructive/50 bg-destructive/5 p-6 text-sm text-destructive">
           {errorMessage}
         </div>
+      ) : loading ? (
+        <div className="rounded-2xl border bg-muted/30 p-12 text-center text-sm text-muted-foreground">
+          {isChinese ? "加载中..." : "Loading..."}
+        </div>
       ) : assets.length === 0 ? (
         <div className="rounded-2xl border bg-muted/30 p-12 text-center text-sm text-muted-foreground">
           {isChinese
@@ -218,9 +293,27 @@ export default async function AssetListPage({
                       {getAssetStatusLabel(asset.status, locale)}
                     </span>
                   </TableCell>
-                  <TableCell className="px-4 py-3">{asset.owner}</TableCell>
-                  <TableCell className="px-4 py-3 whitespace-normal">{asset.location}</TableCell>
-                  <TableCell className="px-4 py-3">{asset.purchaseDate}</TableCell>
+                  <TableCell className="px-4 py-3">
+                    <span className="text-sm text-foreground">
+                      {asset.owner || (isChinese ? "未分配" : "Unassigned")}
+                    </span>
+                  </TableCell>
+                  <TableCell className="px-4 py-3">
+                    <span className="text-sm text-foreground">
+                      {asset.location || (isChinese ? "未设置" : "Not set")}
+                    </span>
+                  </TableCell>
+                  <TableCell className="px-4 py-3">
+                    <span className="text-sm text-foreground">
+                      {asset.purchaseDate
+                        ? new Date(asset.purchaseDate).toLocaleDateString(
+                            locale === "zh" ? "zh-CN" : "en-US",
+                          )
+                        : isChinese
+                          ? "未填写"
+                          : "Not provided"}
+                    </span>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -228,22 +321,12 @@ export default async function AssetListPage({
         </section>
       )}
 
-      {!errorMessage && (
-        <div className="flex flex-col gap-3 rounded-2xl border bg-muted/30 px-4 py-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
-          <p className="shrink-0">
-            {isChinese
-              ? `共 ${meta.total} 条记录`
-              : `${meta.total} records total`}
-          </p>
-          <ListPagination
-            locale={locale}
-            currentPage={meta.page}
-            totalPages={totalPages}
-            getHref={(page) => buildPageLink(page)}
-            className="md:justify-end"
-          />
-        </div>
-      )}
+      <ListPagination
+        currentPage={meta.page}
+        totalPages={totalPages}
+        getHref={buildPageLink}
+        locale={locale}
+      />
     </div>
   );
 }

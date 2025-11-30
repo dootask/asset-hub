@@ -1,17 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import AssetCategoryTable, {
   type AssetCategoryTableHandle,
 } from "@/components/assets/AssetCategoryTable";
 import type { AssetCategory } from "@/lib/types/asset-category";
 import { APPROVAL_TYPES } from "@/lib/types/approval";
+import { getApiClient } from "@/lib/http/client";
 
 interface Props {
   locale: string;
   categories: AssetCategory[];
-  summary: {
+  summary?: {
     assetsByStatus: { label: string; count: number }[];
     assetsByCategory: { label: string; count: number }[];
     approvalsByStatus: { label: string; count: number }[];
@@ -20,6 +21,15 @@ interface Props {
     operationsByType: { label: string; count: number }[];
   };
 }
+
+const EMPTY_SUMMARY = {
+  assetsByStatus: [] as Array<{ label: string; count: number }>,
+  assetsByCategory: [] as Array<{ label: string; count: number }>,
+  approvalsByStatus: [] as Array<{ label: string; count: number }>,
+  approvalsByType: [] as Array<{ label: string; count: number }>,
+  approvalsRecent30d: [] as Array<{ label: string; count: number }>,
+  operationsByType: [] as Array<{ label: string; count: number }>,
+};
 
 const APPROVAL_STATUS_LABELS: Record<
   string,
@@ -33,6 +43,7 @@ const APPROVAL_STATUS_LABELS: Record<
 
 export default function ReportsClient({ locale, categories, summary }: Props) {
   const isChinese = locale === "zh";
+  const [data, setData] = useState(summary ?? EMPTY_SUMMARY);
 
   const categoryTableRef = useRef<AssetCategoryTableHandle>(null);
   const approvalTypeLabelMap = useMemo(() => {
@@ -43,30 +54,54 @@ export default function ReportsClient({ locale, categories, summary }: Props) {
     return map;
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    async function loadSummary() {
+      try {
+        const client = await getApiClient();
+        const response = await client.get<{ data: Props["summary"] }>(
+          "/apps/asset-hub/api/reports/summary",
+          { headers: { "Cache-Control": "no-cache" } },
+        );
+        if (!cancelled && response.data?.data) {
+          setData(response.data.data);
+        }
+      } catch {
+        if (!cancelled) {
+          setData(EMPTY_SUMMARY);
+        }
+      }
+    }
+    loadSummary();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const tiles = useMemo(
     () => [
       {
         titleZh: "资产状态",
         titleEn: "Assets by Status",
-        data: summary.assetsByStatus,
+        data: data.assetsByStatus,
         link: `/${locale}/assets/list`,
       },
       {
         titleZh: "资产类别",
         titleEn: "Assets by Category",
-        data: summary.assetsByCategory.slice(0, 8),
+        data: data.assetsByCategory.slice(0, 8),
         link: `/${locale}/assets/categories`,
       },
       {
         titleZh: "审批状态",
         titleEn: "Approvals by Status",
-        data: summary.approvalsByStatus,
+        data: data.approvalsByStatus,
         link: `/${locale}/approvals`,
       },
       {
         titleZh: "审批类型",
         titleEn: "Approvals by Type",
-        data: summary.approvalsByType.map((entry) => ({
+        data: data.approvalsByType.map((entry) => ({
           label:
             approvalTypeLabelMap[entry.label]?.[
               locale === "zh" ? "zh" : "en"
@@ -78,13 +113,13 @@ export default function ReportsClient({ locale, categories, summary }: Props) {
       {
         titleZh: "操作类型（30 天）",
         titleEn: "Operations (30d)",
-        data: summary.operationsByType,
+        data: data.operationsByType,
         link: `/${locale}/assets/list`,
       },
       {
         titleZh: "审批结果（30 天）",
         titleEn: "Approval outcomes (30d)",
-        data: summary.approvalsRecent30d.map((entry) => ({
+        data: data.approvalsRecent30d.map((entry) => ({
           label:
             APPROVAL_STATUS_LABELS[entry.label]?.[
               locale === "zh" ? "zh" : "en"
@@ -94,7 +129,7 @@ export default function ReportsClient({ locale, categories, summary }: Props) {
         link: `/${locale}/approvals`,
       },
     ],
-    [summary, locale, approvalTypeLabelMap],
+    [data, locale, approvalTypeLabelMap],
   );
 
   return (
@@ -199,4 +234,3 @@ export default function ReportsClient({ locale, categories, summary }: Props) {
     </>
   );
 }
-

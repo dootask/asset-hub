@@ -2,14 +2,13 @@
 
 import { createContext, useContext, useEffect, useState, useMemo } from "react";
 import {
-  readBrowserUserCookie,
-  type UserCookiePayload,
-} from "@/lib/utils/user-cookie";
-
-const USER_EVENT = "asset-hub:user-updated";
+  AUTH_EVENT,
+  getStoredAuth,
+  type StoredAuth,
+} from "@/lib/utils/auth-storage";
 
 type SessionUser = {
-  id: number;
+  id: number | string;
   nickname?: string;
   email?: string;
 };
@@ -43,14 +42,14 @@ export function PermissionProvider({
     if (typeof window === "undefined") return;
 
     const readStoredUser = () => {
-      const stored = readBrowserUserCookie();
+      const stored = getStoredAuth();
       if (!stored) {
         setUser(null);
         setUserReady(false);
         return;
       }
       setUser({
-        id: stored.id,
+        id: stored.userId,
         nickname: stored.nickname,
         email: stored.email,
       });
@@ -60,10 +59,10 @@ export function PermissionProvider({
     readStoredUser();
 
     const handleUserUpdated = (event: Event) => {
-      const detail = (event as CustomEvent<UserCookiePayload | null>).detail;
-      if (detail && typeof detail.id === "number") {
+      const detail = (event as CustomEvent<StoredAuth | null>).detail;
+      if (detail && detail.userId) {
         setUser({
-          id: detail.id,
+          id: detail.userId,
           nickname: detail.nickname,
           email: detail.email,
         });
@@ -73,9 +72,9 @@ export function PermissionProvider({
       setUserReady(true);
     };
 
-    window.addEventListener(USER_EVENT, handleUserUpdated);
+    window.addEventListener(AUTH_EVENT, handleUserUpdated);
     return () => {
-      window.removeEventListener(USER_EVENT, handleUserUpdated);
+      window.removeEventListener(AUTH_EVENT, handleUserUpdated);
     };
   }, []);
 
@@ -91,8 +90,10 @@ export function PermissionProvider({
   }, [userReady]);
 
   const value = useMemo(() => {
-    const isAdmin = user ? adminUserIds.includes(user.id) : false;
-    const isApprover = user ? approverUserIds.includes(user.id) : false;
+    const normalizedId = user ? Number(user.id) : null;
+    const isAdmin = normalizedId !== null ? adminUserIds.includes(normalizedId) : false;
+    const isApprover =
+      normalizedId !== null ? approverUserIds.includes(normalizedId) : false;
 
     return {
       user,
@@ -118,4 +119,3 @@ export function usePermissions() {
   }
   return context;
 }
-
