@@ -77,9 +77,7 @@ export default function ConsumableImportExportClient({ locale, categories, compa
       const response = await client.post<{
         data: ImportResult;
         message?: string;
-      }>("/apps/asset-hub/api/consumables/import", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      }>("/apps/asset-hub/api/consumables/import", formData);
       setImportResult(response.data.data);
     } catch (error) {
       setImportError(
@@ -266,8 +264,8 @@ export default function ConsumableImportExportClient({ locale, categories, compa
               </p>
               {importResult.errors.length > 0 && (
                 <ul className="mt-2 list-disc space-y-1 pl-5 text-xs">
-                  {importResult.errors.map((error) => (
-                    <li key={error}>{error}</li>
+                  {importResult.errors.map((error, index) => (
+                    <li key={`${index}-${error}`}>{error}</li>
                   ))}
                 </ul>
               )}

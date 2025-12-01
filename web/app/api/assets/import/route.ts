@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { createAsset } from "@/lib/repositories/assets";
-import { ASSET_STATUSES, type AssetStatus } from "@/lib/types/asset";
+import { ASSET_STATUSES, ASSET_STATUS_LABELS, type AssetStatus } from "@/lib/types/asset";
 import type { CreateAssetPayload } from "@/lib/types/asset";
 import { getCompanyByCode } from "@/lib/repositories/companies";
+import { listAssetCategories } from "@/lib/repositories/asset-categories";
 
 const REQUIRED_HEADERS = [
   "name",
@@ -16,12 +17,56 @@ const REQUIRED_HEADERS = [
 
 type ParsedRow = CreateAssetPayload;
 
+async function readCsvContent(request: Request): Promise<string | null> {
+  const contentType = request.headers.get("content-type") ?? "";
+  // Allow direct text/csv uploads (no multipart) to be more tolerant with different clients.
+  if (contentType.includes("text/csv")) {
+    return request.text();
+  }
+
+  try {
+    const formData = await request.formData();
+    const file = formData.get("file");
+    if (file instanceof File) {
+      return file.text();
+    }
+    if (typeof file === "string") {
+      return file;
+    }
+    return null;
+  } catch (error) {
+    // formData parsing may fail if boundary is missing; fall back to treating body as text.
+    console.error("Failed to parse formData for asset import:", error);
+    return request.text();
+  }
+}
+
+function normalizeHeaderName(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]/g, "");
+}
+
 function normalizeStatus(value: string): AssetStatus | null {
-  const normalized = value.trim().toLowerCase().replace(/[\s_]/g, "-");
-  const match = ASSET_STATUSES.find(
-    (status) => status === normalized,
-  ) as AssetStatus | undefined;
-  return match ?? null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const slug = trimmed.toLowerCase().replace(/[\s_]/g, "-");
+  if (ASSET_STATUSES.includes(slug as AssetStatus)) {
+    return slug as AssetStatus;
+  }
+
+  // 支持中英文展示标签（如 “待入库”/“Pending”）
+  const lower = trimmed.toLowerCase();
+  const matchFromLabel = ASSET_STATUSES.find((status) => {
+    const label = ASSET_STATUS_LABELS[status];
+    return (
+      label?.en.toLowerCase() === lower ||
+      label?.zh.toLowerCase() === lower
+    );
+  });
+  return matchFromLabel ?? null;
 }
 
 function splitCsvLine(line: string): string[] {
@@ -70,8 +115,10 @@ export function parseAssetImportContent(content: string) {
 
   lines[0] = lines[0].replace(/^\uFEFF/, "");
   const headers = splitCsvLine(lines[0]).map((cell) => cell.trim());
+  const normalizedHeaders = headers.map(normalizeHeaderName);
+  const requiredKeys = REQUIRED_HEADERS.map(normalizeHeaderName);
   const missingHeaders = REQUIRED_HEADERS.filter(
-    (header) => !headers.includes(header),
+    (header) => !normalizedHeaders.includes(normalizeHeaderName(header)),
   );
   if (missingHeaders.length) {
     errors.push(`缺少字段: ${missingHeaders.join(", ")}`);
@@ -83,16 +130,19 @@ export function parseAssetImportContent(content: string) {
     const cells = splitCsvLine(line);
     const record: Record<string, string> = {};
     headers.forEach((header, idx) => {
-      record[header] = cells[idx]?.trim() ?? "";
+      const normalized = normalizeHeaderName(header);
+      record[normalized] = cells[idx]?.trim() ?? "";
     });
 
     const rowNumber = lineIndex + 2;
-    const missingRequired = REQUIRED_HEADERS.filter(
+    const missingRequired = requiredKeys.filter(
       (header) => !record[header],
     );
     if (missingRequired.length) {
       errors.push(
-        `第 ${rowNumber} 行缺少字段: ${missingRequired.join(", ")}`,
+        `第 ${rowNumber} 行缺少字段: ${missingRequired
+          .map((key) => REQUIRED_HEADERS[requiredKeys.indexOf(key)])
+          .join(", ")}`,
       );
       return;
     }
@@ -103,7 +153,7 @@ export function parseAssetImportContent(content: string) {
       return;
     }
 
-    const companyCode = record.companyCode?.trim().toUpperCase();
+    const companyCode = record.companycode?.trim().toUpperCase();
     if (!companyCode) {
       errors.push(`第 ${rowNumber} 行缺少字段: companyCode`);
       return;
@@ -115,7 +165,7 @@ export function parseAssetImportContent(content: string) {
       companyCode,
       owner: record.owner,
       location: record.location,
-      purchaseDate: record.purchaseDate,
+      purchaseDate: record.purchasedate,
     });
   });
 
@@ -124,10 +174,8 @@ export function parseAssetImportContent(content: string) {
 
 export async function POST(request: Request) {
   try {
-    const formData = await request.formData();
-    const file = formData.get("file");
-
-    if (!(file instanceof File)) {
+    const text = await readCsvContent(request);
+    if (!text) {
       return NextResponse.json(
         {
           error: "FILE_REQUIRED",
@@ -137,7 +185,6 @@ export async function POST(request: Request) {
       );
     }
 
-    const text = await file.text();
     const { rows, errors } = parseAssetImportContent(text);
 
     if (!rows.length && errors.length) {
@@ -152,12 +199,27 @@ export async function POST(request: Request) {
 
     let imported = 0;
     const aggregatedErrors = [...errors];
+    const categoryIndex = new Map<string, string>();
+    listAssetCategories().forEach((category) => {
+      categoryIndex.set(category.code.toLowerCase(), category.code);
+      categoryIndex.set(category.labelEn.trim().toLowerCase(), category.code);
+      categoryIndex.set(category.labelZh.trim().toLowerCase(), category.code);
+    });
+
     rows.forEach((row) => {
+      const categoryKey = row.category?.trim().toLowerCase();
+      const normalizedCategory = categoryKey
+        ? categoryIndex.get(categoryKey)
+        : null;
+      if (!normalizedCategory) {
+        aggregatedErrors.push(`资产类别不存在: ${row.category}`);
+        return;
+      }
       if (!getCompanyByCode(row.companyCode)) {
         aggregatedErrors.push(`公司编码不存在: ${row.companyCode}`);
         return;
       }
-      createAsset(row);
+      createAsset({ ...row, category: normalizedCategory });
       imported += 1;
     });
 
@@ -179,4 +241,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

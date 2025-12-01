@@ -38,5 +38,30 @@ Broken,,unknown,,,
     expect(result.rows).toHaveLength(0);
     expect(result.errors.length).toBeGreaterThan(0);
   });
-});
 
+  it("accepts headers with different cases or separators", () => {
+    const csv = `Name,Category,Status,Company_Code,Owner,Location,Purchase_Date
+MacBook Pro,Laptop,In Use,HITOSEA,Alice,Shanghai,2024-01-01
+`;
+    const result = parseAssetImportContent(csv);
+    expect(result.errors).toHaveLength(0);
+    expect(result.rows).toHaveLength(1);
+    expect(result.rows[0]).toMatchObject({
+      name: "MacBook Pro",
+      status: "in-use",
+      companyCode: "HITOSEA",
+      purchaseDate: "2024-01-01",
+    });
+  });
+
+  it("normalizes localized status labels", () => {
+    const csv = `name,category,status,companyCode,owner,location,purchaseDate
+MacBook Pro,Laptop,待入库,HITOSEA,Alice,Shanghai,2024-01-01
+Server Rack,Server,Pending,HITOSEA,Infra,Beijing,2023-12-12
+`;
+    const result = parseAssetImportContent(csv);
+    expect(result.errors).toHaveLength(0);
+    expect(result.rows[0].status).toBe("pending");
+    expect(result.rows[1].status).toBe("pending");
+  });
+});

@@ -26,6 +26,7 @@ import type { Company } from "@/lib/types/system";
 import { ASSET_STATUSES, type AssetStatus } from "@/lib/types/asset";
 import { getApiClient } from "@/lib/http/client";
 import { downloadWithDooTask } from "@/lib/utils/download";
+import { extractApiErrorMessage } from "@/lib/utils/api-error";
 import { Upload } from "lucide-react";
 
 interface Props {
@@ -108,18 +109,15 @@ export default function AssetImportExportClient({ locale, categories, companies 
       const response = await client.post<{
         data?: ImportResult;
         message?: string;
-      }>("/apps/asset-hub/api/assets/import", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      }>("/apps/asset-hub/api/assets/import", formData);
       const payload = response.data;
       setImportResult(payload.data ?? null);
     } catch (error) {
       setImportError(
-        error instanceof Error
-          ? error.message
-          : isChinese
-            ? "导入失败，请稍后重试。"
-            : "Import failed. Please try again.",
+        extractApiErrorMessage(
+          error,
+          isChinese ? "导入失败，请稍后重试。" : "Import failed. Please try again.",
+        ),
       );
     } finally {
       setUploading(false);
@@ -237,13 +235,15 @@ export default function AssetImportExportClient({ locale, categories, companies 
                   />
                   <span>
                     {isChinese
-                      ? status === "in-use"
-                        ? "使用中"
-                        : status === "idle"
-                          ? "闲置"
-                          : status === "maintenance"
-                            ? "维护中"
-                            : "已退役"
+                      ? status === "pending"
+                        ? "待入库"
+                        : status === "in-use"
+                          ? "使用中"
+                          : status === "idle"
+                            ? "闲置"
+                            : status === "maintenance"
+                              ? "维护中"
+                              : "已退役"
                       : status}
                   </span>
                 </label>
@@ -347,8 +347,8 @@ export default function AssetImportExportClient({ locale, categories, companies 
               </p>
               {importResult.errors.length > 0 && (
                 <ul className="mt-2 list-disc space-y-1 pl-4 text-xs">
-                  {importResult.errors.map((error) => (
-                    <li key={error}>{error}</li>
+                  {importResult.errors.map((error, index) => (
+                    <li key={`${index}-${error}`}>{error}</li>
                   ))}
                 </ul>
               )}

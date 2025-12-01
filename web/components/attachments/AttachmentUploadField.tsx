@@ -118,7 +118,6 @@ export function AttachmentUploadField({
         "/apps/asset-hub/api/uploads",
         formData,
         {
-          headers: { "Content-Type": "multipart/form-data" },
           onUploadProgress: (event) => {
             if (!event.total) return;
             const progress = Math.round((event.loaded / event.total) * 100);
