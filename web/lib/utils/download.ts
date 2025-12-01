@@ -8,12 +8,20 @@ import { appReady, downloadUrl, UnsupportedError } from "@dootask/tools";
 export async function downloadWithDooTask(url: string) {
   if (!url) return;
 
+  const normalizedUrl = (() => {
+    try {
+      return new URL(url, typeof window !== "undefined" ? window.location.origin : undefined).toString();
+    } catch {
+      return url;
+    }
+  })();
+
   try {
     await appReady().catch(() => undefined);
-    await downloadUrl(url);
+    await downloadUrl(normalizedUrl);
   } catch (error) {
     if (typeof window !== "undefined") {
-      window.open(url, "_blank", "noopener,noreferrer");
+      window.open(normalizedUrl, "_blank", "noopener,noreferrer");
     }
     if (!(error instanceof UnsupportedError)) {
       console.error("downloadUrl failed, opened via window instead:", error);
