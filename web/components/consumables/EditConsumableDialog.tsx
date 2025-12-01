@@ -3,13 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Pencil } from "lucide-react";
-import {
-  CONSUMABLE_STATUSES,
-  type Consumable,
-  type ConsumableCategory,
-  type ConsumableStatus,
-  getConsumableStatusLabel,
-} from "@/lib/types/consumable";
+import type { Consumable, ConsumableCategory } from "@/lib/types/consumable";
 import type { Company } from "@/lib/types/system";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,7 +51,7 @@ export default function EditConsumableDialog({
   const [formState, setFormState] = useState({
     name: consumable.name,
     category: consumable.category,
-    status: consumable.status,
+    status: consumable.status === "archived" ? "archived" : "auto",
     companyCode: consumable.companyCode ?? companies[0]?.code ?? "",
     quantity: consumable.quantity.toString(),
     unit: consumable.unit,
@@ -139,7 +133,7 @@ export default function EditConsumableDialog({
       await client.put(`/apps/asset-hub/api/consumables/${consumable.id}`, {
         name: formState.name.trim(),
         category: formState.category,
-        status: formState.status as ConsumableStatus,
+        status: formState.status === "archived" ? "archived" : undefined,
         companyCode: formState.companyCode.trim(),
         quantity,
         unit: formState.unit.trim(),
@@ -295,17 +289,20 @@ export default function EditConsumableDialog({
                 </Label>
                 <Select
                   value={formState.status}
-                  onValueChange={(value) => handleChange("status", value as ConsumableStatus)}
+                  onValueChange={(value) =>
+                    handleChange("status", (value as "auto" | "archived") ?? "auto")
+                  }
                 >
                   <SelectTrigger id="edit-consumable-status" className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {CONSUMABLE_STATUSES.map((status) => (
-                      <SelectItem key={status} value={status}>
-                        {getConsumableStatusLabel(status, locale)}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="auto">
+                      {isChinese ? "自动（按库存计算）" : "Automatic (from stock)"}
+                    </SelectItem>
+                    <SelectItem value="archived">
+                      {isChinese ? "归档（停止自动更新）" : "Archived (manual override)"}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -4,12 +4,11 @@ import {
   createConsumable,
   listConsumables,
 } from "@/lib/repositories/consumables";
-import { CONSUMABLE_STATUSES } from "@/lib/types/consumable";
 import { getCompanyByCode } from "@/lib/repositories/companies";
 import { extractUserFromRequest } from "@/lib/utils/request-user";
 import { isAdminUser } from "@/lib/utils/permissions";
 
-const STATUS_ALLOW_LIST = new Set<ConsumableStatus>(CONSUMABLE_STATUSES);
+type StatusInput = ConsumableStatus | "archived" | undefined;
 
 function parseStatusParam(value: string | null): ConsumableStatus[] | undefined {
   if (!value) return undefined;
@@ -17,9 +16,27 @@ function parseStatusParam(value: string | null): ConsumableStatus[] | undefined 
     .split(",")
     .map((entry) => entry.trim())
     .filter((entry): entry is ConsumableStatus =>
-      STATUS_ALLOW_LIST.has(entry as ConsumableStatus),
+      ["in-stock", "reserved", "low-stock", "out-of-stock", "archived"].includes(entry),
     );
   return statuses.length ? statuses : undefined;
+}
+
+function deriveStatus({
+  status,
+  quantity,
+  reservedQuantity,
+  safetyStock,
+}: {
+  status: StatusInput;
+  quantity: number;
+  reservedQuantity: number;
+  safetyStock: number;
+}): ConsumableStatus {
+  if (status === "archived") return "archived";
+  if (quantity <= 0) return "out-of-stock";
+  if (reservedQuantity >= quantity) return "reserved";
+  if (safetyStock > 0 && quantity <= safetyStock) return "low-stock";
+  return "in-stock";
 }
 
 function sanitizePayload(body: unknown) {
@@ -35,28 +52,46 @@ function sanitizePayload(body: unknown) {
     }
   });
 
-  if (
-    typeof payload.status !== "string" ||
-    !STATUS_ALLOW_LIST.has(payload.status as ConsumableStatus)
-  ) {
-    throw new Error("状态值不合法");
+  const statusInput =
+    typeof payload.status === "string" && payload.status.trim().length > 0
+      ? (payload.status.trim() as StatusInput)
+      : undefined;
+  if (statusInput && statusInput !== "archived") {
+    throw new Error("状态值不合法，仅允许 archived 或自动计算");
   }
 
   const quantity = Number(payload.quantity);
   const safetyStock = Number(payload.safetyStock ?? payload.safety_stock ?? 0);
+  const reservedQuantityRaw =
+    payload.reservedQuantity ?? payload.reserved_quantity ?? null;
+  const reservedQuantity =
+    reservedQuantityRaw === null ? 0 : Number(reservedQuantityRaw);
   if (!Number.isFinite(quantity) || quantity < 0) {
     throw new Error("quantity 必须为大于等于 0 的数字");
   }
   if (!Number.isFinite(safetyStock) || safetyStock < 0) {
     throw new Error("safetyStock 必须为大于等于 0 的数字");
   }
+  if (!Number.isFinite(reservedQuantity) || reservedQuantity < 0) {
+    throw new Error("reservedQuantity 必须为大于等于 0 的数字");
+  }
+  if (reservedQuantity > quantity) {
+    throw new Error("reservedQuantity 不能大于 quantity");
+  }
 
+  const status = deriveStatus({
+    status: statusInput,
+    quantity,
+    reservedQuantity,
+    safetyStock,
+  });
   return {
     name: (payload.name as string).trim(),
     category: (payload.category as string).trim(),
-    status: payload.status as ConsumableStatus,
+    status,
     companyCode: (payload.companyCode as string).trim().toUpperCase(),
     quantity,
+    reservedQuantity,
     unit: (payload.unit as string).trim(),
     keeper: (payload.keeper as string).trim(),
     location: (payload.location as string).trim(),
@@ -118,4 +153,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

@@ -1,16 +1,12 @@
 import { NextResponse } from "next/server";
-import {
-  CONSUMABLE_STATUSES,
-  type ConsumableStatus,
-} from "@/lib/types/consumable";
+import type { ConsumableStatus } from "@/lib/types/consumable";
 import { createConsumable } from "@/lib/repositories/consumables";
 import { getCompanyByCode } from "@/lib/repositories/companies";
+import { listConsumableCategories } from "@/lib/repositories/consumable-categories";
 
-const STATUS_ALLOW_LIST = new Set<ConsumableStatus>(CONSUMABLE_STATUSES);
 const REQUIRED_HEADERS = [
   "name",
   "category",
-  "status",
   "companyCode",
   "quantity",
   "unit",
@@ -18,6 +14,26 @@ const REQUIRED_HEADERS = [
   "location",
   "safetyStock",
 ] as const;
+
+type ParsedRow = {
+  name: string;
+  category: string;
+  companyCode: string;
+  quantity: number;
+  unit: string;
+  keeper: string;
+  location: string;
+  safetyStock: number;
+  description?: string;
+  status?: "archived";
+};
+
+function normalizeHeaderName(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]/g, "");
+}
 
 function splitCsvLine(line: string) {
   const cells: string[] = [];
@@ -51,66 +67,121 @@ function splitCsvLine(line: string) {
   return cells;
 }
 
+function normalizeStatusInput(value?: string): "archived" | undefined {
+  if (!value) return undefined;
+  const normalized = normalizeHeaderName(value);
+  if (normalized === "archived" || normalized === "归档") return "archived";
+  return undefined;
+}
+
+function deriveStatus(
+  quantity: number,
+  safetyStock: number,
+  statusInput?: "archived",
+): ConsumableStatus {
+  if (statusInput === "archived") return "archived";
+  if (quantity <= 0) return "out-of-stock";
+  if (quantity <= safetyStock) return "low-stock";
+  return "in-stock";
+}
+
 export function parseConsumableImportContent(content: string) {
   const errors: string[] = [];
   const trimmed = content.trim();
   if (!trimmed) {
-    return { rows: [] as Record<string, string>[], errors: ["文件内容为空"] };
+    return { rows: [] as ParsedRow[], errors: ["文件内容为空"] };
   }
   const lines = trimmed.split(/\r?\n/).filter((line) => line.trim().length);
   if (lines.length <= 1) {
-    return { rows: [] as Record<string, string>[], errors: ["缺少数据行"] };
+    return { rows: [] as ParsedRow[], errors: ["缺少数据行"] };
   }
 
   lines[0] = lines[0].replace(/^\uFEFF/, "");
   const headers = splitCsvLine(lines[0]).map((cell) => cell.trim());
-  const missing = REQUIRED_HEADERS.filter((header) => !headers.includes(header));
+  const normalizedHeaders = headers.map(normalizeHeaderName);
+  const missing = REQUIRED_HEADERS.filter(
+    (header) => !normalizedHeaders.includes(normalizeHeaderName(header)),
+  );
   if (missing.length) {
     errors.push(`缺少字段: ${missing.join(", ")}`);
-    return { rows: [] as Record<string, string>[], errors };
+    return { rows: [] as ParsedRow[], errors };
   }
 
-  const rows: Record<string, string>[] = [];
+  const rows: ParsedRow[] = [];
   lines.slice(1).forEach((line, index) => {
     const cells = splitCsvLine(line);
     const rowNumber = index + 2;
     const record: Record<string, string> = {};
     headers.forEach((header, cellIndex) => {
-      record[header] = (cells[cellIndex] ?? "").trim();
+      record[normalizeHeaderName(header)] = (cells[cellIndex] ?? "").trim();
     });
-    const missingRequired = REQUIRED_HEADERS.filter((header) => !record[header]);
+    const missingRequired = REQUIRED_HEADERS.filter(
+      (header) => !record[normalizeHeaderName(header)],
+    );
     if (missingRequired.length) {
-      errors.push(`第 ${rowNumber} 行缺少字段: ${missingRequired.join(", ")}`);
+      errors.push(
+        `第 ${rowNumber} 行缺少字段: ${missingRequired.join(", ")}`,
+      );
       return;
     }
-    if (!STATUS_ALLOW_LIST.has(record.status as ConsumableStatus)) {
-      errors.push(`第 ${rowNumber} 行状态不合法: ${record.status}`);
-      return;
-    }
-    const companyCode = record.companyCode?.trim().toUpperCase();
+    const companyCode = record.companycode?.trim().toUpperCase();
     if (!companyCode) {
       errors.push(`第 ${rowNumber} 行缺少字段: companyCode`);
       return;
     }
-    if (Number.isNaN(Number(record.quantity)) || Number(record.quantity) < 0) {
+    const quantity = Number(record.quantity);
+    if (Number.isNaN(quantity) || quantity < 0) {
       errors.push(`第 ${rowNumber} 行 quantity 无效`);
       return;
     }
-    if (Number.isNaN(Number(record.safetyStock)) || Number(record.safetyStock) < 0) {
+    const safetyStock = Number(record.safetystock);
+    if (Number.isNaN(safetyStock) || safetyStock < 0) {
       errors.push(`第 ${rowNumber} 行 safetyStock 无效`);
       return;
     }
-    rows.push({ ...record, companyCode });
+    rows.push({
+      name: record.name,
+      category: record.category,
+      companyCode,
+      quantity,
+      unit: record.unit,
+      keeper: record.keeper,
+      location: record.location,
+      safetyStock,
+      description: record.description || undefined,
+      status: normalizeStatusInput(record.status),
+    });
   });
 
   return { rows, errors };
 }
 
-export async function POST(request: Request) {
+async function readCsvContent(request: Request): Promise<string | null> {
+  const contentType = request.headers.get("content-type") ?? "";
+  if (contentType.includes("text/csv")) {
+    return request.text();
+  }
+
   try {
     const formData = await request.formData();
     const file = formData.get("file");
-    if (!(file instanceof File)) {
+    if (file instanceof File) {
+      return file.text();
+    }
+    if (typeof file === "string") {
+      return file;
+    }
+    return null;
+  } catch (error) {
+    console.error("Failed to parse formData for consumable import:", error);
+    return request.text();
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const text = await readCsvContent(request);
+    if (!text) {
       return NextResponse.json(
         {
           error: "FILE_REQUIRED",
@@ -119,7 +190,6 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
-    const text = await file.text();
     const { rows, errors } = parseConsumableImportContent(text);
     if (!rows.length && errors.length) {
       return NextResponse.json(
@@ -133,22 +203,38 @@ export async function POST(request: Request) {
 
     let imported = 0;
     const aggregatedErrors = [...errors];
+    const categoryIndex = new Map<string, string>();
+    listConsumableCategories().forEach((category) => {
+      categoryIndex.set(category.code.toLowerCase(), category.code);
+      categoryIndex.set(category.labelEn.trim().toLowerCase(), category.code);
+      categoryIndex.set(category.labelZh.trim().toLowerCase(), category.code);
+    });
+
     rows.forEach((row) => {
+      const categoryKey = row.category?.trim().toLowerCase();
+      const normalizedCategory = categoryKey
+        ? categoryIndex.get(categoryKey)
+        : null;
+      if (!normalizedCategory) {
+        aggregatedErrors.push(`耗材类别不存在: ${row.category}`);
+        return;
+      }
       if (!row.companyCode || !getCompanyByCode(row.companyCode as string)) {
         aggregatedErrors.push(`公司编码不存在: ${row.companyCode ?? ""}`);
         return;
       }
+      const status = deriveStatus(row.quantity, row.safetyStock, row.status);
       createConsumable({
         name: row.name,
-        category: row.category,
-        status: row.status as ConsumableStatus,
-        companyCode: row.companyCode as string,
-        quantity: Number(row.quantity),
+        category: normalizedCategory,
+        status,
+        companyCode: row.companyCode,
+        quantity: row.quantity,
         unit: row.unit,
         keeper: row.keeper,
         location: row.location,
-        safetyStock: Number(row.safetyStock),
-        description: row.description || undefined,
+        safetyStock: row.safetyStock,
+        description: row.description,
       });
       imported += 1;
     });
@@ -171,4 +257,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

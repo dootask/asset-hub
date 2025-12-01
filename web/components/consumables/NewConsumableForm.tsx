@@ -16,12 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
 import { extractApiErrorMessage } from "@/lib/utils/api-error";
-import {
-  CONSUMABLE_STATUSES,
-  getConsumableStatusLabel,
-  type ConsumableCategory,
-  type ConsumableStatus,
-} from "@/lib/types/consumable";
+import type { ConsumableCategory } from "@/lib/types/consumable";
 import type { Company } from "@/lib/types/system";
 
 type Props = {
@@ -42,7 +37,7 @@ export default function NewConsumableForm({
   const [formState, setFormState] = useState({
     name: "",
     category: firstCategory,
-    status: CONSUMABLE_STATUSES[0] as ConsumableStatus,
+    status: "auto" as "auto" | "archived",
     companyCode: firstCompany,
     quantity: "0",
     unit: categories[0]?.unit ?? "",
@@ -82,7 +77,7 @@ export default function NewConsumableForm({
       const payload = {
         name: formState.name.trim(),
         category: formState.category,
-        status: formState.status,
+        status: formState.status === "archived" ? "archived" : undefined,
         companyCode: formState.companyCode,
         quantity,
         unit: formState.unit.trim(),
@@ -224,17 +219,20 @@ export default function NewConsumableForm({
           </Label>
           <Select
             value={formState.status}
-            onValueChange={(value) => handleChange("status", value as ConsumableStatus)}
+            onValueChange={(value) =>
+              handleChange("status", (value as "auto" | "archived") ?? "auto")
+            }
           >
             <SelectTrigger id="consumable-status" className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {CONSUMABLE_STATUSES.map((status) => (
-                <SelectItem key={status} value={status}>
-                  {getConsumableStatusLabel(status, locale)}
-                </SelectItem>
-              ))}
+              <SelectItem value="auto">
+                {isChinese ? "自动（按库存计算）" : "Automatic (from stock)"}
+              </SelectItem>
+              <SelectItem value="archived">
+                {isChinese ? "归档（停止自动更新）" : "Archived (manual override)"}
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>

@@ -22,6 +22,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getApiClient } from "@/lib/http/client";
 import { downloadWithDooTask } from "@/lib/utils/download";
+import { extractApiErrorMessage } from "@/lib/utils/api-error";
 import { Upload } from "lucide-react";
 
 interface Props {
@@ -81,11 +82,12 @@ export default function ConsumableImportExportClient({ locale, categories, compa
       setImportResult(response.data.data);
     } catch (error) {
       setImportError(
-        error instanceof Error
-          ? error.message
-          : isChinese
+        extractApiErrorMessage(
+          error,
+          isChinese
             ? "导入失败，请稍后再试。"
             : "Import failed, please try again.",
+        ),
       );
     } finally {
       setUploading(false);
@@ -247,7 +249,7 @@ export default function ConsumableImportExportClient({ locale, categories, compa
             <p className="text-xs text-muted-foreground">
               {isChinese
                 ? "字段需包含：name, category, status, companyCode, quantity, unit, keeper, location, safetyStock。"
-                : "Required columns: name, category, status, companyCode, quantity, unit, keeper, location, safetyStock."}
+                : "Required: name, category, status, companyCode, quantity, unit, keeper, location, safetyStock."}
             </p>
           </div>
           {importError && (

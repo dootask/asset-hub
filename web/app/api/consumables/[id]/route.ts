@@ -5,15 +5,34 @@ import {
   updateConsumable,
 } from "@/lib/repositories/consumables";
 import type { ConsumableStatus } from "@/lib/types/consumable";
-import { CONSUMABLE_STATUSES } from "@/lib/types/consumable";
 import { extractUserFromRequest } from "@/lib/utils/request-user";
 import { isAdminUser } from "@/lib/utils/permissions";
 import { getCompanyByCode } from "@/lib/repositories/companies";
 
-const STATUS_ALLOW_LIST = new Set<ConsumableStatus>(CONSUMABLE_STATUSES);
+type StatusInput = ConsumableStatus | "archived" | undefined;
 
 interface RouteContext {
   params: Promise<{ id: string }>;
+}
+
+function deriveStatus({
+  status,
+  quantity,
+  reservedQuantity,
+  safetyStock,
+  currentStatus,
+}: {
+  status: StatusInput;
+  quantity: number;
+  reservedQuantity: number;
+  safetyStock: number;
+  currentStatus?: ConsumableStatus;
+}): ConsumableStatus {
+  if (status === "archived" || currentStatus === "archived") return "archived";
+  if (quantity <= 0) return "out-of-stock";
+  if (reservedQuantity >= quantity) return "reserved";
+  if (safetyStock > 0 && quantity <= safetyStock) return "low-stock";
+  return "in-stock";
 }
 
 function sanitizePayload(payload: unknown) {
@@ -27,11 +46,12 @@ function sanitizePayload(payload: unknown) {
       throw new Error(`${field} 为必填字段`);
     }
   });
-  if (
-    typeof body.status !== "string" ||
-    !STATUS_ALLOW_LIST.has(body.status as ConsumableStatus)
-  ) {
-    throw new Error("状态值不合法");
+  const statusInput =
+    typeof body.status === "string" && body.status.trim().length > 0
+      ? (body.status.trim() as StatusInput)
+      : undefined;
+  if (statusInput && statusInput !== "archived") {
+    throw new Error("状态值不合法，仅允许 archived 或自动计算");
   }
   const quantity = Number(body.quantity);
   const safetyStock = Number(body.safetyStock ?? body.safety_stock ?? 0);
@@ -54,7 +74,7 @@ function sanitizePayload(payload: unknown) {
   return {
     name: (body.name as string).trim(),
     category: (body.category as string).trim(),
-    status: body.status as ConsumableStatus,
+    status: statusInput,
     companyCode: (body.companyCode as string).trim().toUpperCase(),
     quantity,
     reservedQuantity,
@@ -96,11 +116,31 @@ export async function PUT(request: Request, { params }: RouteContext) {
 
   try {
     const { id } = await params;
+    const existing = getConsumableById(id);
+    if (!existing) {
+      return NextResponse.json(
+        { error: "NOT_FOUND", message: "耗材不存在。" },
+        { status: 404 },
+      );
+    }
     const payload = sanitizePayload(await request.json());
     if (!getCompanyByCode(payload.companyCode)) {
       throw new Error("公司不存在");
     }
-    const updated = updateConsumable(id, payload);
+    const reservedQuantity =
+      payload.reservedQuantity ?? existing.reservedQuantity ?? 0;
+    const nextStatus = deriveStatus({
+      status: payload.status,
+      currentStatus: existing.status,
+      quantity: payload.quantity,
+      reservedQuantity,
+      safetyStock: payload.safetyStock,
+    });
+    const updated = updateConsumable(id, {
+      ...payload,
+      reservedQuantity,
+      status: nextStatus,
+    });
     if (!updated) {
       return NextResponse.json(
         { error: "NOT_FOUND", message: "耗材不存在。" },
