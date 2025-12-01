@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import DownloadLink from "@/components/common/DownloadLink";
 import PageHeader from "@/components/layout/PageHeader";
 import { getInventoryTaskById } from "@/lib/repositories/inventory-tasks";
 
@@ -129,12 +130,12 @@ export default async function InventoryDetailPage({ params }: PageProps) {
             </div>
           </dl>
           <div className="mt-4">
-            <a
+            <DownloadLink
               href={`/apps/asset-hub/api/assets/inventory-tasks/${task.id}/export`}
               className="inline-flex rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
             >
               {isChinese ? "导出资产清单" : "Export Assets"}
-            </a>
+            </DownloadLink>
           </div>
         </div>
       </div>

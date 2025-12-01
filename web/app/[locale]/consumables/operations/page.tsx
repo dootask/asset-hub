@@ -3,6 +3,7 @@ import Link from "next/link";
 import ConsumableOperationFilters from "@/components/consumables/ConsumableOperationFilters";
 import PageHeader from "@/components/layout/PageHeader";
 import ListPagination from "@/components/layout/ListPagination";
+import DownloadLink from "@/components/common/DownloadLink";
 import {
   Table,
   TableBody,
@@ -139,12 +140,12 @@ export default async function ConsumableOperationsPage({
             : "Track purchase, inbound, outbound, and reservation logs with filters and CSV export."
         }
         actions={
-          <a
+          <DownloadLink
             href={exportHref}
             className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
           >
             {isChinese ? "导出 CSV" : "Export CSV"}
-          </a>
+          </DownloadLink>
         }
       />
 

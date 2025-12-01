@@ -21,6 +21,7 @@ import {
 } from "@/lib/types/consumable";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getApiClient } from "@/lib/http/client";
+import { downloadWithDooTask } from "@/lib/utils/download";
 import { Upload } from "lucide-react";
 
 interface Props {
@@ -99,6 +100,9 @@ export default function ConsumableImportExportClient({ locale, categories, compa
     setImportError(null);
   };
 
+  const handleDownloadExport = () => downloadWithDooTask(exportHref);
+  const handleDownloadTemplate = () => downloadWithDooTask(templateHref);
+
   return (
     <div className="space-y-8">
       <section className="rounded-2xl border bg-card/70 p-4 shadow-sm">
@@ -169,15 +173,11 @@ export default function ConsumableImportExportClient({ locale, categories, compa
           </div>
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Button asChild>
-            <a href={exportHref} download>
-              {isChinese ? "下载 CSV" : "Download CSV"}
-            </a>
+          <Button onClick={handleDownloadExport}>
+            {isChinese ? "下载 CSV" : "Download CSV"}
           </Button>
-          <Button asChild variant="outline">
-            <a href={templateHref} download>
-              {isChinese ? "下载模板" : "Download template"}
-            </a>
+          <Button variant="outline" onClick={handleDownloadTemplate}>
+            {isChinese ? "下载模板" : "Download template"}
           </Button>
         </div>
       </section>

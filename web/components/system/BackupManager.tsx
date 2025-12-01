@@ -26,6 +26,7 @@ import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
 import { extractApiErrorMessage } from "@/lib/utils/api-error";
 import type { BackupRecord } from "@/lib/types/backup";
+import { downloadWithDooTask } from "@/lib/utils/download";
 
 interface Props {
   locale: string;
@@ -147,7 +148,7 @@ export default function BackupManager({ locale, initialBackups }: Props) {
 
   const handleDownload = (backup: BackupRecord) => {
     const url = `/apps/asset-hub/api/system/backups/${encodeURIComponent(backup.id)}/download`;
-    window.open(url, "_blank", "noopener,noreferrer");
+    downloadWithDooTask(url);
   };
 
   const hasBackups = sortedBackups.length > 0;

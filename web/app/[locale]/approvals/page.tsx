@@ -24,6 +24,7 @@ import type { OperationTemplateFieldWidget } from "@/lib/types/operation-templat
 import { extractOperationTemplateMetadata } from "@/lib/utils/operation-template";
 import { getApiClient } from "@/lib/http/client";
 import { extractApiErrorMessage } from "@/lib/utils/api-error";
+import { downloadWithDooTask } from "@/lib/utils/download";
 
 type PageParams = { locale: string };
 type PageProps = {
@@ -175,6 +176,7 @@ export default function ApprovalsPage({ params }: PageProps) {
     const query = params.toString();
     return `/apps/asset-hub/api/approvals/export${query ? `?${query}` : ""}`;
   })();
+  const handleDownloadExport = () => downloadWithDooTask(exportHref);
 
   return (
     <div className="space-y-6">
@@ -200,12 +202,13 @@ export default function ApprovalsPage({ params }: PageProps) {
             >
               {isChinese ? "发起采购" : "New Purchase"}
             </Link>
-            <a
-              href={exportHref}
+            <button
+              type="button"
+              onClick={handleDownloadExport}
               className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
             >
               {isChinese ? "导出 CSV" : "Export CSV"}
-            </a>
+            </button>
           </div>
         }
       />

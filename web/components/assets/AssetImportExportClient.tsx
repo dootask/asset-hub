@@ -25,6 +25,7 @@ import type { AssetCategory } from "@/lib/types/asset-category";
 import type { Company } from "@/lib/types/system";
 import { ASSET_STATUSES, type AssetStatus } from "@/lib/types/asset";
 import { getApiClient } from "@/lib/http/client";
+import { downloadWithDooTask } from "@/lib/utils/download";
 import { Upload } from "lucide-react";
 
 interface Props {
@@ -130,6 +131,9 @@ export default function AssetImportExportClient({ locale, categories, companies 
     setImportError(null);
     setImportResult(null);
   };
+
+  const handleDownloadExport = () => downloadWithDooTask(exportHref);
+  const handleDownloadTemplate = () => downloadWithDooTask(templateHref);
 
   return (
     <div className="space-y-8">
@@ -248,15 +252,11 @@ export default function AssetImportExportClient({ locale, categories, companies 
           </div>
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Button asChild variant="default">
-            <a href={exportHref} download>
-              {isChinese ? "下载筛选结果" : "Download CSV"}
-            </a>
+          <Button variant="default" onClick={handleDownloadExport}>
+            {isChinese ? "下载筛选结果" : "Download CSV"}
           </Button>
-          <Button asChild variant="outline">
-            <a href={templateHref} download>
-              {isChinese ? "下载模板" : "Download Template"}
-            </a>
+          <Button variant="outline" onClick={handleDownloadTemplate}>
+            {isChinese ? "下载模板" : "Download Template"}
           </Button>
         </div>
       </section>

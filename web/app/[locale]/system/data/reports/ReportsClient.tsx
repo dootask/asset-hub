@@ -8,6 +8,7 @@ import AssetCategoryTable, {
 import type { AssetCategory } from "@/lib/types/asset-category";
 import { APPROVAL_TYPES } from "@/lib/types/approval";
 import { getApiClient } from "@/lib/http/client";
+import { downloadWithDooTask } from "@/lib/utils/download";
 
 interface Props {
   locale: string;
@@ -77,6 +78,11 @@ export default function ReportsClient({ locale, categories, summary }: Props) {
       cancelled = true;
     };
   }, []);
+
+  const handleDownloadAssets = () =>
+    downloadWithDooTask("/apps/asset-hub/api/assets/export");
+  const handleDownloadApprovals = () =>
+    downloadWithDooTask("/apps/asset-hub/api/approvals/export");
 
   const tiles = useMemo(
     () => [
@@ -187,18 +193,20 @@ export default function ReportsClient({ locale, categories, summary }: Props) {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link
-              href="/apps/asset-hub/api/assets/export"
+            <button
+              type="button"
+              onClick={handleDownloadAssets}
               className="inline-flex items-center rounded-2xl border px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
             >
               {isChinese ? "资产 CSV" : "Assets CSV"}
-            </Link>
-            <Link
-              href="/apps/asset-hub/api/approvals/export"
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadApprovals}
               className="inline-flex items-center rounded-2xl border px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
             >
               {isChinese ? "审批 CSV" : "Approvals CSV"}
-            </Link>
+            </button>
           </div>
         </div>
       </section>

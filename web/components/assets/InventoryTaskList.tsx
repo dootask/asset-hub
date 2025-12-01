@@ -21,6 +21,7 @@ import { ASSET_STATUSES } from "@/lib/types/asset";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
 import { extractApiErrorMessage } from "@/lib/utils/api-error";
+import { downloadWithDooTask } from "@/lib/utils/download";
 
 interface Props {
   locale: string;
@@ -241,13 +242,13 @@ const InventoryTaskList = forwardRef<InventoryTaskListHandle, Props>(
                     type="button"
                     variant="ghost"
                     size="sm"
-                    asChild
+                    onClick={() =>
+                      downloadWithDooTask(
+                        `/apps/asset-hub/api/assets/inventory-tasks/${task.id}/export`,
+                      )
+                    }
                   >
-                    <a
-                      href={`/apps/asset-hub/api/assets/inventory-tasks/${task.id}/export`}
-                    >
-                      {isChinese ? "导出资产清单" : "Export Assets"}
-                    </a>
+                    {isChinese ? "导出资产清单" : "Export Assets"}
                   </Button>
                 </div>
               </div>
