@@ -86,6 +86,12 @@ export default async function ConsumableListPage({
   const withLocale = (path: string) => `/${locale}${path}`;
   const lowStockTotal = stockStats.lowStock + stockStats.outOfStock;
   const lowStockFilterHref = withLocale("/consumables/alerts");
+  const categoryLookup = new Map(
+    categories.map((category) => [
+      category.code,
+      isChinese ? category.labelZh : category.labelEn,
+    ]),
+  );
 
   return (
     <div className="space-y-6">
@@ -163,6 +169,7 @@ export default async function ConsumableListPage({
         locale={locale}
         consumables={result.items}
         companyLookup={new Map(companies.map((company) => [company.code, company.name]))}
+        categoryLookup={categoryLookup}
       />
 
       <div className="flex flex-col gap-3 rounded-2xl border bg-muted/30 px-4 py-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">

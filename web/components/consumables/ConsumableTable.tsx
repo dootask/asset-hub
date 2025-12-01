@@ -10,9 +10,15 @@ interface Props {
   consumables: Consumable[];
   locale: string;
   companyLookup?: Map<string, string>;
+  categoryLookup?: Map<string, string>;
 }
 
-export default function ConsumableTable({ consumables, locale, companyLookup }: Props) {
+export default function ConsumableTable({
+  consumables,
+  locale,
+  companyLookup,
+  categoryLookup,
+}: Props) {
   const isChinese = locale === "zh";
 
   if (consumables.length === 0) {
@@ -46,14 +52,20 @@ export default function ConsumableTable({ consumables, locale, companyLookup }: 
                 </Link>
                 <div className="text-xs text-muted-foreground">{item.id}</div>
               </TableCell>
-              <TableCell className="px-4 py-3">{item.category}</TableCell>
-                  <TableCell className="px-4 py-3">
-                    {item.companyCode
-                      ? companyLookup?.get(item.companyCode) ?? item.companyCode
-                      : isChinese
-                        ? "未指定"
-                        : "Unassigned"}
-                  </TableCell>
+              <TableCell className="px-4 py-3">
+                {item.category
+                  ? categoryLookup?.get(item.category) ?? item.category
+                  : isChinese
+                    ? "未分类"
+                    : "Uncategorized"}
+              </TableCell>
+              <TableCell className="px-4 py-3">
+                {item.companyCode
+                  ? companyLookup?.get(item.companyCode) ?? item.companyCode
+                  : isChinese
+                    ? "未指定"
+                    : "Unassigned"}
+              </TableCell>
               <TableCell className="px-4 py-3">
                 <Badge variant="secondary">
                   {getConsumableStatusLabel(item.status, locale)}
