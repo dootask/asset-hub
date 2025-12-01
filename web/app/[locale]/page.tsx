@@ -322,7 +322,7 @@ export default function LocaleDashboard({
   return (
     <div className="space-y-6">
       <section
-        className="rounded-3xl border bg-card p-6 shadow-sm"
+        className="rounded-3xl border bg-card p-6 shadow-sm max-md:p-0 max-md:border-0 max-md:shadow-none"
         data-testid="dashboard-hero"
       >
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -342,7 +342,7 @@ export default function LocaleDashboard({
           <RangeFilter locale={locale} value={range} />
         </div>
         <div
-          className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+          className="mt-6 grid gap-4 grid-cols-2 lg:grid-cols-4"
           data-testid="dashboard-stats"
         >
           {highlightStats.map((card) => {
@@ -363,7 +363,7 @@ export default function LocaleDashboard({
             );
           })}
         </div>
-        <div className="mt-8 rounded-3xl border bg-muted/10 p-4">
+        <div className="mt-8 rounded-3xl border bg-muted/10 p-4 max-md:rounded-none max-md:border-0 max-md:p-0">
           <div className="flex flex-col gap-1 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
@@ -376,7 +376,7 @@ export default function LocaleDashboard({
               </p>
             </div>
           </div>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-4 grid gap-3 grid-cols-2 lg:grid-cols-3">
             {supportingStats.map((card) => {
               const content = (
                 <>
@@ -418,7 +418,7 @@ export default function LocaleDashboard({
       </section>
 
       <section
-        className="rounded-3xl border bg-card p-6 shadow-sm"
+        className="rounded-3xl border bg-card p-6 shadow-sm max-md:p-0 max-md:border-0 max-md:shadow-none max-md:rounded-none max-md:border-t-1 max-md:pt-6"
         data-testid="dashboard-shortcuts"
       >
         <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
@@ -452,7 +452,7 @@ export default function LocaleDashboard({
       </section>
 
       <section
-        className="rounded-3xl border bg-card p-6 shadow-sm"
+        className="rounded-3xl border bg-card p-6 shadow-sm max-md:p-0 max-md:border-0 max-md:shadow-none max-md:rounded-none max-md:border-t-1 max-md:pt-6"
         data-testid="dashboard-distribution"
       >
         <h2 className="text-lg font-semibold">
@@ -478,7 +478,7 @@ export default function LocaleDashboard({
         </div>
       </section>
 
-      <section className="rounded-3xl border bg-card p-6 shadow-sm">
+      <section className="rounded-3xl border bg-card p-6 shadow-sm max-md:p-0 max-md:border-0 max-md:shadow-none max-md:rounded-none max-md:border-t-1 max-md:pt-6">
         <div className="flex flex-col gap-2">
           <h2 className="text-lg font-semibold">
             {isChinese ? "运营洞察" : "Operational Insights"}
