@@ -8,6 +8,9 @@ import { listOperationsForConsumable } from "@/lib/repositories/consumable-opera
 import { getConsumableStatusLabel } from "@/lib/types/consumable";
 import { listCompanies } from "@/lib/repositories/companies";
 import { listApprovalRequests } from "@/lib/repositories/approvals";
+import { listConsumableCategories } from "@/lib/repositories/consumable-categories";
+import EditConsumableDialog from "@/components/consumables/EditConsumableDialog";
+import AdminOnly from "@/components/auth/AdminOnly";
 
 type PageParams = { locale: string; id: string };
 
@@ -29,6 +32,7 @@ export default async function ConsumableDetailPage({ params }: PageProps) {
   const approvals = listApprovalRequests({ consumableId: id }).data;
   const isChinese = locale === "zh";
   const companies = listCompanies();
+  const categories = listConsumableCategories();
 
   if (!consumable) {
     notFound();
@@ -39,6 +43,10 @@ export default async function ConsumableDetailPage({ params }: PageProps) {
     companies.find((company) => company.code === consumable.companyCode)?.name;
   const displayCompany =
     companyName ?? consumable.companyCode ?? (isChinese ? "未指定" : "Unassigned");
+  const categoryLabel =
+    categories.find((category) => category.code === consumable.category)?.[
+      isChinese ? "labelZh" : "labelEn"
+    ] ?? consumable.category;
 
   return (
     <div className="space-y-6">
@@ -58,7 +66,20 @@ export default async function ConsumableDetailPage({ params }: PageProps) {
         title={consumable.name}
         description={consumable.id}
       />
-      <section className="rounded-2xl border bg-card/70 p-4 text-sm">
+      <section className="rounded-2xl border bg-card/70 p-5 text-sm">
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-base font-semibold">
+            {isChinese ? "基础信息" : "Basic Info"}
+          </h2>
+          <AdminOnly>
+            <EditConsumableDialog
+              consumable={consumable}
+              categories={categories}
+              companies={companies}
+              locale={locale}
+            />
+          </AdminOnly>
+        </div>
         <dl className="grid gap-4 md:grid-cols-2">
           <div>
             <dt className="font-medium text-muted-foreground">{isChinese ? "状态" : "Status"}</dt>
@@ -68,7 +89,7 @@ export default async function ConsumableDetailPage({ params }: PageProps) {
           </div>
           <div>
             <dt className="font-medium text-muted-foreground">{isChinese ? "类别" : "Category"}</dt>
-            <dd className="text-foreground">{consumable.category}</dd>
+            <dd className="text-foreground">{categoryLabel}</dd>
           </div>
           <div>
             <dt className="font-medium text-muted-foreground">{isChinese ? "所属公司" : "Company"}</dt>
