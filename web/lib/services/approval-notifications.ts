@@ -1,17 +1,26 @@
+import { normalizeLocale } from "@/lib/i18n";
 import type { ApprovalRequest } from "@/lib/types/approval";
 import { createDooTaskClientFromRequest } from "@/lib/integrations/dootask-server-client";
 import { sendApprovalBotMessage } from "@/lib/integrations/dootask-notifications-server";
 
-function resolveLocale(locale?: string) {
-  const normalized = locale?.toLowerCase() ?? "";
-  if (normalized.startsWith("zh")) {
-    return "zh";
-  }
-  return "en";
+function buildOpenMicroAppLine(approval: ApprovalRequest, locale?: string) {
+  const lang = normalizeLocale(locale);
+  const detailUrl = `/apps/asset-hub/${lang}/approvals/${approval.id}`;
+  const appConfig = JSON.stringify({
+    id: "asset-hub",
+    name: "asset-hub-details",
+    url_type: "iframe",
+    url: detailUrl,
+  });
+  const label =
+    lang === "zh"
+      ? "查看详情：点击查看审批详情"
+      : "Details: Click to view approval";
+  return `> <div class="open-micro-app" data-app-config='${appConfig}'>${label}</div>`;
 }
 
 function buildApprovalCreatedText(approval: ApprovalRequest, locale?: string) {
-  const lang = resolveLocale(locale);
+  const lang = normalizeLocale(locale);
   const lines = [
     lang === "zh" ? "**资产审批提醒**" : "**Asset Approval Reminder**",
     `- ${lang === "zh" ? "类型" : "Type"}：${approval.type}`,
@@ -19,9 +28,7 @@ function buildApprovalCreatedText(approval: ApprovalRequest, locale?: string) {
     `- ${lang === "zh" ? "申请人" : "Applicant"}：${
       approval.applicantName ?? approval.applicantId ?? "-"
     }`,
-    lang === "zh"
-      ? "> 查看详情：请在应用中心查看"
-      : "> Details: Please open Asset Hub inside DooTask.",
+    buildOpenMicroAppLine(approval, locale),
   ];
   return lines.join("\n");
 }
@@ -31,7 +38,7 @@ function buildApprovalUpdatedText(
   locale?: string,
   actorName?: string,
 ) {
-  const lang = resolveLocale(locale);
+  const lang = normalizeLocale(locale);
   const lines = [
     lang === "zh" ? "**审批状态更新**" : "**Approval Status Update**",
     `- ${lang === "zh" ? "标题" : "Title"}：${approval.title}`,
@@ -39,9 +46,7 @@ function buildApprovalUpdatedText(
     actorName
       ? `- ${lang === "zh" ? "处理人" : "Actor"}：${actorName}`
       : undefined,
-    lang === "zh"
-      ? "> 查看详情：请在应用中心查看"
-      : "> Details: Please open Asset Hub inside DooTask.",
+    buildOpenMicroAppLine(approval, locale),
   ].filter(Boolean);
   return lines.join("\n");
 }
