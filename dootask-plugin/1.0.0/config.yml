@@ -40,4 +40,4 @@ menu_items:
       zh: 资产管理
     url: "apps/asset-hub/{system_lang}?theme={system_theme}"
     url_type: iframe
-    background: "#ffffff|#0a0a0a"
+    immersive: true

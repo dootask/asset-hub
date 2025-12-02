@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
 import { useTranslations } from "next-intl";
-import { isMicroApp, setCapsuleConfig } from "@dootask/tools";
+import { getSafeArea, isMicroApp, setCapsuleConfig } from "@dootask/tools";
 import DooTaskBridge from "@/components/providers/DooTaskBridge";
 import { Spinner } from "@/components/ui/spinner";
 import { usePermissions } from "@/components/providers/PermissionProvider";
@@ -34,6 +34,10 @@ export default function AppShell({
   const tNav = useTranslations("Nav");
   const { user: sessionUser, userReady, isAdmin } = usePermissions();
   const [isMicroEnv, setIsMicroEnv] = useState<boolean | null>(null);
+  const [safeArea, setSafeArea] = useState<{ top: number; bottom: number }>({
+    top: 0,
+    bottom: 0,
+  });
   const pathWithoutBase = pathname.startsWith(BASE_PATH)
     ? pathname.slice(BASE_PATH.length) || "/"
     : pathname;
@@ -78,6 +82,28 @@ export default function AppShell({
     window.addEventListener("resize", handleResize);
     return () => {
       window.removeEventListener("resize", handleResize);
+    };
+  }, [isMicroEnv]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !isMicroEnv) return;
+    let cancelled = false;
+    const loadSafeArea = async () => {
+      try {
+        const area = await getSafeArea();
+        if (!cancelled && area) {
+          setSafeArea({
+            top: area.top ?? 0,
+            bottom: area.bottom ?? 0,
+          });
+        }
+      } catch {
+        // ignore unsupported environments
+      }
+    };
+    loadSafeArea();
+    return () => {
+      cancelled = true;
     };
   }, [isMicroEnv]);
 
@@ -177,8 +203,20 @@ export default function AppShell({
   return (
     <div className="min-h-screen bg-background transition-colors">
       {bridge}
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl gap-6 px-6 py-6">
-        <aside className="hidden w-60 flex-shrink-0 flex-col rounded-3xl border bg-card/60 p-5 shadow-sm lg:flex lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto">
+      <div
+        className="mx-auto flex min-h-screen w-full max-w-7xl gap-6 px-6"
+        style={{
+          paddingTop: `calc(1.5rem + ${safeArea.top}px)`,
+          paddingBottom: `calc(1.5rem + ${safeArea.bottom}px)`,
+        }}
+      >
+        <aside
+          className="hidden w-60 flex-shrink-0 flex-col rounded-3xl border bg-card/60 p-5 shadow-sm lg:flex lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto"
+          style={{
+            top: `calc(1.5rem + ${safeArea.top}px)`,
+            maxHeight: `calc(100vh - 3rem - ${safeArea.top + safeArea.bottom}px)`,
+          }}
+        >
           <div className="mb-6">
             <p className="text-xs text-muted-foreground">
               {locale === "zh" ? "快速导航" : "Navigation"}
