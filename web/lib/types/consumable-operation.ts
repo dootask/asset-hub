@@ -1,3 +1,4 @@
+import { normalizeLocale } from "@/lib/i18n";
 import type { ConsumableStatus } from "@/lib/types/consumable";
 
 export type ConsumableOperationType =
@@ -10,11 +11,6 @@ export type ConsumableOperationType =
   | "dispose";
 
 export type ConsumableOperationStatus = "pending" | "done" | "cancelled";
-
-type SupportedLocale = "en" | "zh";
-
-const resolveLocale = (locale?: string): SupportedLocale =>
-  locale === "zh" ? "zh" : "en";
 
 export const CONSUMABLE_OPERATION_TYPE_LABELS: Record<
   ConsumableOperationType,
@@ -45,7 +41,7 @@ export const getConsumableOperationTypeLabel = (
 ): string => {
   const labels =
     CONSUMABLE_OPERATION_TYPE_LABELS[type as ConsumableOperationType];
-  return labels ? labels[resolveLocale(locale)] : type;
+  return labels ? labels[normalizeLocale(locale)] : type;
 };
 
 export interface ConsumableOperation {
@@ -78,4 +74,3 @@ export interface ConsumableOperationAuditEntry extends ConsumableOperation {
   keeper?: string | null;
   location?: string | null;
 }
-

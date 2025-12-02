@@ -1,3 +1,5 @@
+import { normalizeLocale } from "@/lib/i18n";
+
 export type AssetOperationType =
   | "purchase"
   | "inbound"
@@ -9,11 +11,6 @@ export type AssetOperationType =
   | "other";
 
 export type AssetOperationStatus = "pending" | "done" | "cancelled";
-
-type SupportedLocale = "en" | "zh";
-
-const resolveLocale = (locale?: string): SupportedLocale =>
-  locale === "zh" ? "zh" : "en";
 
 export const OPERATION_TYPE_LABELS: Record<
   AssetOperationType,
@@ -44,7 +41,7 @@ export const getOperationTypeLabel = (
   locale?: string,
 ): string => {
   const labels = OPERATION_TYPE_LABELS[type as AssetOperationType];
-  return labels ? labels[resolveLocale(locale)] : type;
+  return labels ? labels[normalizeLocale(locale)] : type;
 };
 
 export interface AssetOperation {
@@ -65,4 +62,3 @@ export interface CreateAssetOperationPayload {
   status?: AssetOperationStatus;
   metadata?: Record<string, unknown>;
 }
-
