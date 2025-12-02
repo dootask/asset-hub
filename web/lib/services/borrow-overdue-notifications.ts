@@ -1,3 +1,4 @@
+import { normalizeLocale } from "@/lib/i18n";
 import { createDooTaskClientFromContext } from "@/lib/integrations/dootask-server-client";
 import { sendSystemBotMessage } from "@/lib/integrations/dootask-notifications-server";
 import {
@@ -8,6 +9,21 @@ import {
 type NotifyOptions = {
   referenceDate?: string;
 };
+
+function buildOpenMicroAppLine(assetId: string | number, locale: string) {
+  const url = `/apps/asset-hub/${locale}/assets/${assetId}`;
+  const appConfig = JSON.stringify({
+    id: "asset-hub",
+    name: "asset-hub-borrow",
+    url_type: "iframe",
+    url,
+  });
+  const label =
+    locale === "zh"
+      ? "查看详情：打开资产以归还或续借"
+      : "Details: Open asset to return or extend";
+  return `> <div class="open-micro-app" data-app-config='${appConfig}'>${label}</div>`;
+}
 
 export async function sendBorrowOverdueNotifications(options: NotifyOptions = {}) {
   const overdue = listOverdueBorrowRecords(options.referenceDate);
@@ -41,7 +57,7 @@ export async function sendBorrowOverdueNotifications(options: NotifyOptions = {}
         continue;
       }
 
-      const lang = (user.lang ?? "en").toLowerCase().startsWith("zh") ? "zh" : "en";
+      const lang = normalizeLocale(user.lang);
       const lines = [
         lang === "zh" ? "**借用逾期提醒**" : "**Borrow Overdue Reminder**",
         lang === "zh" ? `- 资产：${record.assetName} (#${record.assetId})` : `- Asset: ${record.assetName} (#${record.assetId})`,
@@ -50,6 +66,7 @@ export async function sendBorrowOverdueNotifications(options: NotifyOptions = {}
           ? lang === "zh" ? `- 计划归还：${record.plannedReturnDate}` : `- Planned Return: ${record.plannedReturnDate}`
           : undefined,
         lang === "zh" ? `- 当前状态：未归还` : `- Current Status: Not Returned`,
+        buildOpenMicroAppLine(record.assetId, lang),
       ].filter(Boolean);
 
       await sendSystemBotMessage({
