@@ -108,6 +108,17 @@ export default function AppShell({
   }, [isMicroEnv]);
 
   useEffect(() => {
+    if (typeof document === "undefined") return;
+    const rootStyle = document.documentElement.style;
+    rootStyle.setProperty("--safe-area-top", `${safeArea.top}px`);
+    rootStyle.setProperty("--safe-area-bottom", `${safeArea.bottom}px`);
+    return () => {
+      rootStyle.removeProperty("--safe-area-top");
+      rootStyle.removeProperty("--safe-area-bottom");
+    };
+  }, [safeArea.top, safeArea.bottom]);
+
+  useEffect(() => {
     let cancelled = false;
     async function checkMicroEnv() {
       try {
@@ -204,18 +215,10 @@ export default function AppShell({
     <div className="min-h-screen bg-background transition-colors">
       {bridge}
       <div
-        className="mx-auto flex min-h-screen w-full max-w-7xl gap-6 px-6"
-        style={{
-          paddingTop: `calc(1.5rem + ${safeArea.top}px)`,
-          paddingBottom: `calc(1.5rem + ${safeArea.bottom}px)`,
-        }}
+        className="mx-auto flex min-h-screen w-full max-w-7xl gap-6 px-6 pt-[calc(1.5rem+var(--safe-area-top,0px))] pb-[calc(1.5rem+var(--safe-area-bottom,0px))]"
       >
         <aside
-          className="hidden w-60 flex-shrink-0 flex-col rounded-3xl border bg-card/60 p-5 shadow-sm lg:flex lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto"
-          style={{
-            top: `calc(1.5rem + ${safeArea.top}px)`,
-            maxHeight: `calc(100vh - 3rem - ${safeArea.top + safeArea.bottom}px)`,
-          }}
+          className="hidden w-60 flex-shrink-0 flex-col rounded-3xl border bg-card/60 p-5 shadow-sm lg:flex lg:sticky lg:top-[calc(1.5rem+var(--safe-area-top,0px))] lg:max-h-[calc(100vh-3rem-var(--safe-area-top,0px)-var(--safe-area-bottom,0px))] lg:overflow-y-auto"
         >
           <div className="mb-6">
             <p className="text-xs text-muted-foreground">
