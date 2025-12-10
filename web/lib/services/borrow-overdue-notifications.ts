@@ -16,6 +16,7 @@ function buildOpenMicroAppLine(assetId: string | number, locale: string) {
     id: "asset-hub",
     name: "asset-hub-borrow",
     immersive: true,
+    keep_alive: false,
     url_type: "iframe",
     url,
   });
