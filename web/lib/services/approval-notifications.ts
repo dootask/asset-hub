@@ -9,6 +9,7 @@ function buildOpenMicroAppLine(approval: ApprovalRequest, locale?: string) {
   const appConfig = JSON.stringify({
     id: "asset-hub",
     name: "asset-hub-details",
+    immersive: true,
     url_type: "iframe",
     url: detailUrl,
   });

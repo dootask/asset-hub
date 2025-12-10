@@ -15,6 +15,7 @@ function buildOpenMicroAppLine(assetId: string | number, locale: string) {
   const appConfig = JSON.stringify({
     id: "asset-hub",
     name: "asset-hub-borrow",
+    immersive: true,
     url_type: "iframe",
     url,
   });
