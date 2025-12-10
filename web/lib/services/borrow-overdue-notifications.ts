@@ -11,7 +11,7 @@ type NotifyOptions = {
 };
 
 function buildOpenMicroAppLine(assetId: string | number, locale: string) {
-  const url = `/apps/asset-hub/${locale}/assets/${assetId}`;
+  const url = `/apps/asset-hub/{system_lang}/assets/${assetId}?theme={system_theme}`;
   const appConfig = JSON.stringify({
     id: "asset-hub",
     name: "asset-hub-borrow",

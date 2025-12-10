@@ -5,7 +5,7 @@ import { sendApprovalBotMessage } from "@/lib/integrations/dootask-notifications
 
 function buildOpenMicroAppLine(approval: ApprovalRequest, locale?: string) {
   const lang = normalizeLocale(locale);
-  const detailUrl = `/apps/asset-hub/${lang}/approvals/${approval.id}`;
+  const detailUrl = `/apps/asset-hub/{system_lang}/approvals/${approval.id}?theme={system_theme}`;
   const appConfig = JSON.stringify({
     id: "asset-hub",
     name: "asset-hub-details",
