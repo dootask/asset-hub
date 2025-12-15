@@ -145,6 +145,9 @@ function buildFilters(filters: ApprovalListFilters | undefined) {
   } else if (filters?.role === "my-tasks" && filters.userId) {
     conditions.push(`approver_id = @userId`);
     params.userId = filters.userId;
+  } else if (filters?.role === "all" && filters.userId) {
+    conditions.push(`(applicant_id = @userId OR approver_id = @userId)`);
+    params.userId = filters.userId;
   } else {
     if (filters?.applicantId) {
       conditions.push(`applicant_id = @applicantId`);

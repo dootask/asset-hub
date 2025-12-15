@@ -70,6 +70,54 @@ describe("Approval repository", () => {
     expect(result.data[0].status).toBe("pending");
   });
 
+  it('lists "all" approvals within user scope (applicant + approver)', () => {
+    const asset = createAsset({
+      name: "Test Device",
+      category: "Laptop",
+      status: "idle",
+      companyCode: "HITOSEA",
+      owner: "QA",
+      location: "Lab",
+      purchaseDate: "2024-03-01",
+    });
+
+    const op1 = createAssetOperation(asset.id, {
+      type: "purchase",
+      actor: "QA",
+      description: "申请采购",
+      status: "pending",
+    });
+    createApprovalRequest({
+      type: "purchase",
+      title: "采购审批-我发起",
+      assetId: asset.id,
+      operationId: op1.id,
+      applicant: { id: "user-1", name: "QA" },
+      approver: { id: "approver-1", name: "Leader" },
+    });
+
+    const op2 = createAssetOperation(asset.id, {
+      type: "inbound",
+      actor: "QA",
+      description: "入库确认",
+      status: "pending",
+    });
+    createApprovalRequest({
+      type: "inbound",
+      title: "入库审批-待我审批",
+      assetId: asset.id,
+      operationId: op2.id,
+      applicant: { id: "someone-else", name: "Other" },
+      approver: { id: "user-1", name: "QA" },
+    });
+
+    const result = listApprovalRequests({ role: "all", userId: "user-1" });
+    expect(result.meta.total).toBe(2);
+    expect(result.data.map((item) => item.title).sort()).toEqual(
+      ["采购审批-我发起", "入库审批-待我审批"].sort(),
+    );
+  });
+
   it("applies approval actions, updates asset state, and records metadata", () => {
     const asset = createAsset({
       name: "Camera",

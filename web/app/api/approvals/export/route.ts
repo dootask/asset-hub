@@ -6,6 +6,8 @@ import {
 } from "@/lib/types/approval";
 import { listApprovalRequests } from "@/lib/repositories/approvals";
 import { extractOperationTemplateMetadata } from "@/lib/utils/operation-template";
+import { extractUserFromRequest } from "@/lib/utils/request-user";
+import { isAdminUser } from "@/lib/utils/permissions";
 import type {
   OperationTemplateFieldValue,
   OperationTemplateFieldWidget,
@@ -45,6 +47,16 @@ function toCsv(rows: Record<string, string>[]) {
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
+  const user = extractUserFromRequest(request);
+  const currentUserId = user?.id ? String(user.id) : undefined;
+  if (!currentUserId) {
+    return NextResponse.json(
+      { error: "UNAUTHORIZED", message: "缺少用户信息，请重新登录后再试。" },
+      { status: 401 },
+    );
+  }
+  const isAdmin = isAdminUser(currentUserId);
+
   const status = parseListParam<ApprovalStatus>(
     searchParams.get("status"),
     APPROVAL_STATUSES.map((item) => item.value),
@@ -54,8 +66,14 @@ export async function GET(request: Request) {
     APPROVAL_TYPES.map((item) => item.value),
   );
 
-  const role = searchParams.get("role");
-  const userId = searchParams.get("userId") ?? undefined;
+  let role = searchParams.get("role");
+  let userId = searchParams.get("userId") ?? undefined;
+  if (!isAdmin) {
+    userId = currentUserId;
+    if (!role || (role !== "my-requests" && role !== "my-tasks" && role !== "all")) {
+      role = "all";
+    }
+  }
 
   const result = listApprovalRequests({
     status,
@@ -65,7 +83,7 @@ export async function GET(request: Request) {
     assetId: searchParams.get("assetId") ?? undefined,
     operationId: searchParams.get("operationId") ?? undefined,
     userId,
-    role: role === "my-requests" || role === "my-tasks" ? role : undefined,
+    role: role === "all" || role === "my-requests" || role === "my-tasks" ? role : undefined,
     page: 1,
     pageSize: 1000,
   });
@@ -153,5 +171,4 @@ function formatTemplateFieldValue(
   }
   return typeof value === "string" ? value : String(value);
 }
-
 

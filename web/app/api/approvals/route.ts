@@ -54,6 +54,12 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const user = extractUserFromRequest(request);
   const currentUserId = user?.id ? String(user.id) : undefined;
+  if (!currentUserId) {
+    return NextResponse.json(
+      { error: "UNAUTHORIZED", message: "缺少用户信息，请重新登录后再试。" },
+      { status: 401 },
+    );
+  }
   const isAdmin = isAdminUser(currentUserId);
 
   const statusParam = parseListParam<ApprovalStatus>(
@@ -73,10 +79,10 @@ export async function GET(request: Request) {
     // For non-admins, we ignore the passed userId and enforce the current session user
     userId = currentUserId;
 
-    // If no specific view role is requested, default to "my-requests"
-    // This prevents non-admins from listing all approvals by simply omitting parameters
-    if (!role || (role !== "my-requests" && role !== "my-tasks")) {
-      role = "my-requests";
+    // If no specific view role is requested, default to "all" within current user scope.
+    // This ensures the "All" tab equals "my-requests + my-tasks" for non-admins.
+    if (!role || (role !== "my-requests" && role !== "my-tasks" && role !== "all")) {
+      role = "all";
     }
   }
 
@@ -94,7 +100,7 @@ export async function GET(request: Request) {
     consumableOperationId:
       searchParams.get("consumableOperationId") ?? undefined,
     userId,
-    role: role === "my-requests" || role === "my-tasks" ? role : undefined,
+    role: role === "all" || role === "my-requests" || role === "my-tasks" ? role : undefined,
     page: Number.isNaN(page) ? undefined : page,
     pageSize: Number.isNaN(pageSize) ? undefined : pageSize,
   });

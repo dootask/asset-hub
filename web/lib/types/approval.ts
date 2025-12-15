@@ -103,10 +103,9 @@ export interface ApprovalListFilters {
   consumableId?: string;
   operationId?: string;
   consumableOperationId?: string;
-  role?: "my-requests" | "my-tasks";
+  role?: "all" | "my-requests" | "my-tasks";
   userId?: string;
   page?: number;
   pageSize?: number;
 }
-
 
