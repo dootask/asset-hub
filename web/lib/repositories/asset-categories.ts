@@ -11,6 +11,7 @@ type AssetCategoryRow = {
   code: string;
   label_zh: string;
   label_en: string;
+  asset_no_prefix: string | null;
   description: string | null;
   color: string | null;
   created_at: string;
@@ -23,11 +24,22 @@ function mapRow(row: AssetCategoryRow): AssetCategory {
     code: row.code,
     labelZh: row.label_zh,
     labelEn: row.label_en,
+    assetNoPrefix: row.asset_no_prefix,
     description: row.description,
     color: row.color,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+function normalizeAssetNoPrefix(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim().toUpperCase();
+  if (!normalized) return null;
+  if (!/^[A-Z0-9]{1,10}$/.test(normalized)) {
+    throw new Error("CATEGORY_ASSET_NO_PREFIX_INVALID");
+  }
+  return normalized;
 }
 
 function slugify(value: string) {
@@ -90,6 +102,7 @@ export function createAssetCategory(
     throw new Error("CATEGORY_LABEL_REQUIRED");
   }
 
+  const assetNoPrefix = normalizeAssetNoPrefix(input.assetNoPrefix);
   const id = `CAT-${randomUUID().slice(0, 8).toUpperCase()}`;
   db.prepare(
     `INSERT INTO asset_categories (
@@ -97,6 +110,7 @@ export function createAssetCategory(
       code,
       label_zh,
       label_en,
+      asset_no_prefix,
       description,
       color,
       created_at,
@@ -106,6 +120,7 @@ export function createAssetCategory(
       @code,
       @labelZh,
       @labelEn,
+      @assetNoPrefix,
       @description,
       @color,
       datetime('now'),
@@ -116,6 +131,7 @@ export function createAssetCategory(
     code,
     labelZh: input.labelZh.trim(),
     labelEn: input.labelEn.trim(),
+    assetNoPrefix,
     description: input.description?.trim() || null,
     color: input.color?.trim() || null,
   });
@@ -133,9 +149,15 @@ export function updateAssetCategory(
     throw new Error("CATEGORY_NOT_FOUND");
   }
 
+  const assetNoPrefix =
+    input.assetNoPrefix === undefined
+      ? existing.assetNoPrefix ?? null
+      : normalizeAssetNoPrefix(input.assetNoPrefix);
+
   const next = {
     labelZh: input.labelZh?.trim() || existing.labelZh,
     labelEn: input.labelEn?.trim() || existing.labelEn,
+    assetNoPrefix,
     description:
       input.description === undefined
         ? existing.description
@@ -150,6 +172,7 @@ export function updateAssetCategory(
     `UPDATE asset_categories
      SET label_zh=@labelZh,
          label_en=@labelEn,
+         asset_no_prefix=@assetNoPrefix,
          description=@description,
          color=@color,
          updated_at=datetime('now')
@@ -178,5 +201,4 @@ export function deleteAssetCategory(id: string) {
 
   db.prepare(`DELETE FROM asset_categories WHERE id = ?`).run(id);
 }
-
 

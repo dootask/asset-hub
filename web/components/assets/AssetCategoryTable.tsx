@@ -43,6 +43,7 @@ type FormState = {
   labelZh: string;
   labelEn: string;
   code: string;
+  assetNoPrefix: string;
   description: string;
   color: string;
 };
@@ -51,6 +52,7 @@ const DEFAULT_FORM: FormState = {
   labelZh: "",
   labelEn: "",
   code: "",
+  assetNoPrefix: "",
   description: "",
   color: "",
 };
@@ -74,7 +76,7 @@ const AssetCategoryTable = forwardRef<AssetCategoryTableHandle, Props>(function 
       if (!normalizedSearch) {
         return true;
       }
-      const target = `${category.labelZh} ${category.labelEn} ${category.code}`.toLowerCase();
+      const target = `${category.labelZh} ${category.labelEn} ${category.code} ${category.assetNoPrefix ?? ""}`.toLowerCase();
       return target.includes(normalizedSearch);
     });
     return filtered.sort((a, b) => {
@@ -104,6 +106,7 @@ const AssetCategoryTable = forwardRef<AssetCategoryTableHandle, Props>(function 
       labelZh: category.labelZh,
       labelEn: category.labelEn,
       code: category.code,
+      assetNoPrefix: category.assetNoPrefix ?? "",
       description: category.description ?? "",
       color: category.color ?? "",
     });
@@ -118,6 +121,7 @@ const AssetCategoryTable = forwardRef<AssetCategoryTableHandle, Props>(function 
         const payload = {
           labelZh: formState.labelZh.trim(),
           labelEn: formState.labelEn.trim(),
+          assetNoPrefix: formState.assetNoPrefix.trim() || null,
           description: formState.description.trim() || undefined,
           color: formState.color.trim() || undefined,
         };
@@ -241,6 +245,9 @@ const AssetCategoryTable = forwardRef<AssetCategoryTableHandle, Props>(function 
                 </TableHead>
                 <TableHead className="px-4 py-3">Code</TableHead>
                 <TableHead className="px-4 py-3">
+                  {isChinese ? "默认编号前缀" : "No. Prefix"}
+                </TableHead>
+                <TableHead className="px-4 py-3">
                   {isChinese ? "描述" : "Description"}
                 </TableHead>
                 <TableHead className="px-4 py-3">
@@ -264,6 +271,9 @@ const AssetCategoryTable = forwardRef<AssetCategoryTableHandle, Props>(function 
                   </TableCell>
                   <TableCell className="px-4 py-3 text-xs text-muted-foreground">
                     {category.code}
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-xs text-muted-foreground">
+                    {category.assetNoPrefix ? category.assetNoPrefix : "-"}
                   </TableCell>
                   <TableCell className="px-4 py-3">
                     {category.description ? (
@@ -401,6 +411,28 @@ const AssetCategoryTable = forwardRef<AssetCategoryTableHandle, Props>(function 
                       : "Code is referenced by assets and cannot be changed."}
                   </p>
                 )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="category-asset-no-prefix">
+                  {isChinese ? "默认编号前缀（可选）" : "Default No. Prefix (optional)"}
+                </Label>
+                <Input
+                  id="category-asset-no-prefix"
+                  value={formState.assetNoPrefix}
+                  onChange={(event) =>
+                    setFormState((prev) => ({
+                      ...prev,
+                      assetNoPrefix: event.target.value.toUpperCase(),
+                    }))
+                  }
+                  placeholder={isChinese ? "例如：LAP" : "e.g. LAP"}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {isChinese
+                    ? "设置后，新增/导入资产若未填写资产编号，将生成如 LAP-000001。"
+                    : "When set, new/imported assets without a number will generate like LAP-000001."}
+                </p>
               </div>
 
               <div className="space-y-1.5">

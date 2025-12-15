@@ -3,6 +3,7 @@ export interface AssetCategory {
   code: string;
   labelZh: string;
   labelEn: string;
+  assetNoPrefix?: string | null;
   description?: string | null;
   color?: string | null;
   createdAt: string;
@@ -13,6 +14,7 @@ export interface CreateAssetCategoryInput {
   code?: string;
   labelZh: string;
   labelEn: string;
+  assetNoPrefix?: string | null;
   description?: string | null;
   color?: string | null;
 }
@@ -20,8 +22,8 @@ export interface CreateAssetCategoryInput {
 export interface UpdateAssetCategoryInput {
   labelZh?: string;
   labelEn?: string;
+  assetNoPrefix?: string | null;
   description?: string | null;
   color?: string | null;
 }
-
 

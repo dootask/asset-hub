@@ -6,6 +6,7 @@ import {
   createAsset,
   listAssets,
 } from "@/lib/repositories/assets";
+import { createAssetCategory } from "@/lib/repositories/asset-categories";
 
 const TEST_DB_PATH = path.join(process.cwd(), "data", "test-assets.db");
 
@@ -19,6 +20,37 @@ beforeEach(() => {
 });
 
 describe("Asset repository", () => {
+  it("auto-generates assetNo with category prefix when empty", () => {
+    createAssetCategory({
+      code: "Laptop",
+      labelZh: "笔记本电脑",
+      labelEn: "Laptop",
+      assetNoPrefix: "LAP",
+    });
+
+    const first = createAsset({
+      name: "Test Laptop",
+      category: "Laptop",
+      status: "in-use",
+      companyCode: "HITOSEA",
+      owner: "QA",
+      location: "Lab",
+      purchaseDate: "2024-01-01",
+    });
+    const second = createAsset({
+      name: "Test Laptop 2",
+      category: "Laptop",
+      status: "in-use",
+      companyCode: "HITOSEA",
+      owner: "QA",
+      location: "Lab",
+      purchaseDate: "2024-01-02",
+    });
+
+    expect(first.assetNo).toBe("LAP-000001");
+    expect(second.assetNo).toBe("LAP-000002");
+  });
+
   it("creates assets and lists them with pagination", () => {
     createAsset({
       name: "Test Laptop",
@@ -61,4 +93,3 @@ describe("Asset repository", () => {
     );
   });
 });
-

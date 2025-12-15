@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { getDb } from "@/lib/db/client";
 import type { Asset, CreateAssetPayload } from "@/lib/types/asset";
+import { getAssetCategoryByCode } from "@/lib/repositories/asset-categories";
 
 type AssetRow = {
   id: string;
@@ -142,13 +143,86 @@ export function isAssetNoInUse(assetNo: string, excludeId?: string): boolean {
   return Boolean(row?.id);
 }
 
+function normalizeCategoryPrefix(prefix: string | null | undefined): string | null {
+  if (!prefix) return null;
+  const normalized = prefix.trim().toUpperCase();
+  if (!normalized) return null;
+  return /^[A-Z0-9]{1,10}$/.test(normalized) ? normalized : null;
+}
+
+function nextAssetNoSeq(prefix: string): number {
+  const db = getDb();
+  const transaction = db.transaction(() => {
+    db.prepare(
+      `
+      INSERT INTO asset_no_counters(prefix, next_seq)
+      VALUES (@prefix, 1)
+      ON CONFLICT(prefix) DO NOTHING
+    `,
+    ).run({ prefix });
+
+    const likePattern = `${prefix}-%`;
+    const start = prefix.length + 2; // SQLite substr is 1-indexed; prefix + "-" then digits
+    const maxRow = db
+      .prepare(
+        `
+        SELECT MAX(CAST(SUBSTR(asset_no, @start) AS INTEGER)) as maxSeq
+        FROM assets
+        WHERE asset_no LIKE @likePattern
+          AND SUBSTR(asset_no, @start) GLOB '[0-9]*'
+      `,
+      )
+      .get({ likePattern, start }) as { maxSeq: number | null } | undefined;
+    const minNextSeq = (maxRow?.maxSeq ?? 0) + 1;
+
+    db.prepare(
+      `
+      UPDATE asset_no_counters
+      SET next_seq = CASE WHEN next_seq < @minNextSeq THEN @minNextSeq ELSE next_seq END
+      WHERE prefix = @prefix
+    `,
+    ).run({ prefix, minNextSeq });
+
+    const row = db
+      .prepare("SELECT next_seq FROM asset_no_counters WHERE prefix = ?")
+      .get(prefix) as { next_seq: number } | undefined;
+    const current = row?.next_seq ?? minNextSeq;
+
+    db.prepare(
+      "UPDATE asset_no_counters SET next_seq = next_seq + 1 WHERE prefix = ?",
+    ).run(prefix);
+
+    return current;
+  });
+
+  return transaction();
+}
+
+function formatPrefixedAssetNo(prefix: string, seq: number): string {
+  const padded = String(Math.max(0, seq)).padStart(6, "0");
+  return `${prefix}-${padded}`;
+}
+
+function resolveAssetNoForCreate(payload: CreateAssetPayload, fallbackId: string): string {
+  const raw = payload.assetNo?.trim() ?? "";
+  if (raw) {
+    return raw;
+  }
+
+  const category = getAssetCategoryByCode(payload.category);
+  const prefix = normalizeCategoryPrefix(category?.assetNoPrefix);
+  if (!prefix) {
+    return fallbackId;
+  }
+
+  const seq = nextAssetNoSeq(prefix);
+  return formatPrefixedAssetNo(prefix, seq);
+}
+
 export function createAsset(payload: CreateAssetPayload): Asset {
   const db = getDb();
   const id = `AST-${randomUUID().slice(0, 8).toUpperCase()}`;
-  const assetNo =
-    payload.assetNo?.trim()
-      ? payload.assetNo.trim()
-      : id;
+  const assetNo = resolveAssetNoForCreate(payload, id);
   const specModel = payload.specModel?.trim() ? payload.specModel.trim() : null;
   const purchasePriceCents =
     typeof payload.purchasePriceCents === "number"

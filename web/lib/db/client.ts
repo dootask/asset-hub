@@ -90,6 +90,17 @@ function migrateAssetsTable(database: Database.Database) {
   }
 }
 
+function migrateAssetCategoriesTable(database: Database.Database) {
+  const columns = getColumnNames(database, "asset_categories");
+  if (!columns.has("asset_no_prefix")) {
+    try {
+      database.exec("ALTER TABLE asset_categories ADD COLUMN asset_no_prefix TEXT");
+    } catch (error) {
+      console.error("Failed to migrate asset_categories.asset_no_prefix:", error);
+    }
+  }
+}
+
 function seedTableIfEmpty(
   database: Database.Database,
   table: string,
@@ -169,7 +180,13 @@ function seedSampleData(database: Database.Database) {
   ]);
 
   seedTableIfEmpty(database, "asset_categories", seedAssetCategories, [
-    "id", "code", "label_zh", "label_en", "description", "color",
+    "id",
+    "code",
+    "label_zh",
+    "label_en",
+    "asset_no_prefix",
+    "description",
+    "color",
   ]);
 
   seedTableIfEmpty(
@@ -233,6 +250,7 @@ function ensureDatabase() {
 
   // 轻量自迁移：为旧数据库补齐缺失列/索引
   migrateAssetsTable(db);
+  migrateAssetCategoriesTable(db);
 
   // 系统配置（必须插入）
   seedSystemConfig(db);

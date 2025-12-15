@@ -11,6 +11,8 @@ function formatError(error: unknown): { status: number; message: string } {
         return { status: 400, message: "类别编码已存在，请更换后重试。" };
       case "CATEGORY_LABEL_REQUIRED":
         return { status: 400, message: "名称（中/英文）为必填项。" };
+      case "CATEGORY_ASSET_NO_PREFIX_INVALID":
+        return { status: 400, message: "默认编号前缀不合法（仅支持 1-10 位大写字母/数字）。" };
       default:
         return { status: 400, message: error.message };
     }
@@ -30,6 +32,8 @@ export async function POST(request: Request) {
       code: typeof payload.code === "string" ? payload.code : undefined,
       labelZh: typeof payload.labelZh === "string" ? payload.labelZh : "",
       labelEn: typeof payload.labelEn === "string" ? payload.labelEn : "",
+      assetNoPrefix:
+        typeof payload.assetNoPrefix === "string" ? payload.assetNoPrefix : null,
       description:
         typeof payload.description === "string" ? payload.description : undefined,
       color: typeof payload.color === "string" ? payload.color : undefined,
@@ -46,5 +50,4 @@ export async function POST(request: Request) {
     );
   }
 }
-
 

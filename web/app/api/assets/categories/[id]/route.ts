@@ -12,6 +12,8 @@ function formatError(error: unknown): { status: number; message: string } {
         return { status: 404, message: "资产类别不存在。" };
       case "CATEGORY_IN_USE":
         return { status: 400, message: "该类别正在被资产使用，无法删除。" };
+      case "CATEGORY_ASSET_NO_PREFIX_INVALID":
+        return { status: 400, message: "默认编号前缀不合法（仅支持 1-10 位大写字母/数字）。" };
       default:
         return { status: 400, message: error.message };
     }
@@ -44,6 +46,8 @@ export async function PUT(
     const category = updateAssetCategory(id, {
       labelZh: typeof payload.labelZh === "string" ? payload.labelZh : undefined,
       labelEn: typeof payload.labelEn === "string" ? payload.labelEn : undefined,
+      assetNoPrefix:
+        typeof payload.assetNoPrefix === "string" ? payload.assetNoPrefix : null,
       description:
         typeof payload.description === "string" ? payload.description : undefined,
       color: typeof payload.color === "string" ? payload.color : undefined,
@@ -80,5 +84,4 @@ export async function DELETE(
     );
   }
 }
-
 

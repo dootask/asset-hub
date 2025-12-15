@@ -23,10 +23,17 @@ export const CREATE_TABLES = {
       code TEXT NOT NULL UNIQUE,
       label_zh TEXT NOT NULL,
       label_en TEXT NOT NULL,
+      asset_no_prefix TEXT,
       description TEXT,
       color TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `,
+  assetNoCounters: `
+    CREATE TABLE IF NOT EXISTS asset_no_counters (
+      prefix TEXT PRIMARY KEY,
+      next_seq INTEGER NOT NULL
     );
   `,
   companies: `
@@ -325,6 +332,7 @@ export const seedAssetCategories = [
     code: "Laptop",
     label_zh: "笔记本电脑",
     label_en: "Laptop",
+    asset_no_prefix: "LAP",
     description: "常规办公与移动开发设备",
     color: "#2563eb",
   },
@@ -333,6 +341,7 @@ export const seedAssetCategories = [
     code: "Server",
     label_zh: "服务器",
     label_en: "Server",
+    asset_no_prefix: "SRV",
     description: "机房或云数据中心服务器",
     color: "#7c3aed",
   },
@@ -341,6 +350,7 @@ export const seedAssetCategories = [
     code: "Security",
     label_zh: "安防设备",
     label_en: "Security",
+    asset_no_prefix: "SEC",
     description: "摄像头、门禁等安防设备",
     color: "#059669",
   },
@@ -349,6 +359,7 @@ export const seedAssetCategories = [
     code: "Network",
     label_zh: "网络设备",
     label_en: "Network",
+    asset_no_prefix: "NET",
     description: "交换机、路由器等网络设备",
     color: "#0f172a",
   },
@@ -357,6 +368,7 @@ export const seedAssetCategories = [
     code: "Other",
     label_zh: "其他资产",
     label_en: "Other",
+    asset_no_prefix: "OTH",
     description: "暂未分类的其它资产",
     color: "#6b7280",
   },
