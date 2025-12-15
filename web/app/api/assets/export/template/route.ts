@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
 
 const TEMPLATE_HEADERS = [
+  "assetNo",
   "name",
+  "specModel",
   "category",
   "status",
   "companyCode",
   "owner",
   "location",
   "purchaseDate",
+  "purchasePrice",
+  "purchaseCurrency",
 ];
 
 export async function GET() {
@@ -21,4 +25,3 @@ export async function GET() {
     },
   });
 }
-

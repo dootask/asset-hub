@@ -31,22 +31,29 @@ export const getAssetStatusLabel = (
 
 export interface Asset {
   id: string;
+  assetNo?: string;
   name: string;
+  specModel?: string;
   category: string;
   status: AssetStatus;
   companyCode?: string;
   owner: string;
   location: string;
   purchaseDate: string; // ISO string
+  purchasePriceCents?: number;
+  purchaseCurrency?: string;
 }
 
 export interface CreateAssetPayload {
+  assetNo?: string;
   name: string;
+  specModel?: string;
   category: string;
   status: AssetStatus;
   companyCode: string;
   owner: string;
   location: string;
   purchaseDate: string;
+  purchasePriceCents?: number | null;
+  purchaseCurrency?: string;
 }
-

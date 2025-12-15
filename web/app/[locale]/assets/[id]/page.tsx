@@ -16,6 +16,7 @@ import { listAssetCategories } from "@/lib/repositories/asset-categories";
 import { listOperationTemplates } from "@/lib/repositories/operation-templates";
 import { listCompanies } from "@/lib/repositories/companies";
 import AdminOnly from "@/components/auth/AdminOnly";
+import { formatCentsToMoney } from "@/lib/utils/money";
 
 type PageParams = { id: string; locale: string };
 type PageProps = {
@@ -80,7 +81,7 @@ export default async function AssetDetailPage({ params }: PageProps) {
           },
         ]}
         title={asset.name}
-        description={asset.id}
+        description={asset.assetNo ? `${asset.assetNo} · ${asset.id}` : asset.id}
         actions={
           <AdminOnly>
             <DisposeAssetButton assetId={asset.id} locale={locale} />
@@ -105,9 +106,25 @@ export default async function AssetDetailPage({ params }: PageProps) {
         <dl className="mt-4 grid gap-4 sm:grid-cols-2">
           <div>
             <dt className="text-xs text-muted-foreground">
+              {isChinese ? "资产编号" : "Asset No."}
+            </dt>
+            <dd className="text-sm font-medium">
+              {asset.assetNo || asset.id}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground">
               {isChinese ? "类别" : "Category"}
             </dt>
             <dd className="text-sm font-medium">{categoryLabel}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground">
+              {isChinese ? "规格型号" : "Spec / Model"}
+            </dt>
+            <dd className="text-sm font-medium">
+              {asset.specModel || (isChinese ? "未填写" : "-")}
+            </dd>
           </div>
           <div>
             <dt className="text-xs text-muted-foreground">
@@ -140,6 +157,19 @@ export default async function AssetDetailPage({ params }: PageProps) {
               {isChinese ? "购入日期" : "Purchase Date"}
             </dt>
             <dd className="text-sm font-medium">{asset.purchaseDate}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground">
+              {isChinese ? "采购价格" : "Purchase Price"}
+            </dt>
+            <dd className="text-sm font-medium">
+              {asset.purchasePriceCents !== undefined &&
+              asset.purchasePriceCents !== null
+                ? `${formatCentsToMoney(asset.purchasePriceCents)} ${asset.purchaseCurrency ?? "CNY"}`
+                : isChinese
+                  ? "未填写"
+                  : "-"}
+            </dd>
           </div>
         </dl>
       </section>

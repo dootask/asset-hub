@@ -18,6 +18,67 @@ import {
 
 let db: Database.Database | null = null;
 
+function getColumnNames(database: Database.Database, table: string): Set<string> {
+  const rows = database
+    .prepare(`PRAGMA table_info(${table})`)
+    .all() as Array<{ name?: unknown }>;
+  return new Set(
+    rows
+      .map((row) => (typeof row.name === "string" ? row.name : ""))
+      .filter(Boolean),
+  );
+}
+
+function migrateAssetsTable(database: Database.Database) {
+  const columns = getColumnNames(database, "assets");
+
+  const migrations: Array<{
+    column: string;
+    sql: string;
+  }> = [
+    {
+      column: "asset_no",
+      sql: "ALTER TABLE assets ADD COLUMN asset_no TEXT",
+    },
+    {
+      column: "spec_model",
+      sql: "ALTER TABLE assets ADD COLUMN spec_model TEXT",
+    },
+    {
+      column: "purchase_price_cents",
+      sql: "ALTER TABLE assets ADD COLUMN purchase_price_cents INTEGER",
+    },
+    {
+      column: "purchase_currency",
+      sql:
+        "ALTER TABLE assets ADD COLUMN purchase_currency TEXT NOT NULL DEFAULT ('CNY')",
+    },
+  ];
+
+  migrations.forEach((migration) => {
+    if (columns.has(migration.column)) {
+      return;
+    }
+    try {
+      database.exec(migration.sql);
+    } catch (error) {
+      console.error(`Failed to migrate assets.${migration.column}:`, error);
+    }
+  });
+
+  try {
+    database.exec(
+      `
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_assets_asset_no_unique
+      ON assets(asset_no)
+      WHERE asset_no IS NOT NULL AND asset_no <> '';
+    `,
+    );
+  } catch (error) {
+    console.error("Failed to ensure idx_assets_asset_no_unique:", error);
+  }
+}
+
 function seedTableIfEmpty(
   database: Database.Database,
   table: string,
@@ -107,7 +168,20 @@ function seedSampleData(database: Database.Database) {
       ...asset,
       purchase_date: asset.purchaseDate,
     })),
-    ["id", "name", "category", "status", "company_code", "owner", "location", "purchase_date"],
+    [
+      "id",
+      "asset_no",
+      "name",
+      "category",
+      "spec_model",
+      "status",
+      "company_code",
+      "owner",
+      "location",
+      "purchase_date",
+      "purchase_price_cents",
+      "purchase_currency",
+    ],
   );
 
   seedTableIfEmpty(database, "asset_operations", seedOperations, [
@@ -145,6 +219,9 @@ function ensureDatabase() {
   Object.values(CREATE_TABLES).forEach((sql) => {
     db!.exec(sql);
   });
+
+  // 轻量自迁移：为旧数据库补齐缺失列/索引
+  migrateAssetsTable(db);
 
   // 系统配置（必须插入）
   seedSystemConfig(db);

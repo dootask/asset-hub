@@ -2,13 +2,17 @@ export const CREATE_TABLES = {
   assets: `
     CREATE TABLE IF NOT EXISTS assets (
       id TEXT PRIMARY KEY,
+      asset_no TEXT,
       name TEXT NOT NULL,
       category TEXT NOT NULL,
+      spec_model TEXT,
       status TEXT NOT NULL,
       company_code TEXT,
       owner TEXT NOT NULL,
       location TEXT NOT NULL,
       purchase_date TEXT NOT NULL,
+      purchase_price_cents INTEGER,
+      purchase_currency TEXT NOT NULL DEFAULT ('CNY'),
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -273,33 +277,45 @@ export const CREATE_TABLES = {
 export const seedAssets = [
   {
     id: "AST-001",
+    asset_no: "MBP-2024-001",
     name: "MacBook Pro 16 英寸",
+    spec_model: "M3 Max / 64GB / 1TB",
     category: "Laptop",
     status: "in-use",
     company_code: "HITOSEA",
     owner: "王小明",
     location: "上海总部",
     purchaseDate: "2024-01-15",
+    purchase_price_cents: 1899900,
+    purchase_currency: "CNY",
   },
   {
     id: "AST-002",
+    asset_no: "SRV-2023-011",
     name: "Dell PowerEdge R760",
+    spec_model: "2x Xeon / 256GB / RAID",
     category: "Server",
     status: "idle",
     company_code: "HITOSEA",
     owner: "基础架构组",
     location: "上海机房",
     purchaseDate: "2023-11-03",
+    purchase_price_cents: 8900000,
+    purchase_currency: "CNY",
   },
   {
     id: "AST-003",
+    asset_no: "SEC-2022-003",
     name: "海康威视摄像头",
+    spec_model: "DS-2CD3T46G2",
     category: "Security",
     status: "maintenance",
     company_code: "HITOFLY",
     owner: "行政部",
     location: "北京办公区",
     purchaseDate: "2022-09-20",
+    purchase_price_cents: 299900,
+    purchase_currency: "CNY",
   },
 ];
 

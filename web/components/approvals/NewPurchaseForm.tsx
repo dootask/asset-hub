@@ -28,6 +28,7 @@ import type { AssetCategory } from "@/lib/types/asset-category";
 import type { Asset } from "@/lib/types/asset";
 import type { Company } from "@/lib/types/system";
 import type { Role } from "@/lib/types/system";
+import { Switch } from "@/components/ui/switch";
 import {
   selectUsers,
   isMicroApp,
@@ -123,6 +124,7 @@ export default function NewPurchaseForm({
   const [operationDatePicker, setOperationDatePicker] = useState<string | null>(
     null,
   );
+  const [syncPurchasePrice, setSyncPurchasePrice] = useState(true);
 
   const [formState, setFormState] = useState({
     title: "",
@@ -495,6 +497,23 @@ export default function NewPurchaseForm({
     [operationTemplateType, currentOperationTemplate],
   );
 
+  const hasCostField = useMemo(
+    () =>
+      operationTemplateFields.some(
+        (field) => field.key === "cost" && field.widget === "number",
+      ),
+    [operationTemplateFields],
+  );
+
+  const rawCostValue =
+    typeof operationFieldValues.cost === "string"
+      ? operationFieldValues.cost.trim()
+      : "";
+
+  useEffect(() => {
+    setSyncPurchasePrice(purchaseAssetMode === "new");
+  }, [purchaseAssetMode]);
+
   const toAttachmentArray = (value: FieldValue | undefined) => {
     if (Array.isArray(value)) {
       return value.map((entry) => entry.trim()).filter(Boolean);
@@ -756,9 +775,10 @@ export default function NewPurchaseForm({
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setSubmitting(true);
 
-    try {
+    const submitApproval = async () => {
+      setSubmitting(true);
+      try {
       if (!applicant.id) {
         throw new Error(isChinese ? "缺少申请人信息" : "Missing applicant info");
       }
@@ -878,6 +898,10 @@ export default function NewPurchaseForm({
           }
         : undefined;
 
+      const syncPurchasePriceToAsset = Boolean(
+        syncPurchasePrice && hasCostField && rawCostValue,
+      );
+
       const metadataBase: Record<string, unknown> = {
         purchaseAsset: {
           mode: purchaseAssetMode,
@@ -896,6 +920,7 @@ export default function NewPurchaseForm({
           : {}),
         initiatedFrom: "approvals-new",
         ...(configSnapshot ? { configSnapshot } : {}),
+        ...(syncPurchasePriceToAsset ? { syncPurchasePrice: true } : {}),
       };
 
       const metadata =
@@ -926,15 +951,42 @@ export default function NewPurchaseForm({
       );
       router.push(`/${locale}/approvals?role=my-requests`);
       router.refresh();
-    } catch (err) {
-      const message = extractApiErrorMessage(
-        err,
-        isChinese ? "请求参数有误，请检查表单。" : "Invalid request parameters.",
-      );
-      feedback.error(message);
-    } finally {
-      setSubmitting(false);
+      } catch (err) {
+        const message = extractApiErrorMessage(
+          err,
+          isChinese ? "请求参数有误，请检查表单。" : "Invalid request parameters.",
+        );
+        feedback.error(message);
+      } finally {
+        setSubmitting(false);
+      }
+    };
+
+    if (
+      purchaseAssetMode === "existing" &&
+      hasCostField &&
+      syncPurchasePrice &&
+      rawCostValue
+    ) {
+      feedback.error("", {
+        blocking: true,
+        variant: "warning",
+        title: isChinese ? "确认覆盖采购价格" : "Confirm overwrite purchase price",
+        description: isChinese
+          ? "已选择同步“费用(cost)”到资产采购价格，这会覆盖该资产当前的采购价格。是否继续提交？"
+          : "You chose to sync cost into the asset purchase price. This will overwrite the current purchase price. Continue?",
+        primaryAction: {
+          label: isChinese ? "继续提交" : "Continue",
+          onClick: () => void submitApproval(),
+        },
+        secondaryAction: {
+          label: isChinese ? "取消" : "Cancel",
+        },
+      });
+      return;
     }
+
+    await submitApproval();
   };
 
   const requiresApproval = config?.requiresApproval ?? true;
@@ -1130,7 +1182,7 @@ export default function NewPurchaseForm({
                             }}
                           >
                             <span className="truncate">
-                              {asset.name} · {asset.id}
+                              {asset.name} · {asset.assetNo || asset.id}
                             </span>
                             <Check
                               className={cn(
@@ -1179,6 +1231,37 @@ export default function NewPurchaseForm({
         {!loadingTemplates && !templateError && (
           <div className="grid gap-4 sm:grid-cols-2">
             {operationTemplateFields.map((field) => renderOperationField(field))}
+          </div>
+        )}
+
+        {hasCostField && (
+          <div className="mt-4 flex items-start justify-between gap-3 rounded-2xl border bg-card/60 p-3">
+            <div className="space-y-1">
+              <p className="text-sm font-medium">
+                {isChinese ? "同步采购价格" : "Sync purchase price"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {purchaseAssetMode === "existing"
+                  ? isChinese
+                    ? "可将操作详情中的“费用(cost)”同步为该资产的采购价格（会覆盖原值）。"
+                    : "Sync operation cost into this asset purchase price (will overwrite)."
+                  : isChinese
+                    ? "可将操作详情中的“费用(cost)”同步为新资产的采购价格。"
+                    : "Sync operation cost into the new asset purchase price."}
+              </p>
+              {!rawCostValue && (
+                <p className="text-xs text-muted-foreground">
+                  {isChinese
+                    ? "填写费用后可启用同步。"
+                    : "Enter a cost value to enable syncing."}
+                </p>
+              )}
+            </div>
+            <Switch
+              checked={syncPurchasePrice}
+              disabled={!rawCostValue}
+              onCheckedChange={(checked) => setSyncPurchasePrice(checked)}
+            />
           </div>
         )}
 

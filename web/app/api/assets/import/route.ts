@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { createAsset } from "@/lib/repositories/assets";
+import { createAsset, isAssetNoInUse } from "@/lib/repositories/assets";
 import { ASSET_STATUSES, ASSET_STATUS_LABELS, type AssetStatus } from "@/lib/types/asset";
 import type { CreateAssetPayload } from "@/lib/types/asset";
 import { getCompanyByCode } from "@/lib/repositories/companies";
 import { listAssetCategories } from "@/lib/repositories/asset-categories";
+import { coerceMoneyToCents } from "@/lib/utils/money";
 
 const REQUIRED_HEADERS = [
   "name",
@@ -158,14 +159,33 @@ export function parseAssetImportContent(content: string) {
       errors.push(`第 ${rowNumber} 行缺少字段: companyCode`);
       return;
     }
+
+    const rawPurchasePrice = record.purchaseprice?.trim() ?? "";
+    const purchasePriceCents = coerceMoneyToCents(rawPurchasePrice);
+    if (rawPurchasePrice && purchasePriceCents === null) {
+      errors.push(`第 ${rowNumber} 行的采购价格无效: ${record.purchaseprice}`);
+      return;
+    }
+
+    const rawCurrency = record.purchasecurrency?.trim();
+    const purchaseCurrency = rawCurrency ? rawCurrency.toUpperCase() : "CNY";
+    if (purchaseCurrency.length > 10) {
+      errors.push(`第 ${rowNumber} 行的币种不合法: ${record.purchasecurrency}`);
+      return;
+    }
+
     rows.push({
+      assetNo: record.assetno?.trim() ?? "",
       name: record.name,
+      specModel: record.specmodel?.trim() ?? "",
       category: record.category,
       status,
       companyCode,
       owner: record.owner,
       location: record.location,
       purchaseDate: record.purchasedate,
+      purchasePriceCents,
+      purchaseCurrency,
     });
   });
 
@@ -199,6 +219,7 @@ export async function POST(request: Request) {
 
     let imported = 0;
     const aggregatedErrors = [...errors];
+    const seenAssetNos = new Set<string>();
     const categoryIndex = new Map<string, string>();
     listAssetCategories().forEach((category) => {
       categoryIndex.set(category.code.toLowerCase(), category.code);
@@ -207,6 +228,16 @@ export async function POST(request: Request) {
     });
 
     rows.forEach((row) => {
+      const assetNo = row.assetNo?.trim();
+      if (assetNo) {
+        const key = assetNo.toLowerCase();
+        if (seenAssetNos.has(key) || isAssetNoInUse(assetNo)) {
+          aggregatedErrors.push(`资产编号已存在: ${assetNo}`);
+          return;
+        }
+        seenAssetNos.add(key);
+      }
+
       const categoryKey = row.category?.trim().toLowerCase();
       const normalizedCategory = categoryKey
         ? categoryIndex.get(categoryKey)

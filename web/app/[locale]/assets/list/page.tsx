@@ -276,7 +276,9 @@ export default function AssetListPage({
                     >
                       {asset.name}
                     </Link>
-                    <div className="text-xs text-muted-foreground">{asset.id}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {asset.assetNo || asset.id}
+                    </div>
                   </TableCell>
                   <TableCell className="px-4 py-3">
                     {categoryMap.get(asset.category) ?? asset.category}

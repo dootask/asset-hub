@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { listAssets } from "@/lib/repositories/assets";
 import type { AssetStatus } from "@/lib/types/asset";
 import { ASSET_STATUSES } from "@/lib/types/asset";
+import { formatCentsToMoney } from "@/lib/utils/money";
 
 function parseStatuses(searchParams: URLSearchParams): AssetStatus[] | undefined {
   const rawStatuses = [
@@ -62,13 +63,17 @@ export async function GET(request: Request) {
 
   const rows = result.items.map((asset) => ({
     id: asset.id,
+    assetNo: asset.assetNo ?? "",
     name: asset.name,
+    specModel: asset.specModel ?? "",
     category: asset.category,
     status: asset.status,
     companyCode: asset.companyCode ?? "",
     owner: asset.owner,
     location: asset.location,
     purchaseDate: asset.purchaseDate,
+    purchasePrice: formatCentsToMoney(asset.purchasePriceCents),
+    purchaseCurrency: asset.purchaseCurrency ?? "CNY",
   }));
 
   const csv = toCsv(rows);
@@ -80,5 +85,4 @@ export async function GET(request: Request) {
     },
   });
 }
-
 

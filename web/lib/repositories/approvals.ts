@@ -19,6 +19,7 @@ import {
   getAssetById,
   updateAsset,
   createAsset,
+  updateAssetPurchasePrice,
 } from "@/lib/repositories/assets";
 import {
   getConsumableOperationById,
@@ -28,6 +29,7 @@ import { getActionConfig } from "@/lib/repositories/action-configs";
 import type { AssetOperationType } from "@/lib/types/operation";
 import type { OperationTemplateMetadata } from "@/lib/types/operation-template";
 import { extractOperationTemplateMetadata } from "@/lib/utils/operation-template";
+import { coerceMoneyToCents } from "@/lib/utils/money";
 import { updateExternalApprovalTodo } from "@/lib/integrations/dootask-todos";
 import {
   extractOwnerFromOperationMetadata,
@@ -422,6 +424,36 @@ function ensureAssetCreatedForPurchase(approval: ApprovalRequest): ApprovalReque
   }
 }
 
+function maybeSyncPurchasePriceFromApproval(approval: ApprovalRequest) {
+  if (approval.type !== "purchase") {
+    return;
+  }
+  if (!approval.assetId) {
+    return;
+  }
+
+  const syncRequested = Boolean(
+    (approval.metadata as { syncPurchasePrice?: unknown } | null)?.syncPurchasePrice,
+  );
+  if (!syncRequested) {
+    return;
+  }
+
+  const templateMetadata = extractOperationTemplateMetadata(
+    approval.metadata ?? undefined,
+  );
+  const cost = (templateMetadata?.values as { cost?: unknown } | undefined)?.cost;
+  const cents = coerceMoneyToCents(cost);
+  if (cents === null) {
+    return;
+  }
+
+  updateAssetPurchasePrice(approval.assetId, {
+    purchasePriceCents: cents,
+    purchaseCurrency: "CNY",
+  });
+}
+
 function ensurePendingInboundOperation(
   approval: ApprovalRequest,
   metadata: OperationTemplateMetadata | null,
@@ -704,6 +736,8 @@ export function applyApprovalAction(
   if (updated.status === "approved") {
     // Try to create asset for Purchase requests if missing
     updated = ensureAssetCreatedForPurchase(updated);
+
+    maybeSyncPurchasePriceFromApproval(updated);
     
     updated = ensureOperationRecordForApproval(updated, payload.actor);
     applyApprovalSuccessEffects(updated, payload.actor);

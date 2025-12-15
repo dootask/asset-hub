@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createAsset, listAssets } from "@/lib/repositories/assets";
+import { createAsset, isAssetNoInUse, listAssets } from "@/lib/repositories/assets";
 import { getAssetCategoryByCode } from "@/lib/repositories/asset-categories";
 import type { AssetStatus, CreateAssetPayload } from "@/lib/types/asset";
 import { ASSET_STATUSES } from "@/lib/types/asset";
@@ -86,9 +86,56 @@ function sanitizePayload(payload: Partial<CreateAssetPayload>): CreateAssetPaylo
     throw new Error("公司不存在");
   }
 
+  const assetNoRaw = typeof payload.assetNo === "string" ? payload.assetNo : "";
+  const assetNo = assetNoRaw.trim();
+  if (assetNo) {
+    if (assetNo.length > 64) {
+      throw new Error("资产编号过长");
+    }
+    if (isAssetNoInUse(assetNo)) {
+      throw new Error("资产编号已存在");
+    }
+  }
+
+  const specModelRaw = typeof payload.specModel === "string" ? payload.specModel : "";
+  const specModel = specModelRaw.trim();
+  if (specModel && specModel.length > 255) {
+    throw new Error("规格型号过长");
+  }
+
+  const purchaseCurrencyRaw =
+    typeof payload.purchaseCurrency === "string" ? payload.purchaseCurrency : "";
+  const purchaseCurrency = purchaseCurrencyRaw.trim() || "CNY";
+  if (purchaseCurrency.length > 10) {
+    throw new Error("采购币种不合法");
+  }
+
+  let purchasePriceCents: number | null | undefined;
+  const rawPrice = (payload as { purchasePriceCents?: unknown }).purchasePriceCents;
+  if (rawPrice === null || rawPrice === "") {
+    purchasePriceCents = null;
+  } else if (rawPrice !== undefined) {
+    const asNumber = typeof rawPrice === "number" ? rawPrice : Number(rawPrice);
+    if (!Number.isFinite(asNumber)) {
+      throw new Error("采购价格必须为数字");
+    }
+    const asInteger = Math.trunc(asNumber);
+    if (asInteger !== asNumber) {
+      throw new Error("采购价格精度不合法");
+    }
+    if (asInteger < 0) {
+      throw new Error("采购价格不能为负数");
+    }
+    purchasePriceCents = asInteger;
+  }
+
   return {
     ...payload,
     companyCode: company.code,
+    assetNo: assetNo || undefined,
+    specModel: specModel || undefined,
+    purchasePriceCents,
+    purchaseCurrency,
   } as CreateAssetPayload;
 }
 

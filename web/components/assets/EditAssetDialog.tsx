@@ -38,17 +38,30 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import type { CreateAssetPayload } from "@/lib/types/asset";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
 import { extractApiErrorMessage } from "@/lib/utils/api-error";
 import { enUS, zhCN } from "react-day-picker/locale";
+import { coerceMoneyToCents, formatCentsToMoney } from "@/lib/utils/money";
 
 type Props = {
   asset: Asset;
   locale?: string;
   categories: AssetCategory[];
   companies: Company[];
+};
+
+type FormState = {
+  assetNo: string;
+  name: string;
+  specModel: string;
+  category: string;
+  status: AssetStatus;
+  companyCode: string;
+  owner: string;
+  location: string;
+  purchaseDate: string;
+  purchasePrice: string;
 };
 
 export default function EditAssetDialog({ asset, locale = "en", categories, companies }: Props) {
@@ -64,14 +77,17 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
   const [open, setOpen] = useState(false);
   const [purchaseDateOpen, setPurchaseDateOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [formState, setFormState] = useState<CreateAssetPayload>({
+  const [formState, setFormState] = useState<FormState>({
+    assetNo: asset.assetNo ?? "",
     name: asset.name,
+    specModel: asset.specModel ?? "",
     category: asset.category,
     status: asset.status,
     companyCode: asset.companyCode ?? companies[0]?.code ?? "",
     owner: asset.owner,
     location: asset.location,
     purchaseDate: asset.purchaseDate,
+    purchasePrice: formatCentsToMoney(asset.purchasePriceCents),
   });
   const feedback = useAppFeedback();
 
@@ -111,9 +127,9 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
           },
         ];
 
-  const handleChange = <K extends keyof CreateAssetPayload>(
+  const handleChange = <K extends keyof FormState>(
     field: K,
-    value: CreateAssetPayload[K],
+    value: FormState[K],
   ) => {
     setFormState((prev) => ({ ...prev, [field]: value }));
   };
@@ -129,8 +145,35 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
     setSubmitting(true);
 
     try {
+      const rawPurchasePrice = formState.purchasePrice.trim();
+      const purchasePriceCents = coerceMoneyToCents(rawPurchasePrice);
+      if (rawPurchasePrice && purchasePriceCents === null) {
+        feedback.error(
+          isChinese ? "采购价格格式不正确" : "Invalid purchase price",
+          {
+            blocking: true,
+            title: isChinese ? "更新失败" : "Update failed",
+            acknowledgeLabel: isChinese ? "知道了" : "Got it",
+          },
+        );
+        return;
+      }
+
+      const payload = {
+        assetNo: formState.assetNo,
+        name: formState.name,
+        specModel: formState.specModel,
+        category: formState.category,
+        status: formState.status,
+        companyCode: formState.companyCode,
+        owner: formState.owner,
+        location: formState.location,
+        purchaseDate: formState.purchaseDate,
+        purchasePriceCents,
+        purchaseCurrency: asset.purchaseCurrency ?? "CNY",
+      };
       const client = await getApiClient();
-      await client.put(`/apps/asset-hub/api/assets/${asset.id}`, formState);
+      await client.put(`/apps/asset-hub/api/assets/${asset.id}`, payload);
 
       setOpen(false);
       router.refresh();
@@ -172,6 +215,16 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
           <form id="edit-asset-form" className="space-y-4" onSubmit={handleSubmit}>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
+                <Label htmlFor="edit-asset-no">
+                  {isChinese ? "资产编号" : "Asset No."}
+                </Label>
+                <Input
+                  id="edit-asset-no"
+                  value={formState.assetNo}
+                  onChange={(event) => handleChange("assetNo", event.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
                 <Label htmlFor="edit-asset-name">
                   {isChinese ? "资产名称" : "Asset Name"}
                 </Label>
@@ -180,6 +233,16 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
                   required
                   value={formState.name}
                   onChange={(event) => handleChange("name", event.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-asset-spec-model">
+                  {isChinese ? "规格型号" : "Spec / Model"}
+                </Label>
+                <Input
+                  id="edit-asset-spec-model"
+                  value={formState.specModel}
+                  onChange={(event) => handleChange("specModel", event.target.value)}
                 />
               </div>
               <div className="space-y-1.5">
@@ -297,6 +360,21 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
                   required
                   value={formState.location}
                   onChange={(event) => handleChange("location", event.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-asset-purchase-price">
+                  {isChinese ? "采购价格" : "Purchase Price"}
+                </Label>
+                <Input
+                  id="edit-asset-purchase-price"
+                  type="text"
+                  inputMode="decimal"
+                  value={formState.purchasePrice}
+                  placeholder={isChinese ? "例如：18999.00" : "e.g. 18999.00"}
+                  onChange={(event) =>
+                    handleChange("purchasePrice", event.target.value)
+                  }
                 />
               </div>
               <div className="space-y-1.5">

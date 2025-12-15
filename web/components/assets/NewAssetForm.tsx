@@ -30,6 +30,7 @@ import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
 import { extractApiErrorMessage } from "@/lib/utils/api-error";
 import { enUS, zhCN } from "react-day-picker/locale";
+import { coerceMoneyToCents } from "@/lib/utils/money";
 
 type Props = {
   locale?: string;
@@ -44,13 +45,16 @@ export default function NewAssetForm({ locale = "en", categories, companies }: P
   const firstCategory = categories[0]?.code ?? "";
   const firstCompany = companies[0]?.code ?? "";
   const [formState, setFormState] = useState({
+    assetNo: "",
     name: "",
+    specModel: "",
     category: firstCategory,
     status: ASSET_STATUSES[0],
     companyCode: firstCompany,
     owner: "",
     location: "",
     purchaseDate: new Date().toISOString().slice(0, 10),
+    purchasePrice: "",
   });
   const [submitting, setSubmitting] = useState(false);
   const feedback = useAppFeedback();
@@ -67,10 +71,37 @@ export default function NewAssetForm({ locale = "en", categories, companies }: P
     setSubmitting(true);
 
     try {
+      const rawPurchasePrice = formState.purchasePrice.trim();
+      const purchasePriceCents = coerceMoneyToCents(rawPurchasePrice);
+      if (rawPurchasePrice && purchasePriceCents === null) {
+        feedback.error(
+          isChinese ? "采购价格格式不正确" : "Invalid purchase price",
+          {
+            blocking: true,
+            title: isChinese ? "提交失败" : "Submit failed",
+            acknowledgeLabel: isChinese ? "知道了" : "Got it",
+          },
+        );
+        return;
+      }
+
+      const payload = {
+        assetNo: formState.assetNo,
+        name: formState.name,
+        specModel: formState.specModel,
+        category: formState.category,
+        status: formState.status,
+        companyCode: formState.companyCode,
+        owner: formState.owner,
+        location: formState.location,
+        purchaseDate: formState.purchaseDate,
+        purchasePriceCents,
+        purchaseCurrency: "CNY",
+      };
       const client = await getApiClient();
       const response = await client.post<{ data: { id: string } }>(
         "/apps/asset-hub/api/assets",
-        formState,
+        payload,
       );
 
       router.push(`/${locale}/assets/${response.data.data.id}`);
@@ -105,6 +136,17 @@ export default function NewAssetForm({ locale = "en", categories, companies }: P
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
+          <Label htmlFor="asset-no" className="text-sm font-medium text-muted-foreground">
+            {isChinese ? "资产编号" : "Asset No."}
+          </Label>
+          <Input
+            id="asset-no"
+            value={formState.assetNo}
+            placeholder={isChinese ? "例如：IT-2025-0001" : "e.g. IT-2025-0001"}
+            onChange={(event) => handleChange("assetNo", event.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
           <Label htmlFor="asset-name" className="text-sm font-medium text-muted-foreground">
             {isChinese ? "资产名称" : "Asset Name"}
           </Label>
@@ -113,6 +155,17 @@ export default function NewAssetForm({ locale = "en", categories, companies }: P
             required
             value={formState.name}
             onChange={(event) => handleChange("name", event.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="asset-spec-model" className="text-sm font-medium text-muted-foreground">
+            {isChinese ? "规格型号" : "Spec / Model"}
+          </Label>
+          <Input
+            id="asset-spec-model"
+            value={formState.specModel}
+            placeholder={isChinese ? "例如：M3 Max / 64GB / 1TB" : "e.g. M3 Max / 64GB / 1TB"}
+            onChange={(event) => handleChange("specModel", event.target.value)}
           />
         </div>
         <div className="space-y-1.5">
@@ -227,6 +280,19 @@ export default function NewAssetForm({ locale = "en", categories, companies }: P
             required
             value={formState.location}
             onChange={(event) => handleChange("location", event.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="asset-purchase-price" className="text-sm font-medium text-muted-foreground">
+            {isChinese ? "采购价格" : "Purchase Price"}
+          </Label>
+          <Input
+            id="asset-purchase-price"
+            type="text"
+            inputMode="decimal"
+            value={formState.purchasePrice}
+            placeholder={isChinese ? "例如：18999.00" : "e.g. 18999.00"}
+            onChange={(event) => handleChange("purchasePrice", event.target.value)}
           />
         </div>
         <div className="space-y-1.5">
