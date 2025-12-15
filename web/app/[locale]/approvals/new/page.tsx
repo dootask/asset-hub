@@ -23,8 +23,8 @@ export default async function NewApprovalPage({
         ]}
         title={isChinese ? "发起采购申请" : "New Purchase Request"}
         description={isChinese 
-          ? "申请采购新资产。审批通过后，系统将自动创建待入库的资产记录。" 
-          : "Request a new asset purchase. An asset record will be created upon approval."}
+          ? "发起采购审批时可选择：新增资产（审批通过后自动创建待入库资产）或关联到已有资产（不新增资产）。" 
+          : "You can choose to create a new asset (auto-created upon approval) or link an existing asset (no new asset record)."}
       />
       <section className="rounded-2xl border bg-muted/30 p-6">
          <NewPurchaseForm 

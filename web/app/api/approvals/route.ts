@@ -21,6 +21,7 @@ import { createExternalApprovalTodo } from "@/lib/integrations/dootask-todos";
 import { notifyApprovalCreated } from "@/lib/services/approval-notifications";
 import { isAdminUser } from "@/lib/utils/permissions";
 import { resolveApproverFromConfig } from "@/lib/services/approval-approver";
+import { getAssetById } from "@/lib/repositories/assets";
 
 const STATUS_ALLOW_LIST = APPROVAL_STATUSES.map((item) => item.value);
 const TYPE_ALLOW_LIST = APPROVAL_TYPES.map((item) => item.value);
@@ -184,6 +185,24 @@ function sanitizeCreatePayload(
       !newAssetCategory.trim()
     ) {
       throw new Error("新资产采购必须提供资产名称和类别");
+    }
+  }
+
+  if (cleaned.type === "purchase") {
+    const purchaseAsset = (cleaned.metadata as { purchaseAsset?: unknown })
+      ?.purchaseAsset;
+    if (typeof purchaseAsset === "object" && purchaseAsset !== null) {
+      const mode = (purchaseAsset as { mode?: unknown }).mode;
+      if (mode === "existing" && !cleaned.assetId) {
+        throw new Error("关联已有资产时必须提供资产 ID");
+      }
+    }
+
+    if (cleaned.assetId) {
+      const asset = getAssetById(cleaned.assetId);
+      if (!asset) {
+        throw new Error("关联的资产不存在");
+      }
     }
   }
 

@@ -7,6 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -17,6 +25,7 @@ import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
 import { extractApiErrorMessage } from "@/lib/utils/api-error";
 import type { AssetCategory } from "@/lib/types/asset-category";
+import type { Asset } from "@/lib/types/asset";
 import type { Company } from "@/lib/types/system";
 import type { Role } from "@/lib/types/system";
 import {
@@ -42,7 +51,12 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { Calendar as CalendarIcon, X as XICon } from "lucide-react";
+import {
+  Calendar as CalendarIcon,
+  Check,
+  ChevronsUpDown,
+  X as XICon,
+} from "lucide-react";
 import { AttachmentUploadField } from "@/components/attachments/AttachmentUploadField";
 import { getStoredAuth } from "@/lib/utils/auth-storage";
 import { enUS, zhCN } from "react-day-picker/locale";
@@ -120,14 +134,27 @@ export default function NewPurchaseForm({
     approverName: "",
   });
 
+  const [purchaseAssetMode, setPurchaseAssetMode] = useState<
+    "new" | "existing"
+  >("new");
+  const [existingAssetOpen, setExistingAssetOpen] = useState(false);
+  const [existingAssetSearch, setExistingAssetSearch] = useState("");
+  const [existingAssetOptions, setExistingAssetOptions] = useState<Asset[]>([]);
+  const [loadingExistingAssets, setLoadingExistingAssets] = useState(false);
+  const [selectedExistingAsset, setSelectedExistingAsset] =
+    useState<Asset | null>(null);
+
   const [isTitleModified, setIsTitleModified] = useState(false);
 
   const fieldIds = {
     title: useId(),
     reason: useId(),
+    purchaseAssetMode: useId(),
     assetName: useId(),
     assetCategory: useId(),
     assetCompany: useId(),
+    existingAssetSearch: useId(),
+    existingAssetId: useId(),
     approverId: useId(),
     approverName: useId(),
   };
@@ -387,16 +414,66 @@ export default function NewPurchaseForm({
   }, [config, userApproverCandidates]);
 
   // Auto-fill title if not modified manually
+  const titleSeed =
+    purchaseAssetMode === "existing"
+      ? selectedExistingAsset?.name
+      : formState.assetName;
+
   useEffect(() => {
-    if (!isTitleModified && formState.assetName) {
+    if (!isTitleModified && titleSeed) {
       setFormState((prev) => ({
         ...prev,
         title: isChinese
-          ? `采购申请 - ${formState.assetName}`
-          : `Purchase Request - ${formState.assetName}`,
+          ? `采购申请 - ${titleSeed}`
+          : `Purchase Request - ${titleSeed}`,
       }));
     }
-  }, [formState.assetName, isTitleModified, isChinese]);
+  }, [titleSeed, isTitleModified, isChinese]);
+
+  useEffect(() => {
+    if (purchaseAssetMode !== "existing") {
+      setExistingAssetSearch("");
+      setExistingAssetOptions([]);
+      setSelectedExistingAsset(null);
+      setExistingAssetOpen(false);
+      return;
+    }
+
+    let active = true;
+    const handle = setTimeout(async () => {
+      setLoadingExistingAssets(true);
+      try {
+        const search = existingAssetSearch.trim();
+        const params = new URLSearchParams({ pageSize: "20" });
+        if (search) params.set("search", search);
+        const client = await getApiClient();
+        const { data } = await client.get<{
+          data: Asset[];
+          meta: { total: number; page: number; pageSize: number };
+        }>(`/apps/asset-hub/api/assets?${params.toString()}`, {
+          headers: { "Cache-Control": "no-cache" },
+        });
+        if (!active) return;
+        setExistingAssetOptions(data.data);
+      } catch (err) {
+        if (!active) return;
+        const message = extractApiErrorMessage(
+          err,
+          isChinese
+            ? "无法加载资产列表，请稍后再试。"
+            : "Failed to load assets.",
+        );
+        feedback.error(message);
+      } finally {
+        if (active) setLoadingExistingAssets(false);
+      }
+    }, 250);
+
+    return () => {
+      active = false;
+      clearTimeout(handle);
+    };
+  }, [purchaseAssetMode, existingAssetSearch, feedback, isChinese]);
 
   // Operation template derived state
   const templateMap = useMemo(() => {
@@ -686,6 +763,28 @@ export default function NewPurchaseForm({
         throw new Error(isChinese ? "缺少申请人信息" : "Missing applicant info");
       }
 
+      if (purchaseAssetMode === "existing") {
+        if (!selectedExistingAsset?.id) {
+          throw new Error(
+            isChinese ? "请选择要关联的资产" : "Please select an asset",
+          );
+        }
+      } else {
+        if (!formState.assetName.trim()) {
+          throw new Error(isChinese ? "请填写资产名称" : "Asset name is required");
+        }
+        if (!formState.assetCategory.trim()) {
+          throw new Error(
+            isChinese ? "请选择资产类别" : "Asset category is required",
+          );
+        }
+        if (!formState.assetCompany.trim()) {
+          throw new Error(
+            isChinese ? "请选择所属公司" : "Company is required",
+          );
+        }
+      }
+
       for (const field of operationTemplateFields) {
         if (field.widget === "attachments") {
           const attachments = toAttachmentArray(operationFieldValues[field.key]);
@@ -780,11 +879,21 @@ export default function NewPurchaseForm({
         : undefined;
 
       const metadataBase: Record<string, unknown> = {
-        newAsset: {
-          name: formState.assetName,
-          category: formState.assetCategory,
-          companyCode: formState.assetCompany,
+        purchaseAsset: {
+          mode: purchaseAssetMode,
+          ...(purchaseAssetMode === "existing" && selectedExistingAsset?.id
+            ? { assetId: selectedExistingAsset.id }
+            : {}),
         },
+        ...(purchaseAssetMode === "new"
+          ? {
+              newAsset: {
+                name: formState.assetName,
+                category: formState.assetCategory,
+                companyCode: formState.assetCompany,
+              },
+            }
+          : {}),
         initiatedFrom: "approvals-new",
         ...(configSnapshot ? { configSnapshot } : {}),
       };
@@ -803,6 +912,9 @@ export default function NewPurchaseForm({
         title: formState.title,
         reason: formState.reason,
         applicant: { id: applicant.id, name: applicant.name },
+        ...(purchaseAssetMode === "existing" && selectedExistingAsset?.id
+          ? { assetId: selectedExistingAsset.id }
+          : {}),
         approver: formState.approverId
           ? { id: formState.approverId, name: formState.approverName }
           : undefined,
@@ -842,78 +954,202 @@ export default function NewPurchaseForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5 sm:col-span-2">
           <Label
-            htmlFor={fieldIds.assetName}
+            htmlFor={fieldIds.purchaseAssetMode}
             className="text-xs font-medium text-muted-foreground"
           >
-            {isChinese ? "资产名称" : "Asset Name"}{" "}
-            <span className="text-destructive">*</span>
-          </Label>
-          <Input
-            id={fieldIds.assetName}
-            required
-            value={formState.assetName}
-            onChange={(e) =>
-              setFormState({ ...formState, assetName: e.target.value })
-            }
-            placeholder={
-              isChinese ? "例如：MacBook Pro M3" : "e.g. MacBook Pro M3"
-            }
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <Label
-            htmlFor={fieldIds.assetCompany}
-            className="text-xs font-medium text-muted-foreground"
-          >
-            {isChinese ? "所属公司" : "Company"}{" "}
+            {isChinese ? "资产处理方式" : "Asset Handling"}{" "}
             <span className="text-destructive">*</span>
           </Label>
           <Select
-            value={formState.assetCompany}
+            value={purchaseAssetMode}
             onValueChange={(val) =>
-              setFormState({ ...formState, assetCompany: val })
+              setPurchaseAssetMode(val as "new" | "existing")
             }
           >
-            <SelectTrigger id={fieldIds.assetCompany} className="w-full">
+            <SelectTrigger id={fieldIds.purchaseAssetMode} className="w-full">
               <SelectValue placeholder="Select..." />
             </SelectTrigger>
             <SelectContent>
-              {companies.map((c) => (
-                <SelectItem key={c.id} value={c.code}>
-                  {c.name}
-                </SelectItem>
-              ))}
+              <SelectItem value="new">
+                {isChinese ? "新增资产（审批通过后自动创建）" : "Create a new asset"}
+              </SelectItem>
+              <SelectItem value="existing">
+                {isChinese ? "关联已有资产（不新增资产）" : "Link an existing asset"}
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        <div className="space-y-1.5">
-          <Label
-            htmlFor={fieldIds.assetCategory}
-            className="text-xs font-medium text-muted-foreground"
-          >
-            {isChinese ? "资产类别" : "Category"}{" "}
-            <span className="text-destructive">*</span>
-          </Label>
-          <Select
-            value={formState.assetCategory}
-            onValueChange={(val) =>
-              setFormState({ ...formState, assetCategory: val })
-            }
-          >
-            <SelectTrigger id={fieldIds.assetCategory} className="w-full">
-              <SelectValue placeholder="Select..." />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map((c) => (
-                <SelectItem key={c.id} value={c.code}>
-                  {isChinese ? c.labelZh : c.labelEn}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {purchaseAssetMode === "new" ? (
+          <>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label
+                htmlFor={fieldIds.assetName}
+                className="text-xs font-medium text-muted-foreground"
+              >
+                {isChinese ? "资产名称" : "Asset Name"}{" "}
+                <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id={fieldIds.assetName}
+                required
+                value={formState.assetName}
+                onChange={(e) =>
+                  setFormState({ ...formState, assetName: e.target.value })
+                }
+                placeholder={
+                  isChinese ? "例如：MacBook Pro M3" : "e.g. MacBook Pro M3"
+                }
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label
+                htmlFor={fieldIds.assetCompany}
+                className="text-xs font-medium text-muted-foreground"
+              >
+                {isChinese ? "所属公司" : "Company"}{" "}
+                <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={formState.assetCompany}
+                onValueChange={(val) =>
+                  setFormState({ ...formState, assetCompany: val })
+                }
+              >
+                <SelectTrigger id={fieldIds.assetCompany} className="w-full">
+                  <SelectValue placeholder="Select..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {companies.map((c) => (
+                    <SelectItem key={c.id} value={c.code}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label
+                htmlFor={fieldIds.assetCategory}
+                className="text-xs font-medium text-muted-foreground"
+              >
+                {isChinese ? "资产类别" : "Category"}{" "}
+                <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={formState.assetCategory}
+                onValueChange={(val) =>
+                  setFormState({ ...formState, assetCategory: val })
+                }
+              >
+                <SelectTrigger id={fieldIds.assetCategory} className="w-full">
+                  <SelectValue placeholder="Select..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((c) => (
+                    <SelectItem key={c.id} value={c.code}>
+                      {isChinese ? c.labelZh : c.labelEn}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </>
+        ) : (
+          <div className="space-y-4 sm:col-span-2">
+            <div className="space-y-1.5">
+              <Label
+                htmlFor={fieldIds.existingAssetId}
+                className="text-xs font-medium text-muted-foreground"
+              >
+                {isChinese ? "选择要关联的资产" : "Select Asset"}{" "}
+                <span className="text-destructive">*</span>
+              </Label>
+              <Popover
+                open={existingAssetOpen}
+                onOpenChange={setExistingAssetOpen}
+              >
+                <PopoverTrigger asChild>
+                  <Button
+                    id={fieldIds.existingAssetId}
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={existingAssetOpen}
+                    className="w-full justify-between"
+                    type="button"
+                  >
+                    <span className="truncate">
+                      {selectedExistingAsset
+                        ? `${selectedExistingAsset.name} · ${selectedExistingAsset.id}`
+                        : isChinese
+                          ? "请选择资产..."
+                          : "Select asset..."}
+                    </span>
+                    <ChevronsUpDown className="opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                  <Command shouldFilter={false}>
+                    <CommandInput
+                      id={fieldIds.existingAssetSearch}
+                      placeholder={
+                        isChinese
+                          ? "输入资产名称/编号进行搜索..."
+                          : "Search by name or ID..."
+                      }
+                      className="h-9"
+                      value={existingAssetSearch}
+                      onValueChange={setExistingAssetSearch}
+                    />
+                    <CommandList>
+                      <CommandEmpty>
+                        {loadingExistingAssets
+                          ? isChinese
+                            ? "正在加载..."
+                            : "Loading..."
+                          : isChinese
+                            ? "暂无匹配资产"
+                            : "No matching assets."}
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {existingAssetOptions.map((asset) => (
+                          <CommandItem
+                            key={asset.id}
+                            value={asset.id}
+                            onSelect={(assetId) => {
+                              const next =
+                                selectedExistingAsset?.id === assetId
+                                  ? null
+                                  : existingAssetOptions.find(
+                                      (item) => item.id === assetId,
+                                    ) ?? null;
+                              setSelectedExistingAsset(next);
+                              setExistingAssetOpen(false);
+                            }}
+                          >
+                            <span className="truncate">
+                              {asset.name} · {asset.id}
+                            </span>
+                            <Check
+                              className={cn(
+                                "ml-auto",
+                                selectedExistingAsset?.id === asset.id
+                                  ? "opacity-100"
+                                  : "opacity-0",
+                              )}
+                            />
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="space-y-2 rounded-2xl border bg-muted/20 p-4">
@@ -1136,7 +1372,9 @@ export default function NewPurchaseForm({
             loadingUser ||
             loadingTemplates ||
             !formState.approverId ||
-            !formState.assetName ||
+            (purchaseAssetMode === "existing"
+              ? !selectedExistingAsset?.id
+              : !formState.assetName) ||
             !formState.title
           }
           className="rounded-2xl px-8"
