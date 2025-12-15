@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { getApprovalRequestById } from "@/lib/repositories/approvals";
 import { getAssetById } from "@/lib/repositories/assets";
 import { getAssetOperationById } from "@/lib/repositories/asset-operations";
+import { getConsumableById } from "@/lib/repositories/consumables";
 import ApprovalStatusBadge from "@/components/approvals/ApprovalStatusBadge";
 import ApprovalActionForm from "@/components/approvals/ApprovalActionForm";
 import PageHeader from "@/components/layout/PageHeader";
@@ -72,6 +73,9 @@ export default async function ApprovalDetailPage({ params }: PageProps) {
   }
 
   const asset = approval.assetId ? getAssetById(approval.assetId) : null;
+  const consumable = approval.consumableId
+    ? getConsumableById(approval.consumableId)
+    : null;
   const operation = approval.operationId
     ? getAssetOperationById(approval.operationId)
     : null;
@@ -134,17 +138,47 @@ export default async function ApprovalDetailPage({ params }: PageProps) {
         </section>
       )}
 
-      {asset && (
+      {approval.assetId && (
         <section className="rounded-2xl border bg-muted/30 p-4 text-sm">
           <p className="text-xs text-muted-foreground">
             {isChinese ? "关联资产" : "Linked Asset"}
           </p>
-          <Link
-            href={`/${locale}/assets/${asset.id}`}
-            className="mt-1 inline-flex items-center gap-2 text-primary hover:underline"
-          >
-            {asset.name} <span className="text-xs text-muted-foreground">#{asset.id}</span>
-          </Link>
+          {asset ? (
+            <Link
+              href={`/${locale}/assets/${asset.id}`}
+              className="mt-1 inline-flex items-center gap-2 text-primary hover:underline"
+            >
+              {asset.name}{" "}
+              <span className="text-xs text-muted-foreground">#{asset.id}</span>
+            </Link>
+          ) : (
+            <p className="mt-1 text-muted-foreground">
+              #{approval.assetId}
+            </p>
+          )}
+        </section>
+      )}
+
+      {approval.consumableId && (
+        <section className="rounded-2xl border bg-muted/30 p-4 text-sm">
+          <p className="text-xs text-muted-foreground">
+            {isChinese ? "关联耗材" : "Linked Consumable"}
+          </p>
+          {consumable ? (
+            <Link
+              href={`/${locale}/consumables/${consumable.id}`}
+              className="mt-1 inline-flex items-center gap-2 text-primary hover:underline"
+            >
+              {consumable.name}{" "}
+              <span className="text-xs text-muted-foreground">
+                #{consumable.id}
+              </span>
+            </Link>
+          ) : (
+            <p className="mt-1 text-muted-foreground">
+              #{approval.consumableId}
+            </p>
+          )}
         </section>
       )}
 
