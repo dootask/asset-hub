@@ -602,7 +602,7 @@ export default function ConsumableOperationForm({
             <Label className="text-xs font-medium text-muted-foreground">
               {isChinese ? "审批人" : "Approver"}
             </Label>
-            {roleMembers.length > 1 && (
+            {roleMembers.length > 1 && allowOverride && (
               <Select
                 value={approverId}
                 onValueChange={(value) => {
@@ -610,7 +610,6 @@ export default function ConsumableOperationForm({
                   setApproverId(value);
                   setApproverName(member?.name ?? "");
                 }}
-                disabled={!allowOverride}
               >
                 <SelectTrigger className="w-full max-w-[320px]">
                   <SelectValue
@@ -627,6 +626,13 @@ export default function ConsumableOperationForm({
                   ))}
                 </SelectContent>
               </Select>
+            )}
+            {roleMembers.length > 1 && !allowOverride && (
+              <p className="text-[11px] text-destructive">
+                {isChinese
+                  ? "审批配置为按角色指派且角色有多位成员，但不允许手动选择；请联系管理员调整审批配置或角色成员。"
+                  : "Role-based approver has multiple members but override is disabled. Please ask an admin to update the approval config or role members."}
+              </p>
             )}
             {roleMembers.length <= 1 && allowOverride && (
               canUseSelector ? (
@@ -741,7 +747,7 @@ export default function ConsumableOperationForm({
                 {isChinese ? "请选择审批人后再提交。" : "Please pick an approver before submitting."}
               </p>
             )}
-            {roleMembers.length > 1 && (
+            {roleMembers.length > 1 && allowOverride && (
               <p className="text-[11px] text-amber-800/90 dark:text-amber-100/80">
                 {isChinese
                   ? "请从该角色成员中选择一位审批人。"

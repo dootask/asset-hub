@@ -16,12 +16,11 @@ import {
   type RequestUser,
 } from "@/lib/utils/request-user";
 import { getActionConfig } from "@/lib/repositories/action-configs";
-import { getRoleById } from "@/lib/repositories/roles";
-import type { ActionConfig } from "@/lib/types/action-config";
 import { approvalTypeToActionConfigId } from "@/lib/utils/action-config";
 import { createExternalApprovalTodo } from "@/lib/integrations/dootask-todos";
 import { notifyApprovalCreated } from "@/lib/services/approval-notifications";
 import { isAdminUser } from "@/lib/utils/permissions";
+import { resolveApproverFromConfig } from "@/lib/services/approval-approver";
 
 const STATUS_ALLOW_LIST = APPROVAL_STATUSES.map((item) => item.value);
 const TYPE_ALLOW_LIST = APPROVAL_TYPES.map((item) => item.value);
@@ -206,100 +205,6 @@ function sanitizeCreatePayload(
   }
 
   return cleaned;
-}
-
-function resolveApproverFromConfig(
-  config: ActionConfig,
-  requested?: { id?: string; name?: string },
-) {
-  const cleanedRequested =
-    requested?.id && typeof requested.id === "string"
-      ? {
-          id: requested.id.trim(),
-          name:
-            typeof requested.name === "string" &&
-            requested.name.trim().length > 0
-              ? requested.name.trim()
-              : undefined,
-        }
-      : undefined;
-
-  // Handle user-based default approver
-  if (
-    config.defaultApproverType === "user" &&
-    config.defaultApproverRefs.length > 0
-  ) {
-    const defaultUserId = config.defaultApproverRefs[0];
-    if (!config.allowOverride) {
-      return { id: defaultUserId, name: cleanedRequested?.name };
-    }
-    // If override is allowed, prefer requested user, otherwise default
-    return cleanedRequested?.id
-      ? cleanedRequested
-      : { id: defaultUserId };
-  }
-
-  // Handle role-based default approver
-  if (
-    config.defaultApproverType === "role" &&
-    config.defaultApproverRefs.length > 0
-  ) {
-    const roleId = config.defaultApproverRefs[0];
-    const role = getRoleById(roleId);
-    const members = role?.members ?? [];
-
-    if (members.length === 0) {
-      throw new Error(
-        `审批配置的默认角色 (${role?.name ?? roleId}) 暂无成员，无法指派审批人。`,
-      );
-    }
-
-    // If user requested a specific approver
-    if (cleanedRequested?.id) {
-      // Validate if the requested user is in the role members
-      // Note: If allowOverride is true, we might allow picking anyone,
-      // but usually "role" config implies "one of these people".
-      // For now, if it's a role config, we strictly enforce membership
-      // unless we want to treat allowOverride as "can pick ANYONE".
-      // Given the business logic, let's enforce membership for role-based configs.
-      if (!members.includes(cleanedRequested.id)) {
-        throw new Error(
-          `选择的审批人不在角色 (${role?.name ?? roleId}) 成员列表中。`,
-        );
-      }
-      return cleanedRequested;
-    }
-
-    // If no specific user requested
-    if (members.length === 1) {
-      return { id: members[0] }; // Auto-assign single member
-    }
-
-    if (!config.allowOverride) {
-      // Multiple members but override not allowed - ambiguity
-      // In this case, we might need a policy (e.g. round-robin), but for now throw
-      throw new Error(
-        `角色 (${role?.name ?? roleId}) 有多位成员，且配置不允许手动选择，系统无法自动指派。`,
-      );
-    }
-
-    // Multiple members and override allowed -> User must select one
-    // Return null to indicate "Selection Required"
-    return null;
-  }
-
-  // Fallback for no default approver
-  if (!config.allowOverride) {
-    throw new Error(
-      "审批配置未设置默认审批人且禁止修改，请联系管理员设置默认审批人。",
-    );
-  }
-
-  if (cleanedRequested?.id) {
-    return cleanedRequested;
-  }
-
-  return null;
 }
 
 export async function POST(request: Request) {

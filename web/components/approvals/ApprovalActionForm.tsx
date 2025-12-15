@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useId } from "react";
 import { useRouter } from "next/navigation";
-import type { ApprovalAction, ApprovalRequest } from "@/lib/types/approval";
+import type { ApprovalAction, ApprovalRequest, ApprovalType } from "@/lib/types/approval";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,6 +12,7 @@ import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
 import { extractApiErrorMessage } from "@/lib/utils/api-error";
 import { usePermissions } from "@/components/providers/PermissionProvider";
+import ApprovalReassignForm from "@/components/approvals/ApprovalReassignForm";
 
 const ACTIONS: { value: ApprovalAction; labelZh: string; labelEn: string }[] = [
   { value: "approve", labelZh: "通过", labelEn: "Approve" },
@@ -21,15 +22,19 @@ const ACTIONS: { value: ApprovalAction; labelZh: string; labelEn: string }[] = [
 
 interface Props {
   approvalId: string;
+  approvalType: ApprovalType;
   locale?: string;
-  approverId?: string;
-  applicantId?: string;
+  approverId?: string | null;
+  approverName?: string | null;
+  applicantId: string;
 }
 
 export default function ApprovalActionForm({ 
   approvalId, 
+  approvalType,
   locale,
   approverId,
+  approverName,
   applicantId 
 }: Props) {
   const router = useRouter();
@@ -38,6 +43,7 @@ export default function ApprovalActionForm({
   const [action, setAction] = useState<ApprovalAction | null>(null);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showReassign, setShowReassign] = useState(false);
   const feedback = useAppFeedback();
   const fieldIds = {
     action: useId(),
@@ -53,7 +59,7 @@ export default function ApprovalActionForm({
 
     // Admin or Assigned Approver can Approve/Reject
     // Note: logic matches backend canApprove()
-    if (isAdmin || (isApprover && userIdStr === approverId)) {
+    if (isAdmin || isApprover || (approverId && userIdStr === approverId)) {
       allowed.push(ACTIONS[0]); // approve
       allowed.push(ACTIONS[1]); // reject
     }
@@ -78,6 +84,12 @@ export default function ApprovalActionForm({
   if (availableActions.length === 0) return null;
 
   const canSubmit = Boolean(user && action);
+  const canReassign =
+    !!user &&
+    (isAdmin ||
+      isApprover ||
+      String(user.id) === applicantId ||
+      (approverId && String(user.id) === approverId));
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -125,10 +137,7 @@ export default function ApprovalActionForm({
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="space-y-3 rounded-2xl border bg-muted/20 p-4"
-    >
+    <div className="space-y-3 rounded-2xl border bg-muted/20 p-4">
       <div>
         <h3 className="text-sm font-semibold">
           {isChinese ? "审批操作" : "Approval Action"}
@@ -140,89 +149,125 @@ export default function ApprovalActionForm({
         </p>
       </div>
 
-      <div className="space-y-1.5">
-        <Label
-          htmlFor={fieldIds.action}
-          className="text-xs text-muted-foreground"
-        >
-          {isChinese ? "操作类型" : "Action"}
-        </Label>
-        <Select 
-          value={action || ""} 
-          onValueChange={(value) => setAction(value as ApprovalAction)}
-        >
-          <SelectTrigger id={fieldIds.action} className="w-full">
-            <SelectValue placeholder={isChinese ? "请选择" : "Select action"} />
-          </SelectTrigger>
-          <SelectContent>
-            {availableActions.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
-                {isChinese ? item.labelZh : item.labelEn}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="space-y-1.5">
+          <Label
+            htmlFor={fieldIds.action}
+            className="text-xs text-muted-foreground"
+          >
+            {isChinese ? "操作类型" : "Action"}
+          </Label>
+          <Select
+            value={action || ""}
+            onValueChange={(value) => setAction(value as ApprovalAction)}
+          >
+            <SelectTrigger id={fieldIds.action} className="w-full">
+              <SelectValue placeholder={isChinese ? "请选择" : "Select action"} />
+            </SelectTrigger>
+            <SelectContent>
+              {availableActions.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {isChinese ? item.labelZh : item.labelEn}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-      <div className="space-y-1.5">
-        <Label
-          htmlFor={fieldIds.comment}
-          className="text-xs text-muted-foreground"
+        <div className="space-y-1.5">
+          <Label
+            htmlFor={fieldIds.comment}
+            className="text-xs text-muted-foreground"
+          >
+            {isChinese ? "审批意见" : "Comment"}
+          </Label>
+          <Textarea
+            id={fieldIds.comment}
+            rows={3}
+            value={comment}
+            onChange={(event) => setComment(event.target.value)}
+            placeholder={
+              isChinese ? "可选，填写审批意见..." : "Optional comment..."
+            }
+          />
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label
+              htmlFor={fieldIds.actorId}
+              className="text-xs text-muted-foreground"
+            >
+              {isChinese ? "操作人 ID" : "Actor ID"}
+            </Label>
+            <Input
+              id={fieldIds.actorId}
+              required
+              readOnly
+              disabled
+              value={user?.id ?? ""}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label
+              htmlFor={fieldIds.actorName}
+              className="text-xs text-muted-foreground"
+            >
+              {isChinese ? "操作人姓名" : "Actor Name"}
+            </Label>
+            <Input
+              id={fieldIds.actorName}
+              readOnly
+              disabled
+              value={user?.nickname ?? ""}
+            />
+          </div>
+        </div>
+
+        <Button
+          type="submit"
+          disabled={!canSubmit || submitting}
+          className="w-full rounded-2xl"
         >
-          {isChinese ? "审批意见" : "Comment"}
-        </Label>
-        <Textarea
-          id={fieldIds.comment}
-          rows={3}
-          value={comment}
-          onChange={(event) => setComment(event.target.value)}
-          placeholder={
-            isChinese ? "可选，填写审批意见..." : "Optional comment..."
-          }
+          {submitting
+            ? isChinese
+              ? "提交中..."
+              : "Submitting..."
+            : isChinese
+              ? "提交操作"
+              : "Submit"}
+        </Button>
+
+        {canReassign && (
+          <Button
+            type="button"
+            variant="secondary"
+            className="w-full rounded-2xl"
+            onClick={() => setShowReassign((prev) => !prev)}
+          >
+            {showReassign
+              ? isChinese
+                ? "收起更换审批人"
+                : "Hide reassign form"
+              : isChinese
+                ? "更换审批人"
+                : "Reassign approver"}
+          </Button>
+        )}
+      </form>
+
+      {canReassign && showReassign && (
+        <ApprovalReassignForm
+          approvalId={approvalId}
+          approvalType={approvalType}
+          status="pending"
+          locale={locale}
+          applicantId={applicantId}
+          approverId={approverId}
+          approverName={approverName}
+          variant="embedded"
         />
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <Label
-            htmlFor={fieldIds.actorId}
-            className="text-xs text-muted-foreground"
-          >
-            {isChinese ? "操作人 ID" : "Actor ID"}
-          </Label>
-          <Input
-            id={fieldIds.actorId}
-            required
-            readOnly
-            disabled
-            value={user?.id ?? ""}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label
-            htmlFor={fieldIds.actorName}
-            className="text-xs text-muted-foreground"
-          >
-            {isChinese ? "操作人姓名" : "Actor Name"}
-          </Label>
-          <Input
-            id={fieldIds.actorName}
-            readOnly
-            disabled
-            value={user?.nickname ?? ""}
-          />
-        </div>
-      </div>
-
-      <Button type="submit" disabled={!canSubmit || submitting} className="w-full rounded-2xl">
-        {submitting
-          ? isChinese
-            ? "提交中..."
-            : "Submitting..."
-          : isChinese
-            ? "提交操作"
-            : "Submit"}
-      </Button>
-    </form>
+      )}
+    </div>
   );
 }

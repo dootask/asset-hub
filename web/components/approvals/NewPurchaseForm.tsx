@@ -946,7 +946,7 @@ export default function NewPurchaseForm({
             <span className="text-destructive">*</span>
           </Label>
 
-          {roleMembers.length > 1 ? (
+          {roleMembers.length > 1 && allowOverride ? (
             <Select
               value={formState.approverId}
               onValueChange={(val) => {
@@ -973,6 +973,12 @@ export default function NewPurchaseForm({
                 ))}
               </SelectContent>
             </Select>
+          ) : roleMembers.length > 1 && !allowOverride ? (
+            <div className="rounded-2xl border border-dashed border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              {isChinese
+                ? "审批配置为按角色指派且角色有多位成员，但不允许手动选择；请联系管理员调整审批配置或角色成员。"
+                : "Role-based approver has multiple members but override is disabled. Please ask an admin to update the approval config or role members."}
+            </div>
           ) : roleMembers.length <= 1 && allowOverride ? (
             canUseSelector ? (
               <div className="flex flex-wrap items-center gap-2">
@@ -1075,7 +1081,7 @@ export default function NewPurchaseForm({
                   : "Please pick an approver before submitting."}
               </p>
             )}
-          {roleMembers.length > 1 && (
+          {roleMembers.length > 1 && allowOverride && (
             <p className="mt-1.5 text-xs text-muted-foreground">
               {isChinese
                 ? "请从该角色成员中选择一位审批人。"

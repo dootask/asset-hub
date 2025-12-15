@@ -66,6 +66,20 @@ export async function updateExternalApprovalTodo(
   });
 }
 
+export async function reassignExternalApprovalTodo(
+  approval: ApprovalRequest,
+  externalId: string | null | undefined,
+) {
+  if (!externalId) return;
+  await sendRequest({
+    path: `/todos/${externalId}`,
+    method: "PATCH",
+    body: {
+      approverId: approval.approverId,
+    },
+  });
+}
+
 export async function createConsumableAlertTodo(alert: ConsumableAlert) {
   const payload = await sendRequest({
     path: `/todos`,

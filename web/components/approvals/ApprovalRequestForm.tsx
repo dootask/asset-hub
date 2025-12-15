@@ -1098,7 +1098,7 @@ export default function ApprovalRequestForm({
         </Label>
         
         {/* Case 1: Role-based multiple members - Show Dropdown */}
-        {roleMembers.length > 1 && (
+        {roleMembers.length > 1 && allowOverride && (
           <Select
             value={formState.approverId}
             onValueChange={(val) => {
@@ -1119,7 +1119,7 @@ export default function ApprovalRequestForm({
                    {member.name} ({member.id})
                  </SelectItem>
                ))}
-             </SelectContent>
+           </SelectContent>
           </Select>
         )}
 
@@ -1212,7 +1212,7 @@ export default function ApprovalRequestForm({
           </div>
         ) : null}
 
-        {!allowOverride && roleMembers.length <= 1 && (
+        {!allowOverride && (
           <p className="text-xs text-muted-foreground">
             {isChinese
               ? "此操作由系统自动指派审批人，无法手动修改。"
@@ -1224,11 +1224,18 @@ export default function ApprovalRequestForm({
             {isChinese ? "请选择审批人后再提交。" : "Please pick an approver before submitting."}
           </p>
         )}
-         {roleMembers.length > 1 && (
+        {roleMembers.length > 1 && allowOverride && (
           <p className="text-xs text-muted-foreground">
-            {isChinese 
-              ? "请从该角色成员中选择一位审批人。" 
+            {isChinese
+              ? "请从该角色成员中选择一位审批人。"
               : "Please select one approver from the role members."}
+          </p>
+        )}
+        {roleMembers.length > 1 && !allowOverride && (
+          <p className="text-xs text-destructive">
+            {isChinese
+              ? "审批配置为按角色指派且角色有多位成员，但不允许手动选择；请联系管理员调整审批配置或角色成员。"
+              : "Role-based approver has multiple members but override is disabled. Please ask an admin to update the approval config or role members."}
           </p>
         )}
       </div>

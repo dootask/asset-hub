@@ -679,3 +679,74 @@ export function applyApprovalAction(
 
   return updated;
 }
+
+export function reassignApprovalApprover(
+  id: string,
+  payload: {
+    approver: { id: string; name?: string };
+    actor: { id: string; name?: string };
+  },
+): ApprovalRequest {
+  const existing = getApprovalRequestById(id);
+  if (!existing) {
+    throw new Error("审批请求不存在");
+  }
+  if (existing.status !== "pending") {
+    throw new Error("该审批已处理，无法更换审批人");
+  }
+
+  const nextApproverId = payload.approver.id.trim();
+  if (!nextApproverId) {
+    throw new Error("缺少审批人信息");
+  }
+
+  const now = new Date().toISOString();
+  const nextMetadata: Record<string, unknown> = {
+    ...(existing.metadata ?? {}),
+  };
+
+  if (existing.approverId !== nextApproverId) {
+    const history = Array.isArray(
+      (nextMetadata as { approverReassignments?: unknown }).approverReassignments,
+    )
+      ? (nextMetadata as { approverReassignments: unknown[] }).approverReassignments
+      : [];
+
+    history.push({
+      at: now,
+      from: {
+        id: existing.approverId ?? null,
+        name: existing.approverName ?? null,
+      },
+      to: {
+        id: nextApproverId,
+        name: payload.approver.name ?? null,
+      },
+      actor: {
+        id: payload.actor.id,
+        name: payload.actor.name ?? null,
+      },
+    });
+
+    (nextMetadata as { approverReassignments: unknown[] }).approverReassignments =
+      history;
+  }
+
+  const db = getDb();
+  db.prepare(
+    `UPDATE asset_approval_requests
+     SET approver_id = @approverId,
+         approver_name = @approverName,
+         metadata = @metadata,
+         updated_at = @updatedAt
+     WHERE id = @id`,
+  ).run({
+    id,
+    approverId: nextApproverId,
+    approverName: payload.approver.name ?? null,
+    metadata: JSON.stringify(nextMetadata),
+    updatedAt: now,
+  });
+
+  return getApprovalRequestById(id)!;
+}

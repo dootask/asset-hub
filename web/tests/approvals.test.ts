@@ -11,6 +11,7 @@ import {
   applyApprovalAction,
   createApprovalRequest,
   listApprovalRequests,
+  reassignApprovalApprover,
 } from "@/lib/repositories/approvals";
 import { getAssetById } from "@/lib/repositories/assets";
 import { createConsumableCategory } from "@/lib/repositories/consumable-categories";
@@ -191,6 +192,73 @@ describe("Approval repository", () => {
       (pendingInbound?.metadata as { operationTemplate?: unknown })
         ?.operationTemplate,
     ).toBeTruthy();
+  });
+
+  it("reassigns approver for pending approvals and records history", () => {
+    const approval = createApprovalRequest({
+      type: "purchase",
+      title: "采购审批",
+      applicant: { id: "user-1", name: "Applicant" },
+      approver: { id: "approver-1", name: "Leader A" },
+      metadata: { source: "test" },
+    });
+
+    const updated = reassignApprovalApprover(approval.id, {
+      approver: { id: "approver-2", name: "Leader B" },
+      actor: { id: "user-1", name: "Applicant" },
+    });
+
+    expect(updated.approverId).toBe("approver-2");
+    expect(updated.approverName).toBe("Leader B");
+    expect(updated.metadata?.source).toBe("test");
+
+    const history = (updated.metadata as { approverReassignments?: unknown })
+      ?.approverReassignments;
+    expect(Array.isArray(history)).toBe(true);
+    expect((history as unknown[]).length).toBe(1);
+    expect(
+      (history as Array<{ to?: { id?: string } }>)[0]?.to?.id,
+    ).toBe("approver-2");
+  });
+
+  it("prevents reassigning approver after approval is handled", () => {
+    const asset = createAsset({
+      name: "Device",
+      category: "Laptop",
+      status: "in-use",
+      companyCode: "HITOSEA",
+      owner: "Ops",
+      location: "HQ",
+      purchaseDate: "2024-01-01",
+    });
+
+    const operation = createAssetOperation(asset.id, {
+      type: "inbound",
+      actor: "Ops",
+      description: "入库确认",
+      status: "pending",
+    });
+
+    const approval = createApprovalRequest({
+      type: "inbound",
+      title: "入库审批",
+      applicant: { id: "ops-user" },
+      approver: { id: "manager-1", name: "Manager" },
+      assetId: asset.id,
+      operationId: operation.id,
+    });
+
+    applyApprovalAction(approval.id, {
+      action: "approve",
+      actor: { id: "manager-1", name: "Manager" },
+    });
+
+    expect(() =>
+      reassignApprovalApprover(approval.id, {
+        approver: { id: "manager-2", name: "Manager 2" },
+        actor: { id: "ops-user", name: "Ops" },
+      }),
+    ).toThrow(/无法更换审批人/);
   });
 
   it("auto creates receive operations when approval lacks operation link", () => {
@@ -397,5 +465,3 @@ describe("Approval repository", () => {
     expect(refreshed.quantity).toBe(45);
   });
 });
-
-
