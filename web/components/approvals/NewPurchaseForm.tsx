@@ -55,6 +55,8 @@ type Props = {
 
 type FieldValue = string | string[];
 
+const EMPTY_STRING_ARRAY: string[] = [];
+
 type DootaskUser =
   | string
   | number
@@ -90,6 +92,10 @@ export default function NewPurchaseForm({
   // Role resolution
   const [, setLoadingRole] = useState(false);
   const [roleMembers, setRoleMembers] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
+  const [loadingUserCandidates, setLoadingUserCandidates] = useState(false);
+  const [userCandidates, setUserCandidates] = useState<
     Array<{ id: string; name: string }>
   >([]);
 
@@ -210,11 +216,14 @@ export default function NewPurchaseForm({
     };
   }, [feedback, isChinese]);
 
+  const userApproverCandidates = useMemo(() => {
+    if (!config || config.defaultApproverType !== "user") {
+      return EMPTY_STRING_ARRAY;
+    }
+    return config.defaultApproverRefs ?? EMPTY_STRING_ARRAY;
+  }, [config]);
   const defaultApproverId =
-    config?.defaultApproverType === "user" &&
-    config.defaultApproverRefs.length > 0
-      ? config.defaultApproverRefs[0]
-      : null;
+    userApproverCandidates.length === 1 ? userApproverCandidates[0] : null;
 
   const defaultRoleApproverId =
     config?.defaultApproverType === "role" &&
@@ -321,6 +330,61 @@ export default function NewPurchaseForm({
       });
     }
   }, [defaultApproverId]);
+
+  useEffect(() => {
+    if (!config || config.defaultApproverType !== "user") {
+      setUserCandidates([]);
+      return;
+    }
+    if (userApproverCandidates.length <= 1) {
+      setUserCandidates([]);
+      return;
+    }
+
+    let active = true;
+    async function loadCandidates() {
+      setLoadingUserCandidates(true);
+      try {
+        const details: Array<{ id: string; name: string }> = [];
+        const numericIds = userApproverCandidates
+          .map((id) => Number(id))
+          .filter((n) => Number.isFinite(n));
+
+        if (numericIds.length > 0) {
+          try {
+            const users = await fetchUserBasic(numericIds);
+            if (Array.isArray(users)) {
+              users.forEach((u) => {
+                const uid = u.id || u.userid;
+                if (uid) {
+                  details.push({
+                    id: String(uid),
+                    name: u.nickname || u.name || String(uid),
+                  });
+                }
+              });
+            }
+          } catch {}
+        }
+
+        userApproverCandidates.forEach((id) => {
+          if (!details.find((entry) => entry.id === id)) {
+            details.push({ id, name: id });
+          }
+        });
+
+        if (!active) return;
+        setUserCandidates(details);
+      } finally {
+        if (active) setLoadingUserCandidates(false);
+      }
+    }
+
+    loadCandidates();
+    return () => {
+      active = false;
+    };
+  }, [config, userApproverCandidates]);
 
   // Auto-fill title if not modified manually
   useEffect(() => {
@@ -584,12 +648,7 @@ export default function NewPurchaseForm({
   };
 
   const handleSelectApprover = async () => {
-    if (!config?.allowOverride && config?.defaultApproverType !== "none") {
-      feedback.error(
-        isChinese ? "当前配置不允许修改审批人" : "Approver override not allowed",
-      );
-      return;
-    }
+    if (config?.defaultApproverType !== "none") return;
 
     setSelectingApprover(true);
     try {
@@ -766,9 +825,7 @@ export default function NewPurchaseForm({
     }
   };
 
-  const allowOverride = config?.allowOverride ?? true;
   const requiresApproval = config?.requiresApproval ?? true;
-  const approvalsDisabled = !requiresApproval;
 
   if (!loadingConfig && !requiresApproval) {
     return (
@@ -946,7 +1003,7 @@ export default function NewPurchaseForm({
             <span className="text-destructive">*</span>
           </Label>
 
-          {roleMembers.length > 1 && allowOverride ? (
+          {config?.defaultApproverType === "role" && roleMembers.length > 1 ? (
             <Select
               value={formState.approverId}
               onValueChange={(val) => {
@@ -973,13 +1030,33 @@ export default function NewPurchaseForm({
                 ))}
               </SelectContent>
             </Select>
-          ) : roleMembers.length > 1 && !allowOverride ? (
-            <div className="rounded-2xl border border-dashed border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-              {isChinese
-                ? "审批配置为按角色指派且角色有多位成员，但不允许手动选择；请联系管理员调整审批配置或角色成员。"
-                : "Role-based approver has multiple members but override is disabled. Please ask an admin to update the approval config or role members."}
-            </div>
-          ) : roleMembers.length <= 1 && allowOverride ? (
+          ) : config?.defaultApproverType === "user" && userCandidates.length > 1 ? (
+            <Select
+              value={formState.approverId}
+              onValueChange={(val) => {
+                const member = userCandidates.find((m) => m.id === val);
+                setFormState((prev) => ({
+                  ...prev,
+                  approverId: val,
+                  approverName: member?.name ?? "",
+                }));
+              }}
+              disabled={loadingUserCandidates}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue
+                  placeholder={isChinese ? "请选择审批人" : "Select an approver"}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {userCandidates.map((member) => (
+                  <SelectItem key={member.id} value={member.id}>
+                    {member.name} ({member.id})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : config?.defaultApproverType === "none" ? (
             canUseSelector ? (
               <div className="flex flex-wrap items-center gap-2">
                 <Button
@@ -1017,10 +1094,10 @@ export default function NewPurchaseForm({
                   </div>
                 )}
               </div>
-            ) : (
-              <div className="flex gap-2">
-                <Input
-                  id={fieldIds.approverId}
+          ) : (
+            <div className="flex gap-2">
+              <Input
+                id={fieldIds.approverId}
                   value={formState.approverId}
                   onChange={(e) =>
                     setFormState({
@@ -1030,7 +1107,6 @@ export default function NewPurchaseForm({
                   }
                   placeholder="User ID"
                   className="max-w-[120px]"
-                  readOnly={!allowOverride}
                 />
                 <Input
                   id={fieldIds.approverName}
@@ -1042,52 +1118,12 @@ export default function NewPurchaseForm({
                     })
                   }
                   placeholder="Name (Optional)"
-                  readOnly={!allowOverride}
                 />
               </div>
             )
-          ) : (
-            <div className="rounded-2xl border border-dashed border-muted-foreground/40 bg-muted/20 px-3 py-2 text-sm font-medium text-foreground">
-              {formState.approverId || defaultApproverId ? (
-                <span>
-                  {formState.approverName ||
-                    formState.approverId ||
-                    defaultApproverId}
-                </span>
-              ) : (
-                <span className="text-destructive">
-                  {isChinese
-                    ? "尚未配置默认审批人，请联系管理员。"
-                    : "No default approver configured. Please contact an admin."}
-                </span>
-              )}
-            </div>
-          )}
+          ) : null}
 
-          {!allowOverride && roleMembers.length <= 1 && (
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              {isChinese
-                ? "此操作由系统自动指派审批人，无法手动修改。"
-                : "Approver is assigned automatically and cannot be changed."}
-            </p>
-          )}
-          {allowOverride &&
-            !formState.approverId &&
-            !approvalsDisabled &&
-            roleMembers.length === 0 && (
-              <p className="mt-1.5 text-xs text-muted-foreground">
-                {isChinese
-                  ? "请选择审批人后再提交。"
-                  : "Please pick an approver before submitting."}
-              </p>
-            )}
-          {roleMembers.length > 1 && allowOverride && (
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              {isChinese
-                ? "请从该角色成员中选择一位审批人。"
-                : "Please select one approver from the role members."}
-            </p>
-          )}
+          {/* Keep UI minimal; backend validates approver selection. */}
         </div>
       </div>
 

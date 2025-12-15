@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { ApprovalActionPayload, ApprovalRequest } from "@/lib/types/approval";
 import { applyApprovalAction, getApprovalRequestById } from "@/lib/repositories/approvals";
 import { extractUserFromRequest } from "@/lib/utils/request-user";
-import { canApproveUser, isAdminUser } from "@/lib/utils/permissions";
+import { isAdminUser } from "@/lib/utils/permissions";
 import { notifyApprovalUpdated } from "@/lib/services/approval-notifications";
 
 type RouteContext = {
@@ -40,10 +40,10 @@ function sanitizeActionPayload(payload: unknown): {
 }
 
 function canApprove(approval: ApprovalRequest, userId: string) {
-  if (approval.approverId && approval.approverId === userId) {
+  if (isAdminUser(userId)) {
     return true;
   }
-  return canApproveUser(userId);
+  return approval.approverId === userId;
 }
 
 function canCancel(approval: ApprovalRequest, userId: string) {

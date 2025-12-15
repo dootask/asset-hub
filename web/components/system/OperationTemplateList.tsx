@@ -422,7 +422,7 @@ export default function OperationTemplateList({
                           {config && (
                             <>
                               <p>
-                                {isChinese ? "允许改审批人：" : "Override approver:"}{" "}
+                                {isChinese ? "允许更换审批人：" : "Reassign approver:"}{" "}
                                 {config.allowOverride
                                   ? isChinese
                                     ? "允许"

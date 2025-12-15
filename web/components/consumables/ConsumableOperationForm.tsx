@@ -41,6 +41,10 @@ type DootaskUser =
       name?: string;
     };
 
+type SelectUsersReturn = DootaskUser[] | { users?: DootaskUser[] };
+
+const EMPTY_STRING_ARRAY: string[] = [];
+
 const CONFIG_MAP: Record<ConsumableOperationType, ConsumableActionConfig> =
   CONSUMABLE_ACTION_CONFIGS.reduce(
     (acc, config) => {
@@ -109,6 +113,10 @@ export default function ConsumableOperationForm({
   const [selectingApprover, setSelectingApprover] = useState(false);
   const [roleMembers, setRoleMembers] = useState<Array<{ id: string; name: string }>>([]);
   const [, setLoadingRole] = useState(false);
+  const [loadingUserCandidates, setLoadingUserCandidates] = useState(false);
+  const [userCandidates, setUserCandidates] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const feedback = useAppFeedback();
@@ -119,12 +127,14 @@ export default function ConsumableOperationForm({
 
   const activeConfig =
     configMap[approvalTypeToActionConfigId(operationType as ApprovalType)];
-  const allowOverride = activeConfig?.allowOverride ?? true;
+  const userApproverCandidates = useMemo(() => {
+    if (!activeConfig || activeConfig.defaultApproverType !== "user") {
+      return EMPTY_STRING_ARRAY;
+    }
+    return activeConfig.defaultApproverRefs ?? EMPTY_STRING_ARRAY;
+  }, [activeConfig]);
   const defaultApproverId =
-    activeConfig?.defaultApproverType === "user" &&
-    activeConfig.defaultApproverRefs.length > 0
-      ? activeConfig.defaultApproverRefs[0]
-      : null;
+    userApproverCandidates.length === 1 ? userApproverCandidates[0] : null;
   const defaultRoleApproverId =
     activeConfig?.defaultApproverType === "role" &&
     activeConfig.defaultApproverRefs.length > 0
@@ -138,17 +148,13 @@ export default function ConsumableOperationForm({
     setReservedDelta(defaults.reservedDelta.toString());
     setReason("");
     setError(null);
+    setApproverId("");
+    setApproverName("");
 
     const config =
       configMap[approvalTypeToActionConfigId(operationType as ApprovalType)];
-    if (
-      config?.defaultApproverType === "user" &&
-      config.defaultApproverRefs.length > 0 &&
-      !config.allowOverride
-    ) {
+    if (config?.defaultApproverType === "user" && config.defaultApproverRefs.length === 1) {
       setApproverId(config.defaultApproverRefs[0]);
-    } else if (!config?.allowOverride) {
-      setApproverId("");
     }
   }, [operationType, configMap]);
 
@@ -297,12 +303,10 @@ export default function ConsumableOperationForm({
 
         if (!active) return;
         setRoleMembers(memberDetails);
-        if (memberDetails.length === 1 || !allowOverride) {
+        if (memberDetails.length === 1) {
           const pick = memberDetails[0];
-          if (pick) {
-            setApproverId(pick.id);
-            setApproverName(pick.name);
-          }
+          setApproverId(pick.id);
+          setApproverName(pick.name);
         }
       } catch (err) {
         if (!active) return;
@@ -316,7 +320,7 @@ export default function ConsumableOperationForm({
     return () => {
       active = false;
     };
-  }, [defaultRoleApproverId, feedback, isChinese, allowOverride]);
+  }, [defaultRoleApproverId, feedback, isChinese]);
 
   useEffect(() => {
     if (!activeConfig) return;
@@ -324,6 +328,60 @@ export default function ConsumableOperationForm({
       setApproverId((prev) => prev || defaultApproverId);
     }
   }, [activeConfig, defaultApproverId]);
+
+  useEffect(() => {
+    if (!activeConfig || activeConfig.defaultApproverType !== "user") {
+      setUserCandidates([]);
+      return;
+    }
+    if (userApproverCandidates.length <= 1) {
+      setUserCandidates([]);
+      return;
+    }
+
+    let active = true;
+    async function loadCandidates() {
+      setLoadingUserCandidates(true);
+      try {
+        const details: Array<{ id: string; name: string }> = [];
+        const numericIds = userApproverCandidates
+          .map((id) => Number(id))
+          .filter((n) => Number.isFinite(n));
+
+        if (numericIds.length > 0) {
+          try {
+            const users = await fetchUserBasic(numericIds);
+            if (Array.isArray(users)) {
+              users.forEach((u) => {
+                const uid = u.id || u.userid;
+                if (uid) {
+                  details.push({
+                    id: String(uid),
+                    name: u.nickname || u.name || String(uid),
+                  });
+                }
+              });
+            }
+          } catch {}
+        }
+
+        userApproverCandidates.forEach((id) => {
+          if (!details.find((entry) => entry.id === id)) {
+            details.push({ id, name: id });
+          }
+        });
+
+        if (!active) return;
+        setUserCandidates(details);
+      } finally {
+        if (active) setLoadingUserCandidates(false);
+      }
+    }
+    loadCandidates();
+    return () => {
+      active = false;
+    };
+  }, [activeConfig, userApproverCandidates]);
 
   const typeDescription = useMemo(() => {
     if (operationType === "outbound") {
@@ -400,16 +458,23 @@ export default function ConsumableOperationForm({
         throw new Error(isChinese ? "请填写申请事由。" : "Reason is required for approval.");
       }
 
-      if (
-        requiresApproval &&
-        activeConfig?.defaultApproverType === "role" &&
-        allowOverride &&
-        roleMembers.length > 1 &&
-        !approverId
-      ) {
-        throw new Error(
-          isChinese ? "请选择审批人后再提交。" : "Please pick an approver before submitting.",
-        );
+      if (requiresApproval) {
+        const type = activeConfig?.defaultApproverType ?? "none";
+        if (type === "role" && roleMembers.length > 1 && !approverId) {
+          throw new Error(
+            isChinese ? "请选择审批人后再提交。" : "Please pick an approver before submitting.",
+          );
+        }
+        if (type === "user" && userApproverCandidates.length > 1 && !approverId) {
+          throw new Error(
+            isChinese ? "请选择审批人后再提交。" : "Please pick an approver before submitting.",
+          );
+        }
+        if (type === "none" && !approverId) {
+          throw new Error(
+            isChinese ? "请选择审批人后再提交。" : "Please pick an approver before submitting.",
+          );
+        }
       }
 
       if (!applicant.id) {
@@ -602,7 +667,7 @@ export default function ConsumableOperationForm({
             <Label className="text-xs font-medium text-muted-foreground">
               {isChinese ? "审批人" : "Approver"}
             </Label>
-            {roleMembers.length > 1 && allowOverride && (
+            {activeConfig?.defaultApproverType === "role" && roleMembers.length > 1 && (
               <Select
                 value={approverId}
                 onValueChange={(value) => {
@@ -611,7 +676,7 @@ export default function ConsumableOperationForm({
                   setApproverName(member?.name ?? "");
                 }}
               >
-                <SelectTrigger className="w-full max-w-[320px]">
+                <SelectTrigger className="w-full">
                   <SelectValue
                     placeholder={
                       isChinese ? "请选择审批人" : "Select an approver"
@@ -627,14 +692,30 @@ export default function ConsumableOperationForm({
                 </SelectContent>
               </Select>
             )}
-            {roleMembers.length > 1 && !allowOverride && (
-              <p className="text-[11px] text-destructive">
-                {isChinese
-                  ? "审批配置为按角色指派且角色有多位成员，但不允许手动选择；请联系管理员调整审批配置或角色成员。"
-                  : "Role-based approver has multiple members but override is disabled. Please ask an admin to update the approval config or role members."}
-              </p>
+            {activeConfig?.defaultApproverType === "user" && userCandidates.length > 1 && (
+              <Select
+                value={approverId}
+                onValueChange={(value) => {
+                  const member = userCandidates.find((item) => item.id === value);
+                  setApproverId(value);
+                  setApproverName(member?.name ?? "");
+                }}
+                disabled={loadingUserCandidates}
+              >
+                <SelectTrigger className="w-full max-w-[320px]">
+                  <SelectValue placeholder={isChinese ? "请选择审批人" : "Select an approver"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {userCandidates.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>
+                      {member.name} ({member.id})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
-            {roleMembers.length <= 1 && allowOverride && (
+
+            {activeConfig?.defaultApproverType === "none" ? (
               canUseSelector ? (
                 <div className="flex flex-wrap items-center gap-2">
                   <Button
@@ -643,19 +724,16 @@ export default function ConsumableOperationForm({
                     onClick={async () => {
                       setSelectingApprover(true);
                       try {
-                      const result = (await selectUsers({
-                        multipleMax: 1,
-                        showSelectAll: false,
-                        showDialog: false,
-                      }).catch(() => null)) as
-                        | DootaskUser[]
-                        | { users?: DootaskUser[] }
-                        | null;
-                      const entry = Array.isArray(result)
-                        ? result[0]
-                        : Array.isArray(result?.users)
-                          ? result.users[0]
-                          : undefined;
+                        const result = (await selectUsers({
+                          multipleMax: 1,
+                          showSelectAll: false,
+                          showDialog: false,
+                        }).catch(() => null)) as SelectUsersReturn | null;
+                        const entry = Array.isArray(result)
+                          ? result[0]
+                          : Array.isArray(result?.users)
+                            ? result.users[0]
+                            : undefined;
                         if (typeof entry === "string" || typeof entry === "number") {
                           setApproverId(String(entry));
                           setApproverName("");
@@ -665,13 +743,11 @@ export default function ConsumableOperationForm({
                         const name = entry?.nickname ?? entry?.name;
                         if (id) {
                           setApproverId(String(id));
-                          if (name) setApproverName(name);
+                          setApproverName(name ?? "");
                         }
                       } catch {
                         feedback.error(
-                          isChinese
-                            ? "选择审批人失败。"
-                            : "Failed to select approver.",
+                          isChinese ? "选择审批人失败。" : "Failed to select approver.",
                         );
                       } finally {
                         setSelectingApprover(false);
@@ -689,9 +765,7 @@ export default function ConsumableOperationForm({
                   </Button>
                   {(approverId || approverName) && (
                     <div className="ml-2 flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-sm">
-                      <span className="font-medium">
-                        {approverName || approverId}
-                      </span>
+                      <span className="font-medium">{approverName || approverId}</span>
                       <button
                         type="button"
                         className="text-muted-foreground hover:text-foreground"
@@ -728,32 +802,9 @@ export default function ConsumableOperationForm({
                   </div>
                 </div>
               )
-            )}
-            {roleMembers.length <= 1 && !allowOverride && (
-              <div className="rounded-2xl border border-dashed border-muted-foreground/40 bg-muted/20 px-3 py-2 text-sm font-medium text-foreground">
-                {approverId || defaultApproverId ? (
-                  <span>{approverName || approverId || defaultApproverId}</span>
-                ) : (
-                  <span className="text-destructive">
-                    {isChinese
-                      ? "尚未配置默认审批人，请联系管理员。"
-                      : "No default approver configured. Please contact an admin."}
-                  </span>
-                )}
-              </div>
-            )}
-            {allowOverride && !approverId && roleMembers.length === 0 && (
-              <p className="text-[11px] text-amber-800/90 dark:text-amber-100/80">
-                {isChinese ? "请选择审批人后再提交。" : "Please pick an approver before submitting."}
-              </p>
-            )}
-            {roleMembers.length > 1 && allowOverride && (
-              <p className="text-[11px] text-amber-800/90 dark:text-amber-100/80">
-                {isChinese
-                  ? "请从该角色成员中选择一位审批人。"
-                  : "Please select one approver from the role members."}
-              </p>
-            )}
+            ) : null}
+
+            {/* Keep UI minimal; backend validates approver selection. */}
           </div>
         </div>
       )}

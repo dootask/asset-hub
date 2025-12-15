@@ -9,7 +9,7 @@ import { notifyApprovalReassigned } from "@/lib/services/approval-notifications"
 import { reassignExternalApprovalTodo } from "@/lib/integrations/dootask-todos";
 import { approvalTypeToActionConfigId } from "@/lib/utils/action-config";
 import { extractUserFromRequest } from "@/lib/utils/request-user";
-import { canApproveUser } from "@/lib/utils/permissions";
+import { canApproveUser, isAdminUser } from "@/lib/utils/permissions";
 
 type RouteContext = {
   params: Promise<{
@@ -93,21 +93,29 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     }
 
     const actorId = String(currentUser.id);
-    const canReassign =
-      existing.applicantId === actorId ||
-      (existing.approverId && existing.approverId === actorId) ||
-      canApproveUser(actorId);
+    const isAssignedApprover =
+      existing.approverId !== null && existing.approverId === actorId;
+    const canReassign = isAdminUser(actorId) || isAssignedApprover || canApproveUser(actorId);
     if (!canReassign) {
       return NextResponse.json(
         {
           error: "FORBIDDEN",
-          message: "只有发起人或具备审批权限的用户可以更换审批人。",
+          message: "只有管理员、当前审批人或具备审批权限的用户可以更换审批人。",
         },
         { status: 403 },
       );
     }
 
     const config = getActionConfig(approvalTypeToActionConfigId(existing.type));
+    if (!config.allowOverride) {
+      return NextResponse.json(
+        {
+          error: "FORBIDDEN",
+          message: "当前审批配置不允许更换审批人。",
+        },
+        { status: 403 },
+      );
+    }
     const resolvedApprover = resolveApproverFromConfig(config, payload.approver);
     if (!resolvedApprover?.id) {
       return NextResponse.json(

@@ -22,6 +22,8 @@ import type { Role } from "@/lib/types/system";
 import { approvalTypeToActionConfigId } from "@/lib/utils/action-config";
 import { appReady, fetchUserBasic, isMicroApp, selectUsers } from "@dootask/tools";
 
+const EMPTY_STRING_ARRAY: string[] = [];
+
 type Props = {
   approvalId: string;
   approvalType: ApprovalType;
@@ -71,6 +73,10 @@ export default function ApprovalReassignForm(props: Props) {
     Array<{ id: string; name: string }>
   >([]);
   const [loadingRole, setLoadingRole] = useState(false);
+  const [loadingUserCandidates, setLoadingUserCandidates] = useState(false);
+  const [userCandidates, setUserCandidates] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
 
   const [canUseSelector, setCanUseSelector] = useState(false);
   const [selectingApprover, setSelectingApprover] = useState(false);
@@ -95,10 +101,7 @@ export default function ApprovalReassignForm(props: Props) {
     props.status === "pending" &&
     userReady &&
     actorId !== null &&
-    (actorId === props.applicantId ||
-      actorId === props.approverId ||
-      isAdmin ||
-      isApprover);
+    (isAdmin || isApprover || (props.approverId && actorId === props.approverId));
 
   useEffect(() => {
     async function initEnv() {
@@ -151,6 +154,13 @@ export default function ApprovalReassignForm(props: Props) {
     config?.defaultApproverType === "role" && config.defaultApproverRefs.length
       ? config.defaultApproverRefs[0]
       : null;
+
+  const userApproverCandidates = useMemo(() => {
+    if (!config || config.defaultApproverType !== "user") {
+      return EMPTY_STRING_ARRAY;
+    }
+    return config.defaultApproverRefs ?? EMPTY_STRING_ARRAY;
+  }, [config]);
 
   useEffect(() => {
     if (!defaultRoleApproverId) {
@@ -220,30 +230,92 @@ export default function ApprovalReassignForm(props: Props) {
     };
   }, [defaultRoleApproverId]);
 
-  const allowOverride = config?.allowOverride ?? true;
+  const allowReassign = config?.allowOverride ?? true;
   const needsRolePick = roleMembers.length > 1;
+  const needsUserPick =
+    config?.defaultApproverType === "user" && userCandidates.length > 1;
 
   const lockedByConfig = useMemo(() => {
     if (!config) return false;
-    if (!allowOverride && config.defaultApproverType !== "none") {
-      return true;
+    return !allowReassign;
+  }, [config, allowReassign]);
+
+  useEffect(() => {
+    if (!config || config.defaultApproverType !== "user") {
+      setUserCandidates((prev) => (prev.length ? [] : prev));
+      return;
     }
-    return false;
-  }, [config, allowOverride]);
+    if (userApproverCandidates.length <= 1) {
+      setUserCandidates((prev) => (prev.length ? [] : prev));
+      return;
+    }
+
+    let active = true;
+    async function loadCandidates() {
+      setLoadingUserCandidates(true);
+      try {
+        const details: Array<{ id: string; name: string }> = [];
+        const numericIds = userApproverCandidates
+          .map((id) => Number(id))
+          .filter((n) => Number.isFinite(n));
+
+        if (numericIds.length > 0) {
+          try {
+            const users = await fetchUserBasic(numericIds);
+            if (Array.isArray(users)) {
+              users.forEach((u) => {
+                const uid = u.id || u.userid;
+                if (uid) {
+                  details.push({
+                    id: String(uid),
+                    name: u.nickname || u.name || String(uid),
+                  });
+                }
+              });
+            }
+          } catch {}
+        }
+
+        userApproverCandidates.forEach((id) => {
+          if (!details.find((entry) => entry.id === id)) {
+            details.push({ id, name: id });
+          }
+        });
+
+        if (!active) return;
+        setUserCandidates(details);
+      } finally {
+        if (active) setLoadingUserCandidates(false);
+      }
+    }
+
+    loadCandidates();
+    return () => {
+      active = false;
+    };
+  }, [config, userApproverCandidates]);
 
   const missingSelection = useMemo(() => {
     if (!canEdit) return false;
     if (lockedByConfig) return false;
     if (needsRolePick) return nextApprover.id.trim().length === 0;
+    if (needsUserPick) return nextApprover.id.trim().length === 0;
     return nextApprover.id.trim().length === 0;
-  }, [canEdit, lockedByConfig, needsRolePick, nextApprover.id]);
-
-  if (!canEdit) return null;
+  }, [canEdit, lockedByConfig, needsRolePick, needsUserPick, nextApprover.id]);
 
   const currentLabel =
     props.approverName ??
     props.approverId ??
     (isChinese ? "未指派" : "Unassigned");
+
+  const currentApproverOption = props.approverId
+    ? {
+        id: props.approverId,
+        name: props.approverName ?? props.approverId,
+      }
+    : null;
+
+  if (!canEdit) return null;
 
   const resolveSelectedApprover = async (entry: DootaskUser | null) => {
     if (entry === null || entry === undefined) return null;
@@ -284,10 +356,13 @@ export default function ApprovalReassignForm(props: Props) {
   };
 
   const handleSelectApprover = async () => {
+    if (config?.defaultApproverType !== "none") {
+      return;
+    }
     if (lockedByConfig) {
       feedback.error(
         isChinese
-          ? "当前审批配置不允许修改审批人。"
+          ? "当前审批配置不允许更换审批人。"
           : "Approver is locked by system configuration.",
       );
       return;
@@ -400,7 +475,7 @@ export default function ApprovalReassignForm(props: Props) {
       {lockedByConfig && (
         <p className="rounded-2xl border border-dashed border-muted-foreground/40 bg-muted/20 p-3 text-xs text-muted-foreground">
           {isChinese
-            ? "当前审批配置不允许修改审批人。"
+            ? "当前审批配置不允许更换审批人。"
             : "Approver is locked by system configuration."}
         </p>
       )}
@@ -414,7 +489,12 @@ export default function ApprovalReassignForm(props: Props) {
             {isChinese ? "从角色成员选择" : "Pick from role members"}
           </Label>
           <Select
-            value={nextApprover.id}
+            value={
+              roleMembers.some((member) => member.id === nextApprover.id) ||
+              (currentApproverOption?.id === nextApprover.id)
+                ? nextApprover.id
+                : ""
+            }
             onValueChange={(value) => {
               const match = roleMembers.find((m) => m.id === value);
               setNextApprover({ id: value, name: match?.name });
@@ -429,6 +509,14 @@ export default function ApprovalReassignForm(props: Props) {
               />
             </SelectTrigger>
             <SelectContent>
+              {currentApproverOption &&
+                !roleMembers.some((member) => member.id === currentApproverOption.id) && (
+                  <SelectItem value={currentApproverOption.id} disabled>
+                    {isChinese
+                      ? `当前：${currentApproverOption.name}（不在候选范围）`
+                      : `Current: ${currentApproverOption.name} (not in candidates)`}
+                  </SelectItem>
+                )}
               {roleMembers.map((member) => (
                 <SelectItem key={member.id} value={member.id}>
                   {member.name} ({member.id})
@@ -436,91 +524,127 @@ export default function ApprovalReassignForm(props: Props) {
               ))}
             </SelectContent>
           </Select>
-          {roleMembers.length > 1 && (
-            <p className="text-xs text-muted-foreground">
-              {isChinese
-                ? "只能在该角色成员范围内选择。"
-                : "You can only choose from role members."}
-            </p>
-          )}
         </div>
       )}
 
-      {!lockedByConfig && !needsRolePick && allowOverride && (
-        canUseSelector ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={handleSelectApprover}
-              disabled={selectingApprover}
-            >
-              {selectingApprover
-                ? isChinese
-                  ? "选择中..."
-                  : "Selecting..."
-                : isChinese
-                  ? "选择审批人"
-                  : "Select Approver"}
-            </Button>
-            {nextApprover.id && (
-              <div className="ml-2 flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-sm">
-                <span className="font-medium">
-                  {nextApprover.name || nextApprover.id}
-                </span>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label
-                htmlFor={fieldIds.approverId}
-                className="text-xs text-muted-foreground"
-              >
-                {isChinese ? "审批人 ID" : "Approver ID"}
-              </Label>
-              <Input
-                id={fieldIds.approverId}
-                value={nextApprover.id}
-                onChange={(event) =>
-                  setNextApprover((prev) => ({
-                    ...prev,
-                    id: event.target.value,
-                  }))
-                }
-                required
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label
-                htmlFor={fieldIds.approverName}
-                className="text-xs text-muted-foreground"
-              >
-                {isChinese ? "审批人姓名（可选）" : "Approver name (optional)"}
-              </Label>
-              <Input
-                id={fieldIds.approverName}
-                value={nextApprover.name ?? ""}
-                onChange={(event) =>
-                  setNextApprover((prev) => ({
-                    ...prev,
-                    name: event.target.value,
-                  }))
-                }
-              />
-            </div>
-          </div>
-        )
+      {!lockedByConfig && !needsRolePick && needsUserPick && (
+        <div className="space-y-1.5">
+          <Label
+            htmlFor={fieldIds.roleApprover}
+            className="text-xs font-medium text-muted-foreground"
+          >
+            {isChinese ? "从候选用户选择" : "Pick from candidate users"}
+          </Label>
+          <Select
+            value={
+              userCandidates.some((member) => member.id === nextApprover.id) ||
+              (currentApproverOption?.id === nextApprover.id)
+                ? nextApprover.id
+                : ""
+            }
+            onValueChange={(value) => {
+              const match = userCandidates.find((m) => m.id === value);
+              setNextApprover({ id: value, name: match?.name });
+            }}
+            disabled={loadingUserCandidates}
+          >
+            <SelectTrigger id={fieldIds.roleApprover} className="w-full">
+              <SelectValue placeholder={isChinese ? "请选择审批人" : "Select an approver"} />
+            </SelectTrigger>
+            <SelectContent>
+              {currentApproverOption &&
+                !userCandidates.some((member) => member.id === currentApproverOption.id) && (
+                  <SelectItem value={currentApproverOption.id} disabled>
+                    {isChinese
+                      ? `当前：${currentApproverOption.name}（不在候选范围）`
+                      : `Current: ${currentApproverOption.name} (not in candidates)`}
+                  </SelectItem>
+                )}
+              {userCandidates.map((member) => (
+                <SelectItem key={member.id} value={member.id}>
+                  {member.name} ({member.id})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       )}
 
-      {!lockedByConfig && !allowOverride && roleMembers.length <= 1 && (
-        <p className="text-xs text-muted-foreground">
-          {isChinese
-            ? "此类型审批人由系统自动指派，无法修改。"
-            : "Approver is assigned automatically and cannot be changed."}
-        </p>
-      )}
+      {!lockedByConfig &&
+        !needsRolePick &&
+        !needsUserPick &&
+        config?.defaultApproverType === "none" && (
+          canUseSelector ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleSelectApprover}
+                disabled={selectingApprover}
+              >
+                {selectingApprover
+                  ? isChinese
+                    ? "选择中..."
+                    : "Selecting..."
+                  : isChinese
+                    ? "选择审批人"
+                    : "Select Approver"}
+              </Button>
+              {nextApprover.id && (
+                <div className="ml-2 flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-sm">
+                  <span className="font-medium">
+                    {nextApprover.name || nextApprover.id}
+                  </span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor={fieldIds.approverId}
+                  className="text-xs text-muted-foreground"
+                >
+                  {isChinese ? "审批人 ID" : "Approver ID"}
+                </Label>
+                <Input
+                  id={fieldIds.approverId}
+                  value={nextApprover.id}
+                  onChange={(event) =>
+                    setNextApprover((prev) => ({
+                      ...prev,
+                      id: event.target.value,
+                    }))
+                  }
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor={fieldIds.approverName}
+                  className="text-xs text-muted-foreground"
+                >
+                  {isChinese ? "审批人姓名（可选）" : "Approver name (optional)"}
+                </Label>
+                <Input
+                  id={fieldIds.approverName}
+                  value={nextApprover.name ?? ""}
+                  onChange={(event) =>
+                    setNextApprover((prev) => ({
+                      ...prev,
+                      name: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+            </div>
+          )
+        )}
+
+      {!lockedByConfig &&
+        config?.defaultApproverType !== "none" &&
+        !needsRolePick &&
+        !needsUserPick && null}
 
       <Button
         type="submit"

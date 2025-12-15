@@ -32,7 +32,7 @@ interface Props {
 }
 
 const APPROVER_TYPE_OPTIONS = [
-  { value: "none", labelZh: "无需审批人", labelEn: "None" },
+  { value: "none", labelZh: "不指定（任意用户）", labelEn: "Any user" },
   { value: "user", labelZh: "指定用户", labelEn: "User" },
   { value: "role", labelZh: "指定角色", labelEn: "Role" },
 ];
@@ -383,11 +383,11 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
                         <Badge variant={config.allowOverride ? "outline" : "secondary"}>
                           {config.allowOverride
                             ? isChinese
-                              ? "允许申请人调整审批人"
-                              : "Override allowed"
+                              ? "允许更换审批人"
+                              : "Reassign allowed"
                             : isChinese
-                              ? "审批人不可修改"
-                              : "Approver locked"}
+                              ? "禁止更换审批人"
+                              : "Reassign disabled"}
                         </Badge>
                         <Badge variant="outline">
                           {isChinese ? "审批人类型" : "Approver type"} ·{" "}
@@ -432,17 +432,17 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
                       </div>
                       <div className="space-y-2">
                         <Label className="text-xs text-muted-foreground">
-                          {isChinese ? "允许申请人修改审批人" : "Allow applicant override"}
+                          {isChinese ? "允许更换审批人" : "Allow approver reassignment"}
                         </Label>
                         <div className="flex items-center justify-between rounded-xl bg-muted/40 px-3 py-2">
                           <p className="text-sm text-muted-foreground">
                             {config.allowOverride
                               ? isChinese
-                                ? "申请人可以在表单中调换审批人。"
-                                : "Applicants may select a different approver."
+                                ? "待审批时允许更换审批人。"
+                                : "Allow reassignment while pending."
                               : isChinese
-                                ? "审批人固定，由系统配置控制。"
-                                : "Approver stays fixed per configuration."}
+                                ? "待审批时不允许更换审批人。"
+                                : "Approver reassignment is disabled while pending."}
                           </p>
                           <Switch
                             checked={config.allowOverride}
@@ -468,7 +468,7 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
                           <SelectTrigger>
                             <SelectValue placeholder={isChinese ? "选择类型" : "Select type"} />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent align="start">
                             {APPROVER_TYPE_OPTIONS.map((option) => (
                               <SelectItem key={option.value} value={option.value}>
                                 {isChinese ? option.labelZh : option.labelEn}

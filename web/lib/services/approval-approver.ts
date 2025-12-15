@@ -21,16 +21,31 @@ export function resolveApproverFromConfig(
 ): ResolvedApprover | null {
   const cleanedRequested = normalizeApproverInput(requested);
 
-  if (config.defaultApproverType === "user" && config.defaultApproverRefs.length) {
-    const defaultUserId = config.defaultApproverRefs[0];
-    if (!config.allowOverride) {
-      if (cleanedRequested && cleanedRequested.id !== defaultUserId) {
-        throw new Error("当前审批配置不允许修改审批人。");
-      }
-      return { id: defaultUserId, name: cleanedRequested?.name };
+  if (config.defaultApproverType === "none") {
+    if (!cleanedRequested) {
+      return null;
+    }
+    return cleanedRequested;
+  }
+
+  if (config.defaultApproverType === "user") {
+    const candidates = config.defaultApproverRefs ?? [];
+    if (candidates.length === 0) {
+      throw new Error("审批配置未设置候选审批用户，请联系管理员配置。");
     }
 
-    return cleanedRequested ?? { id: defaultUserId };
+    if (cleanedRequested) {
+      if (!candidates.includes(cleanedRequested.id)) {
+        throw new Error("选择的审批人不在配置允许的用户范围内。");
+      }
+      return cleanedRequested;
+    }
+
+    if (candidates.length === 1) {
+      return { id: candidates[0] };
+    }
+
+    return null;
   }
 
   if (config.defaultApproverType === "role" && config.defaultApproverRefs.length) {
@@ -42,18 +57,6 @@ export function resolveApproverFromConfig(
       throw new Error(
         `审批配置的默认角色 (${role?.name ?? roleId}) 暂无成员，无法指派审批人。`,
       );
-    }
-
-    if (!config.allowOverride) {
-      if (members.length !== 1) {
-        throw new Error(
-          `角色 (${role?.name ?? roleId}) 有多位成员，且配置不允许手动选择，系统无法自动指派。`,
-        );
-      }
-      if (cleanedRequested && cleanedRequested.id !== members[0]) {
-        throw new Error("当前审批配置不允许修改审批人。");
-      }
-      return { id: members[0], name: cleanedRequested?.name };
     }
 
     if (cleanedRequested) {
@@ -72,12 +75,5 @@ export function resolveApproverFromConfig(
     return null;
   }
 
-  if (!config.allowOverride) {
-    throw new Error(
-      "审批配置未设置默认审批人且禁止修改，请联系管理员设置默认审批人。",
-    );
-  }
-
-  return cleanedRequested;
+  throw new Error("审批配置不合法，请联系管理员检查默认审批人配置。");
 }
-
