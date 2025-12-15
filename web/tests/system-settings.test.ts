@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resetDbForTesting } from "@/lib/db/client";
 import {
   getAlertSettings,
@@ -10,9 +10,13 @@ import {
 
 const TEST_DB_PATH = path.join(process.cwd(), "data", "test-system-settings.db");
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
 beforeEach(() => {
-  process.env.NODE_ENV = "test";
-  process.env.ASSET_HUB_DB_PATH = TEST_DB_PATH;
+  vi.stubEnv("NODE_ENV", "test");
+  vi.stubEnv("ASSET_HUB_DB_PATH", TEST_DB_PATH);
   if (fs.existsSync(TEST_DB_PATH)) {
     fs.rmSync(TEST_DB_PATH);
   }
@@ -32,5 +36,4 @@ describe("system settings repository", () => {
     expect(getSystemBooleanSetting("consumableAlertsPushEnabled", true)).toBe(false);
   });
 });
-
 
