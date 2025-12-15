@@ -29,6 +29,11 @@ export default async function ConsumableImportExportPage({
             labelEn: "Consumables",
           },
           {
+            href: `/${locale}/consumables/list`,
+            labelZh: "耗材列表",
+            labelEn: "Consumable List",
+          },
+          {
             labelZh: "导入 / 导出",
             labelEn: "Import / Export",
           },
@@ -48,4 +53,3 @@ export default async function ConsumableImportExportPage({
     </div>
   );
 }
-

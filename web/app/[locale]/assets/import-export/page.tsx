@@ -29,6 +29,11 @@ export default async function AssetImportExportPage({
             labelEn: "Assets",
           },
           {
+            href: `/${locale}/assets/list`,
+            labelZh: "资产列表",
+            labelEn: "Asset List",
+          },
+          {
             labelZh: "导入 / 导出",
             labelEn: "Import / Export",
           },
