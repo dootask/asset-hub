@@ -33,7 +33,7 @@ export default async function AssetImportExportPage({
             labelEn: "Import / Export",
           },
         ]}
-        title={isChinese ? "资产导入与导出" : "Asset Import & Export"}
+        title={isChinese ? "资产导入导出" : "Asset Import / Export"}
         description={
           isChinese
             ? "统一管理资产 CSV 导入与导出，批量维护资产数据。"

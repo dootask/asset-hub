@@ -34,7 +34,7 @@
   - 示例子路由：
     - `settings`：资产字段与状态配置。
     - `list`：资产列表（筛选 / 排序 / 分页）。
-    - `import-export`：资产导入与导出。
+    - `import-export`：资产导入导出。
     - `categories`：资产分类管理。
     - `operations/purchase`：采购流程。
     - `operations/inbound`：入库流程。

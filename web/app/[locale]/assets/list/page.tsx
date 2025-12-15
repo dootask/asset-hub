@@ -207,16 +207,16 @@ export default function AssetListPage({
                 {isChinese ? "新增资产" : "New Asset"}
               </Link>
               <Link
-                href={withLocale("/assets/categories")}
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-              >
-                {isChinese ? "分类管理" : "Manage Categories"}
-              </Link>
-              <Link
                 href={withLocale("/assets/import-export")}
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
               >
                 {isChinese ? "导入 / 导出" : "Import / Export"}
+              </Link>
+              <Link
+                href={withLocale("/assets/categories")}
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+              >
+                {isChinese ? "分类管理" : "Manage Categories"}
               </Link>
             </div>
           </AdminOnly>

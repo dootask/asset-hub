@@ -35,7 +35,7 @@ alwaysApply: true
   - 子路由建议：
     - `/settings`：资产设置（字段、状态等）。
     - `/list`：资产列表（筛选/排序/分页）。
-    - `/import-export`：资产导入与导出。
+    - `/import-export`：资产导入导出。
     - `/categories`：资产分类管理。
     - `/operations/purchase`：采购流程。
     - `/operations/inbound`：入库流程（含多张照片上传）。
