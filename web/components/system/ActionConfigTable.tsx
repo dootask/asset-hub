@@ -412,8 +412,8 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
                         <Label className="text-xs text-muted-foreground">
                           {isChinese ? "需要审批" : "Requires approval"}
                         </Label>
-                        <div className="flex items-center justify-between rounded-xl bg-muted/40 px-3 py-2">
-                          <p className="text-sm text-muted-foreground">
+                        <div className="flex items-start justify-between gap-3 rounded-xl bg-muted/40 px-3 py-2">
+                          <p className="min-w-0 flex-1 text-sm text-muted-foreground">
                             {config.requiresApproval
                               ? isChinese
                                 ? "启用后该操作会触发审批流程。"
@@ -423,6 +423,7 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
                                 : "Disable to allow direct submissions without approval."}
                           </p>
                           <Switch
+                            className="shrink-0"
                             checked={config.requiresApproval}
                             onCheckedChange={(checked) =>
                               handleChange(config.id, { requiresApproval: checked })
@@ -434,8 +435,8 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
                         <Label className="text-xs text-muted-foreground">
                           {isChinese ? "允许更换审批人" : "Allow approver reassignment"}
                         </Label>
-                        <div className="flex items-center justify-between rounded-xl bg-muted/40 px-3 py-2">
-                          <p className="text-sm text-muted-foreground">
+                        <div className="flex items-start justify-between gap-3 rounded-xl bg-muted/40 px-3 py-2">
+                          <p className="min-w-0 flex-1 text-sm text-muted-foreground">
                             {config.allowOverride
                               ? isChinese
                                 ? "待审批时允许更换审批人。"
@@ -445,6 +446,7 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
                                 : "Approver reassignment is disabled while pending."}
                           </p>
                           <Switch
+                            className="shrink-0"
                             checked={config.allowOverride}
                             onCheckedChange={(checked) =>
                               handleChange(config.id, { allowOverride: checked })
