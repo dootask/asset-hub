@@ -21,6 +21,7 @@ import type { ApprovalType } from "@/lib/types/approval";
 import type { Role } from "@/lib/types/system";
 import { approvalTypeToActionConfigId } from "@/lib/utils/action-config";
 import { appReady, fetchUserBasic, isMicroApp, selectUsers } from "@dootask/tools";
+import { fetchUserBasicBatched } from "@/lib/utils/dootask-users";
 
 const EMPTY_STRING_ARRAY: string[] = [];
 
@@ -193,18 +194,17 @@ export default function ApprovalReassignForm(props: Props) {
 
         if (numericIds.length > 0) {
           try {
-            const users = await fetchUserBasic(numericIds);
-            if (Array.isArray(users)) {
-              users.forEach((u) => {
-                const uid = u.id || u.userid;
-                if (uid) {
-                  details.push({
-                    id: String(uid),
-                    name: u.nickname || u.name || String(uid),
-                  });
-                }
-              });
-            }
+            const users = await fetchUserBasicBatched(numericIds);
+            if (!active) return;
+            users.forEach((u) => {
+              const uid = u.id || u.userid;
+              if (uid) {
+                details.push({
+                  id: String(uid),
+                  name: u.nickname || u.name || String(uid),
+                });
+              }
+            });
           } catch {}
         }
 
@@ -261,18 +261,17 @@ export default function ApprovalReassignForm(props: Props) {
 
         if (numericIds.length > 0) {
           try {
-            const users = await fetchUserBasic(numericIds);
-            if (Array.isArray(users)) {
-              users.forEach((u) => {
-                const uid = u.id || u.userid;
-                if (uid) {
-                  details.push({
-                    id: String(uid),
-                    name: u.nickname || u.name || String(uid),
-                  });
-                }
-              });
-            }
+            const users = await fetchUserBasicBatched(numericIds);
+            if (!active) return;
+            users.forEach((u) => {
+              const uid = u.id || u.userid;
+              if (uid) {
+                details.push({
+                  id: String(uid),
+                  name: u.nickname || u.name || String(uid),
+                });
+              }
+            });
           } catch {}
         }
 

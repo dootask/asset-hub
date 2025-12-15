@@ -45,7 +45,7 @@ import {
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
 import { extractApiErrorMessage } from "@/lib/utils/api-error";
-import { fetchUserBasic } from "@dootask/tools";
+import { fetchUserNameMap } from "@/lib/utils/dootask-users";
 
 interface Props {
   templates: OperationTemplate[];
@@ -65,13 +65,6 @@ const WIDGET_LABELS: Record<
   number: { zh: "数字", en: "Number" },
   date: { zh: "日期", en: "Date" },
   attachments: { zh: "附件", en: "Attachments" },
-};
-
-type DootaskUserBasic = {
-  userid?: string | number;
-  id?: string | number;
-  nickname?: string;
-  name?: string;
 };
 
 export default function OperationTemplateList({
@@ -157,27 +150,10 @@ export default function OperationTemplateList({
     let cancelled = false;
     async function hydrateUserNames() {
       const missing = userApproverIds.filter((id) => !(id in userNames));
-      const numericIds = missing
-        .map((id) => Number(id))
-        .filter((id) => Number.isFinite(id));
-      if (numericIds.length === 0) return;
-      try {
-        const result = await fetchUserBasic(numericIds);
-        const list = Array.isArray(result) ? (result as DootaskUserBasic[]) : [];
-        const next: Record<string, string> = {};
-        list.forEach((user) => {
-          const rawId = user?.userid ?? user?.id;
-          const id = rawId !== undefined && rawId !== null ? String(rawId).trim() : "";
-          const name = user?.nickname ?? user?.name ?? "";
-          if (id && name) {
-            next[id] = name;
-          }
-        });
-        if (!cancelled && Object.keys(next).length > 0) {
-          setUserNames((prev) => ({ ...prev, ...next }));
-        }
-      } catch {
-        // ignore lookup errors to avoid blocking UI
+      if (missing.length === 0) return;
+      const next = await fetchUserNameMap(missing);
+      if (!cancelled && Object.keys(next).length > 0) {
+        setUserNames((prev) => ({ ...prev, ...next }));
       }
     }
     hydrateUserNames();

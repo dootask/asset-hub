@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { appReady, fetchUserBasic, isMicroApp, selectUsers } from "@dootask/tools";
+import { fetchUserBasicBatched } from "@/lib/utils/dootask-users";
 import {
   CONSUMABLE_ACTION_CONFIGS,
   type ConsumableActionConfig,
@@ -278,18 +279,17 @@ export default function ConsumableOperationForm({
 
         if (numericIds.length > 0) {
           try {
-            const users = await fetchUserBasic(numericIds);
-            if (Array.isArray(users)) {
-              users.forEach((u) => {
-                const uid = u.id || u.userid;
-                if (uid) {
-                  memberDetails.push({
-                    id: String(uid),
-                    name: u.nickname || u.name || String(uid),
-                  });
-                }
-              });
-            }
+            const users = await fetchUserBasicBatched(numericIds);
+            if (!active) return;
+            users.forEach((u) => {
+              const uid = u.id || u.userid;
+              if (uid) {
+                memberDetails.push({
+                  id: String(uid),
+                  name: u.nickname || u.name || String(uid),
+                });
+              }
+            });
           } catch {
             // ignore lookup errors
           }
@@ -350,18 +350,17 @@ export default function ConsumableOperationForm({
 
         if (numericIds.length > 0) {
           try {
-            const users = await fetchUserBasic(numericIds);
-            if (Array.isArray(users)) {
-              users.forEach((u) => {
-                const uid = u.id || u.userid;
-                if (uid) {
-                  details.push({
-                    id: String(uid),
-                    name: u.nickname || u.name || String(uid),
-                  });
-                }
-              });
-            }
+            const users = await fetchUserBasicBatched(numericIds);
+            if (!active) return;
+            users.forEach((u) => {
+              const uid = u.id || u.userid;
+              if (uid) {
+                details.push({
+                  id: String(uid),
+                  name: u.nickname || u.name || String(uid),
+                });
+              }
+            });
           } catch {}
         }
 

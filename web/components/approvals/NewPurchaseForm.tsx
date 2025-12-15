@@ -61,6 +61,7 @@ import {
 import { AttachmentUploadField } from "@/components/attachments/AttachmentUploadField";
 import { getStoredAuth } from "@/lib/utils/auth-storage";
 import { enUS, zhCN } from "react-day-picker/locale";
+import { fetchUserBasicBatched } from "@/lib/utils/dootask-users";
 
 type Props = {
   locale?: string;
@@ -297,18 +298,17 @@ export default function NewPurchaseForm({
 
         if (numericIds.length > 0) {
           try {
-            const users = await fetchUserBasic(numericIds);
-            if (Array.isArray(users)) {
-              users.forEach((u) => {
-                const uid = u.id || u.userid;
-                if (uid) {
-                  memberDetails.push({
-                    id: String(uid),
-                    name: u.nickname || u.name || String(uid),
-                  });
-                }
-              });
-            }
+            const users = await fetchUserBasicBatched(numericIds);
+            if (!active) return;
+            users.forEach((u) => {
+              const uid = u.id || u.userid;
+              if (uid) {
+                memberDetails.push({
+                  id: String(uid),
+                  name: u.nickname || u.name || String(uid),
+                });
+              }
+            });
           } catch {
             // Ignore fetch errors
           }
@@ -381,18 +381,17 @@ export default function NewPurchaseForm({
 
         if (numericIds.length > 0) {
           try {
-            const users = await fetchUserBasic(numericIds);
-            if (Array.isArray(users)) {
-              users.forEach((u) => {
-                const uid = u.id || u.userid;
-                if (uid) {
-                  details.push({
-                    id: String(uid),
-                    name: u.nickname || u.name || String(uid),
-                  });
-                }
-              });
-            }
+            const users = await fetchUserBasicBatched(numericIds);
+            if (!active) return;
+            users.forEach((u) => {
+              const uid = u.id || u.userid;
+              if (uid) {
+                details.push({
+                  id: String(uid),
+                  name: u.nickname || u.name || String(uid),
+                });
+              }
+            });
           } catch {}
         }
 

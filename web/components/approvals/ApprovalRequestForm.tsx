@@ -52,6 +52,7 @@ import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
 import { extractApiErrorMessage } from "@/lib/utils/api-error";
 import { getStoredAuth } from "@/lib/utils/auth-storage";
+import { fetchUserBasicBatched } from "@/lib/utils/dootask-users";
 
 type Applicant = {
   id: string;
@@ -341,18 +342,17 @@ export default function ApprovalRequestForm({
 
         if (numericIds.length > 0) {
           try {
-            const users = await fetchUserBasic(numericIds);
-              if (Array.isArray(users)) {
-                users.forEach(u => {
-                  const uid = u.id || u.userid;
-                  if (uid) {
-                    memberDetails.push({
-                      id: String(uid),
-                      name: u.nickname || u.name || String(uid)
-                    });
-                  }
+            const users = await fetchUserBasicBatched(numericIds);
+            if (!active) return;
+            users.forEach((u) => {
+              const uid = u.id || u.userid;
+              if (uid) {
+                memberDetails.push({
+                  id: String(uid),
+                  name: u.nickname || u.name || String(uid),
                 });
               }
+            });
           } catch {
              // Ignore fetch errors, fallback to IDs
           }
@@ -430,18 +430,17 @@ export default function ApprovalRequestForm({
 
         if (numericIds.length > 0) {
           try {
-            const users = await fetchUserBasic(numericIds);
-            if (Array.isArray(users)) {
-              users.forEach((u) => {
-                const uid = u.id || u.userid;
-                if (uid) {
-                  memberDetails.push({
-                    id: String(uid),
-                    name: u.nickname || u.name || String(uid),
-                  });
-                }
-              });
-            }
+            const users = await fetchUserBasicBatched(numericIds);
+            if (!active) return;
+            users.forEach((u) => {
+              const uid = u.id || u.userid;
+              if (uid) {
+                memberDetails.push({
+                  id: String(uid),
+                  name: u.nickname || u.name || String(uid),
+                });
+              }
+            });
           } catch {
             // ignore
           }

@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { appReady, fetchUserBasic, isMicroApp, selectUsers } from "@dootask/tools";
+import { fetchUserNameMap } from "@/lib/utils/dootask-users";
 
 interface Props {
   initialConfigs: ActionConfig[];
@@ -208,19 +209,10 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
         .filter(Boolean);
       const missing = ids.filter((id) => !(id in userNames));
       if (missing.length === 0) return;
-      for (const id of missing) {
-        const numeric = Number(id);
-        if (Number.isNaN(numeric)) continue;
-        try {
-          const result = await fetchUserBasic([numeric]);
-          const info = Array.isArray(result) ? result[0] : undefined;
-          const name = info?.nickname ?? info?.name;
-          if (name && !cancelled) {
-            setUserNames((prev) => ({ ...prev, [id]: name }));
-          }
-        } catch {
-          // ignore lookup errors to avoid blocking UI
-        }
+
+      const next = await fetchUserNameMap(missing);
+      if (!cancelled && Object.keys(next).length > 0) {
+        setUserNames((prev) => ({ ...prev, ...next }));
       }
     }
 

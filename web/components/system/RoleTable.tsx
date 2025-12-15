@@ -45,6 +45,7 @@ import type { Role } from "@/lib/types/system";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
 import { extractApiErrorMessage } from "@/lib/utils/api-error";
+import { fetchUserNameMap } from "@/lib/utils/dootask-users";
 
 interface Props {
   initialRoles: Role[];
@@ -134,21 +135,9 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
       if (missing.length === 0) {
         return;
       }
-      for (const id of missing) {
-        const numeric = Number(id);
-        if (!Number.isFinite(numeric)) {
-          continue;
-        }
-        try {
-          const result = await fetchUserBasic([numeric]);
-          const info = Array.isArray(result) ? result[0] : undefined;
-          const name = info?.nickname ?? info?.name;
-          if (name && !cancelled) {
-            setUserNames((prev) => ({ ...prev, [id]: name }));
-          }
-        } catch {
-          // ignore errors to avoid blocking UI
-        }
+      const next = await fetchUserNameMap(missing);
+      if (!cancelled && Object.keys(next).length > 0) {
+        setUserNames((prev) => ({ ...prev, ...next }));
       }
     }
     hydrateNames();
