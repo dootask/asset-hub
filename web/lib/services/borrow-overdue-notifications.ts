@@ -5,6 +5,7 @@ import {
   listOverdueBorrowRecords,
   markBorrowRecordOverdueNotified,
 } from "@/lib/repositories/borrow-records";
+import { getAssetById } from "@/lib/repositories/assets";
 
 type NotifyOptions = {
   referenceDate?: string;
@@ -60,9 +61,13 @@ export async function sendBorrowOverdueNotifications(options: NotifyOptions = {}
       }
 
       const lang = normalizeLocale(user.lang);
+      const asset = getAssetById(record.assetId);
+      const assetNo = asset?.assetNo ?? record.assetId;
       const lines = [
         lang === "zh" ? "**借用逾期提醒**" : "**Borrow Overdue Reminder**",
-        lang === "zh" ? `- 资产：${record.assetName} (#${record.assetId})` : `- Asset: ${record.assetName} (#${record.assetId})`,
+        lang === "zh"
+          ? `- 资产：${record.assetName} (#${assetNo})`
+          : `- Asset: ${record.assetName} (#${assetNo})`,
         lang === "zh" ? `- 借用人：${record.borrower ?? user.nickname ?? user.userid}` : `- Borrower: ${record.borrower ?? user.nickname ?? user.userid}`,
         record.plannedReturnDate
           ? lang === "zh" ? `- 计划归还：${record.plannedReturnDate}` : `- Planned Return: ${record.plannedReturnDate}`

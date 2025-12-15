@@ -209,7 +209,9 @@ export default async function ApprovalDetailPage({ params }: PageProps) {
               className="mt-1 inline-flex items-center gap-2 text-primary hover:underline"
             >
               {asset.name}{" "}
-              <span className="text-xs text-muted-foreground">#{asset.id}</span>
+              <span className="text-xs text-muted-foreground">
+                #{asset.assetNo || asset.id}
+              </span>
             </Link>
           ) : (
             <p className="mt-1 text-muted-foreground">

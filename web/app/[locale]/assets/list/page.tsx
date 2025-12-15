@@ -13,6 +13,7 @@ import type { Company } from "@/lib/types/system";
 import { getApiClient } from "@/lib/http/client";
 import AdminOnly from "@/components/auth/AdminOnly";
 import { extractApiErrorMessage } from "@/lib/utils/api-error";
+import { formatCentsToMoney } from "@/lib/utils/money";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -254,6 +255,8 @@ export default function AssetListPage({
               <TableRow className="text-left text-xs uppercase tracking-wide text-muted-foreground hover:bg-transparent">
                 <TableHead className="px-4 py-3">{isChinese ? "资产名称" : "Asset"}</TableHead>
                 <TableHead className="px-4 py-3">{isChinese ? "类别" : "Category"}</TableHead>
+                <TableHead className="px-4 py-3">{isChinese ? "规格型号" : "Spec / Model"}</TableHead>
+                <TableHead className="px-4 py-3">{isChinese ? "采购价格" : "Purchase Price"}</TableHead>
                 <TableHead className="px-4 py-3">{isChinese ? "所属公司" : "Company"}</TableHead>
                 <TableHead className="px-4 py-3">{isChinese ? "状态" : "Status"}</TableHead>
                 <TableHead className="px-4 py-3">
@@ -283,13 +286,28 @@ export default function AssetListPage({
                   <TableCell className="px-4 py-3">
                     {categoryMap.get(asset.category) ?? asset.category}
                   </TableCell>
-                    <TableCell className="px-4 py-3">
-                      {asset.companyCode
-                        ? companyMap.get(asset.companyCode) ?? asset.companyCode
+                  <TableCell className="px-4 py-3">
+                    <span className="text-sm text-foreground">
+                      {asset.specModel || (isChinese ? "未填写" : "-")}
+                    </span>
+                  </TableCell>
+                  <TableCell className="px-4 py-3">
+                    <span className="text-sm text-foreground">
+                      {asset.purchasePriceCents !== undefined &&
+                      asset.purchasePriceCents !== null
+                        ? `${formatCentsToMoney(asset.purchasePriceCents)} ${asset.purchaseCurrency ?? "CNY"}`
                         : isChinese
-                          ? "未指定"
-                          : "Unassigned"}
-                    </TableCell>
+                          ? "未填写"
+                          : "-"}
+                    </span>
+                  </TableCell>
+                  <TableCell className="px-4 py-3">
+                    {asset.companyCode
+                      ? companyMap.get(asset.companyCode) ?? asset.companyCode
+                      : isChinese
+                        ? "未指定"
+                        : "Unassigned"}
+                  </TableCell>
                   <TableCell className="px-4 py-3">
                     <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium">
                       {getAssetStatusLabel(asset.status, locale)}

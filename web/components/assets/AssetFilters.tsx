@@ -129,7 +129,7 @@ export default function AssetFilters({
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder={
-              isChinese ? "资产名称 / 编号 / 使用人" : "Name / ID / Owner"
+              isChinese ? "资产名称 / 编号 / 使用人" : "Name / No. / Owner"
             }
           />
         </div>
@@ -217,4 +217,3 @@ export default function AssetFilters({
     </div>
   );
 }
-

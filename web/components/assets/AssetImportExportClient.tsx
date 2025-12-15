@@ -156,7 +156,7 @@ export default function AssetImportExportClient({ locale, categories, companies 
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder={
-                  isChinese ? "资产名称、编号、位置..." : "Name, ID, location..."
+                  isChinese ? "资产名称、编号、位置..." : "Name, No., location..."
                 }
               />
             </div>

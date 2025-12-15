@@ -81,7 +81,7 @@ export default async function AssetDetailPage({ params }: PageProps) {
           },
         ]}
         title={asset.name}
-        description={asset.assetNo ? `${asset.assetNo} · ${asset.id}` : asset.id}
+        description={asset.assetNo || asset.id}
         actions={
           <AdminOnly>
             <DisposeAssetButton assetId={asset.id} locale={locale} />

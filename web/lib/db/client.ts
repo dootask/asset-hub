@@ -67,6 +67,17 @@ function migrateAssetsTable(database: Database.Database) {
   });
 
   try {
+    const refreshedColumns = getColumnNames(database, "assets");
+    if (refreshedColumns.has("asset_no")) {
+      database.exec(
+        "UPDATE assets SET asset_no = id WHERE asset_no IS NULL OR asset_no = ''",
+      );
+    }
+  } catch (error) {
+    console.error("Failed to backfill assets.asset_no:", error);
+  }
+
+  try {
     database.exec(
       `
       CREATE UNIQUE INDEX IF NOT EXISTS idx_assets_asset_no_unique

@@ -145,7 +145,10 @@ export function isAssetNoInUse(assetNo: string, excludeId?: string): boolean {
 export function createAsset(payload: CreateAssetPayload): Asset {
   const db = getDb();
   const id = `AST-${randomUUID().slice(0, 8).toUpperCase()}`;
-  const assetNo = payload.assetNo?.trim() ? payload.assetNo.trim() : null;
+  const assetNo =
+    payload.assetNo?.trim()
+      ? payload.assetNo.trim()
+      : id;
   const specModel = payload.specModel?.trim() ? payload.specModel.trim() : null;
   const purchasePriceCents =
     typeof payload.purchasePriceCents === "number"
@@ -204,7 +207,7 @@ export function createAsset(payload: CreateAssetPayload): Asset {
   return {
     id,
     ...payload,
-    assetNo: assetNo ?? undefined,
+    assetNo,
     specModel: specModel ?? undefined,
     purchasePriceCents: purchasePriceCents ?? undefined,
     purchaseCurrency,

@@ -68,7 +68,7 @@ export async function GET(request: Request, { params }: RouteContext) {
   }
 
   const rows = result.items.map((asset) => ({
-    id: asset.id,
+    assetNo: asset.assetNo ?? asset.id,
     name: asset.name,
     category: asset.category,
     status: asset.status,
