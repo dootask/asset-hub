@@ -83,6 +83,59 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
     [configs],
   );
 
+  const rolesMap = useMemo(() => {
+    const map = new Map<string, Role>();
+    roles.forEach((role) => map.set(role.id, role));
+    return map;
+  }, [roles]);
+
+  const normalizeRoleIds = (refs: string[]) => {
+    const seen = new Set<string>();
+    const ids: string[] = [];
+    refs.forEach((ref) => {
+      ref
+        .split("|")
+        .map((entry) => entry.trim())
+        .filter(Boolean)
+        .forEach((id) => {
+          if (seen.has(id)) return;
+          seen.add(id);
+          ids.push(id);
+        });
+    });
+    return ids;
+  };
+
+  const fallbackRoleLabel = (roleId: string) => {
+    if (roleId === "ROLE-ADMIN") {
+      return isChinese ? "超级管理员" : "Super Admin";
+    }
+    if (roleId === "ROLE-ASSET-MANAGER") {
+      return isChinese ? "资产管理员" : "Asset Manager";
+    }
+    return null;
+  };
+
+  const formatDefaultApproverSummary = (config: ActionConfig) => {
+    if (config.defaultApproverRefs.length === 0) {
+      return isChinese ? "未设置" : "Not set";
+    }
+    if (config.defaultApproverType === "user") {
+      const labels = config.defaultApproverRefs.map((id) =>
+        userNames[id] ? `${userNames[id]} (${id})` : id,
+      );
+      return labels.join(", ") || (isChinese ? "未设置" : "Not set");
+    }
+    if (config.defaultApproverType === "role") {
+      const roleIds = normalizeRoleIds(config.defaultApproverRefs);
+      const labels = roleIds.map(
+        (id) => rolesMap.get(id)?.name ?? fallbackRoleLabel(id) ?? id,
+      );
+      return labels.join(", ") || (isChinese ? "未设置" : "Not set");
+    }
+    return isChinese ? "未设置" : "Not set";
+  };
+
   const handleChange = (id: ActionConfigId, partial: Partial<ActionConfig>) => {
     setConfigs((prev) =>
       prev.map((config) => (config.id === id ? { ...config, ...partial } : config)),
@@ -345,12 +398,7 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
                 (option) => option.value === config.defaultApproverType,
               ) ??
               APPROVER_TYPE_OPTIONS[0];
-            const approverRefs =
-              config.defaultApproverRefs.length > 0
-                ? config.defaultApproverRefs.join(", ")
-                : isChinese
-                  ? "未设置"
-                  : "Not set";
+            const approverRefs = formatDefaultApproverSummary(config);
             const updatedLabel = config.updatedAt
               ? new Date(config.updatedAt).toLocaleString()
               : isChinese
@@ -397,7 +445,14 @@ export default function ActionConfigTable({ initialConfigs, locale }: Props) {
                     </div>
                     <div className="flex flex-col gap-1 text-xs text-muted-foreground sm:text-right">
                       <span>
-                        {isChinese ? "默认审批人：" : "Default approvers:"} {approverRefs}
+                        {config.defaultApproverType === "role"
+                          ? isChinese
+                            ? "默认角色："
+                            : "Default role:"
+                          : isChinese
+                            ? "默认审批人："
+                            : "Default approvers:"}{" "}
+                        {approverRefs}
                       </span>
                       <span>
                         {isChinese ? "最近更新：" : "Last updated:"} {updatedLabel}

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { ArrowDown, ArrowUp, Code2, Plus, RefreshCw, Trash2 } from "lucide-react";
 import type {
   OperationTemplate,
@@ -9,6 +9,7 @@ import type {
 } from "@/lib/types/operation-template";
 import type { ActionConfig } from "@/lib/types/action-config";
 import type { OperationStats } from "@/lib/repositories/asset-operations";
+import type { Role } from "@/lib/types/system";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -44,6 +45,7 @@ import {
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
 import { extractApiErrorMessage } from "@/lib/utils/api-error";
+import { fetchUserBasic } from "@dootask/tools";
 
 interface Props {
   templates: OperationTemplate[];
@@ -63,6 +65,13 @@ const WIDGET_LABELS: Record<
   number: { zh: "数字", en: "Number" },
   date: { zh: "日期", en: "Date" },
   attachments: { zh: "附件", en: "Attachments" },
+};
+
+type DootaskUserBasic = {
+  userid?: string | number;
+  id?: string | number;
+  nickname?: string;
+  name?: string;
 };
 
 export default function OperationTemplateList({
@@ -94,12 +103,88 @@ export default function OperationTemplateList({
   const [fieldPickerOpen, setFieldPickerOpen] = useState<Record<string, boolean>>({});
   const [editorTabs, setEditorTabs] = useState<Record<string, "builder" | "json">>({});
   const feedback = useAppFeedback();
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [userNames, setUserNames] = useState<Record<string, string>>({});
 
   const configMap = useMemo(() => {
     const map = new Map<string, ActionConfig>();
     actionConfigs.forEach((config) => map.set(config.id, config));
     return map;
   }, [actionConfigs]);
+
+  const rolesMap = useMemo(() => {
+    const map = new Map<string, Role>();
+    roles.forEach((role) => map.set(role.id, role));
+    return map;
+  }, [roles]);
+
+  const userApproverIds = useMemo(() => {
+    const ids = new Set<string>();
+    actionConfigs
+      .filter((config) => config.defaultApproverType === "user")
+      .flatMap((config) => config.defaultApproverRefs)
+      .forEach((ref) => {
+        const id = ref.trim();
+        if (id) ids.add(id);
+      });
+    return Array.from(ids);
+  }, [actionConfigs]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadRoles() {
+      try {
+        const client = await getApiClient();
+        const response = await client.get<{ data: Role[] }>(
+          "/apps/asset-hub/api/system/roles",
+        );
+        if (!cancelled) {
+          setRoles(response.data.data ?? []);
+        }
+      } catch {
+        if (!cancelled) {
+          setRoles([]);
+        }
+      }
+    }
+    loadRoles();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function hydrateUserNames() {
+      const missing = userApproverIds.filter((id) => !(id in userNames));
+      const numericIds = missing
+        .map((id) => Number(id))
+        .filter((id) => Number.isFinite(id));
+      if (numericIds.length === 0) return;
+      try {
+        const result = await fetchUserBasic(numericIds);
+        const list = Array.isArray(result) ? (result as DootaskUserBasic[]) : [];
+        const next: Record<string, string> = {};
+        list.forEach((user) => {
+          const rawId = user?.userid ?? user?.id;
+          const id = rawId !== undefined && rawId !== null ? String(rawId).trim() : "";
+          const name = user?.nickname ?? user?.name ?? "";
+          if (id && name) {
+            next[id] = name;
+          }
+        });
+        if (!cancelled && Object.keys(next).length > 0) {
+          setUserNames((prev) => ({ ...prev, ...next }));
+        }
+      } catch {
+        // ignore lookup errors to avoid blocking UI
+      }
+    }
+    hydrateUserNames();
+    return () => {
+      cancelled = true;
+    };
+  }, [userApproverIds, userNames]);
 
   const statsMap = useMemo(() => {
     const map = new Map<string, OperationStats>();
@@ -114,6 +199,50 @@ export default function OperationTemplateList({
     setItems((prev) =>
       prev.map((item) => (item.type === type ? { ...item, ...partial } : item)),
     );
+  };
+
+  const normalizeRoleIds = (refs: string[]) => {
+    const seen = new Set<string>();
+    const ids: string[] = [];
+    refs.forEach((ref) => {
+      ref
+        .split("|")
+        .map((entry) => entry.trim())
+        .filter(Boolean)
+        .forEach((id) => {
+          if (seen.has(id)) return;
+          seen.add(id);
+          ids.push(id);
+        });
+    });
+    return ids;
+  };
+
+  const fallbackRoleLabel = (roleId: string) => {
+    if (roleId === "ROLE-ADMIN") {
+      return isChinese ? "超级管理员" : "Super Admin";
+    }
+    if (roleId === "ROLE-ASSET-MANAGER") {
+      return isChinese ? "资产管理员" : "Asset Manager";
+    }
+    return null;
+  };
+
+  const formatDefaultApproverRefs = (config: ActionConfig) => {
+    if (config.defaultApproverRefs.length === 0) return "-";
+    if (config.defaultApproverType === "user") {
+      const labels = config.defaultApproverRefs.map((id) => {
+        const name = userNames[id];
+        return name ? `${name}(${id})` : id;
+      });
+      return labels.join(", ") || "-";
+    }
+    if (config.defaultApproverType === "role") {
+      const roleIds = normalizeRoleIds(config.defaultApproverRefs);
+      const labels = roleIds.map((id) => rolesMap.get(id)?.name ?? fallbackRoleLabel(id) ?? id);
+      return labels.join(", ") || "-";
+    }
+    return "-";
   };
 
   const applyDraftChange = (
@@ -433,8 +562,14 @@ export default function OperationTemplateList({
                               </p>
                               {config.defaultApproverType !== "none" && (
                                 <p>
-                                  {isChinese ? "默认审批人：" : "Default approver:"}{" "}
-                                  {config.defaultApproverRefs.join(", ") || "-"}
+                                  {config.defaultApproverType === "role"
+                                    ? isChinese
+                                      ? "默认角色："
+                                      : "Default role:"
+                                    : isChinese
+                                      ? "默认审批人："
+                                      : "Default approver:"}{" "}
+                                  {formatDefaultApproverRefs(config)}
                                 </p>
                               )}
                             </>
