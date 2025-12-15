@@ -9,17 +9,69 @@ import ApprovalStatusBadge from "@/components/approvals/ApprovalStatusBadge";
 import ApprovalActionForm from "@/components/approvals/ApprovalActionForm";
 import PageHeader from "@/components/layout/PageHeader";
 import OperationTemplateView from "@/components/operations/OperationTemplateView";
+import ApproverReassignmentsView from "@/components/approvals/ApproverReassignmentsView";
 import { extractOperationTemplateMetadata } from "@/lib/utils/operation-template";
 import type { OperationTemplateMetadata } from "@/lib/types/operation-template";
 import { appConfig } from "@/lib/config";
 import { OPERATION_TEMPLATE_LABELS } from "@/lib/constants/operation-template-labels";
 
-const RESERVED_METADATA_KEYS = new Set(["operationTemplate", "configSnapshot"]);
+const RESERVED_METADATA_KEYS = new Set([
+  "operationTemplate",
+  "configSnapshot",
+  "approverReassignments",
+]);
 
 type PageParams = { locale: string; id: string };
 type PageProps = {
   params: Promise<PageParams>;
 };
+
+type ApproverReassignment = {
+  at: string;
+  from: { id: string | null; name: string | null };
+  to: { id: string | null; name: string | null };
+  actor: { id: string | null; name: string | null };
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function parseApproverReassignments(
+  metadata?: Record<string, unknown> | null,
+): ApproverReassignment[] {
+  if (!metadata) return [];
+  const value = metadata.approverReassignments;
+  if (!Array.isArray(value)) return [];
+
+  const result: ApproverReassignment[] = [];
+  value.forEach((entry) => {
+    if (!isRecord(entry)) return;
+    if (typeof entry.at !== "string" || !entry.at) return;
+
+    const from = isRecord(entry.from) ? entry.from : {};
+    const to = isRecord(entry.to) ? entry.to : {};
+    const actor = isRecord(entry.actor) ? entry.actor : {};
+
+    result.push({
+      at: entry.at,
+      from: {
+        id: typeof from.id === "string" ? from.id : null,
+        name: typeof from.name === "string" ? from.name : null,
+      },
+      to: {
+        id: typeof to.id === "string" ? to.id : null,
+        name: typeof to.name === "string" ? to.name : null,
+      },
+      actor: {
+        id: typeof actor.id === "string" ? actor.id : null,
+        name: typeof actor.name === "string" ? actor.name : null,
+      },
+    });
+  });
+
+  return result;
+}
 
 export async function generateMetadata({
   params,
@@ -84,6 +136,12 @@ export default async function ApprovalDetailPage({ params }: PageProps) {
   const operationTemplateMetadata =
     extractOperationTemplateMetadata(operation?.metadata ?? undefined) ??
     extractOperationTemplateMetadata(approval.metadata ?? undefined);
+  const approverReassignmentsFromApproval = parseApproverReassignments(
+    approval.metadata,
+  );
+  const approverReassignments = approverReassignmentsFromApproval.length
+    ? approverReassignmentsFromApproval
+    : parseApproverReassignments(operation?.metadata ?? undefined);
   const mergedOperationMetadata: OperationTemplateMetadata | null =
     operationTemplateMetadata || metadataSplit.known.length
       ? {
@@ -96,6 +154,8 @@ export default async function ApprovalDetailPage({ params }: PageProps) {
           },
         }
       : null;
+  const hasOperationDetails =
+    mergedOperationMetadata !== null || approverReassignments.length > 0;
 
   return (
     <div className="space-y-6">
@@ -245,17 +305,32 @@ export default async function ApprovalDetailPage({ params }: PageProps) {
               {approval.result ?? (isChinese ? "待处理" : "Pending")}
             </p>
           </div>
-          {mergedOperationMetadata && (
+          {hasOperationDetails && (
             <div>
               <p className="text-xs text-muted-foreground">
                 {isChinese ? "操作详情" : "Operation Details"}
               </p>
-              <OperationTemplateView
-                metadata={mergedOperationMetadata}
-                labels={metadataSplit.labels}
-                locale={locale}
-                className="mt-2"
-              />
+              {mergedOperationMetadata && (
+                <OperationTemplateView
+                  metadata={mergedOperationMetadata}
+                  labels={metadataSplit.labels}
+                  locale={locale}
+                  className="mt-2"
+                />
+              )}
+              {approverReassignments.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-xs text-muted-foreground">
+                    {isChinese ? "审批人变更记录" : "Approver Reassignments"}
+                  </p>
+                  <div className="mt-2">
+                    <ApproverReassignmentsView
+                      locale={locale}
+                      items={approverReassignments}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
           {metadataSplit.rest && (
