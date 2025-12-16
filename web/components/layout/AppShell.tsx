@@ -215,7 +215,7 @@ export default function AppShell({
     <div className="min-h-screen bg-background transition-colors">
       {bridge}
       <div
-        className="mx-auto flex min-h-screen w-full max-w-7xl gap-6 px-6 pt-[calc(1.5rem+var(--safe-area-top,0px))] pb-[calc(1.5rem+var(--safe-area-bottom,0px))]"
+        className="mx-auto flex min-h-screen w-full gap-6 px-6 pt-[calc(1.5rem+var(--safe-area-top,0px))] pb-[calc(1.5rem+var(--safe-area-bottom,0px))]"
       >
         <aside
           className="hidden w-60 flex-shrink-0 flex-col rounded-3xl border bg-card/60 p-5 shadow-sm lg:flex lg:sticky lg:top-[calc(1.5rem+var(--safe-area-top,0px))] lg:max-h-[calc(100vh-3rem-var(--safe-area-top,0px)-var(--safe-area-bottom,0px))] lg:overflow-y-auto"
