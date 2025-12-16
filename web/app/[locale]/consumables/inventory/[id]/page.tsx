@@ -3,8 +3,8 @@ import Link from "next/link";
 import PageHeader from "@/components/layout/PageHeader";
 import ConsumableInventoryEntriesTable from "@/components/consumables/ConsumableInventoryEntriesTable";
 import ConsumableInventoryStatusControls from "@/components/consumables/ConsumableInventoryStatusControls";
+import AdminOnly from "@/components/auth/AdminOnly";
 import { getConsumableInventoryTask } from "@/lib/repositories/consumable-inventory";
-import { requireAdminUser } from "@/lib/server/auth";
 
 type PageParams = {
   locale: string;
@@ -17,7 +17,6 @@ export default async function ConsumableInventoryDetailPage({
   params: Promise<PageParams>;
 }) {
   const { locale, id } = await params;
-  await requireAdminUser(locale);
 
   const task = getConsumableInventoryTask(id);
   if (!task) {
@@ -70,11 +69,13 @@ export default async function ConsumableInventoryDetailPage({
           </>
         }
         actions={
-          <ConsumableInventoryStatusControls
-            taskId={task.id}
-            status={task.status}
-            locale={locale}
-          />
+          <AdminOnly>
+            <ConsumableInventoryStatusControls
+              taskId={task.id}
+              status={task.status}
+              locale={locale}
+            />
+          </AdminOnly>
         }
       />
 
@@ -155,11 +156,21 @@ export default async function ConsumableInventoryDetailPage({
             </span>
           </div>
         </div>
-        <ConsumableInventoryEntriesTable
-          taskId={task.id}
-          locale={locale}
-          entries={task.entries}
-        />
+        <AdminOnly
+          fallback={
+            <div className="rounded-2xl border bg-muted/30 p-4 text-sm text-muted-foreground">
+              {isChinese
+                ? "只有系统管理员可以查看与填写盘点条目。"
+                : "Only administrators can view and record inventory entries."}
+            </div>
+          }
+        >
+          <ConsumableInventoryEntriesTable
+            taskId={task.id}
+            locale={locale}
+            entries={task.entries}
+          />
+        </AdminOnly>
         <div className="text-xs text-muted-foreground">
           {isChinese ? (
             <>
@@ -189,4 +200,3 @@ export default async function ConsumableInventoryDetailPage({
     </div>
   );
 }
-

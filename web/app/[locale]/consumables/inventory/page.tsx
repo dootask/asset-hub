@@ -2,9 +2,9 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import PageHeader from "@/components/layout/PageHeader";
 import ConsumableInventoryCreateDialog from "@/components/consumables/ConsumableInventoryCreateDialog";
+import AdminOnly from "@/components/auth/AdminOnly";
 import { listConsumableCategories } from "@/lib/repositories/consumable-categories";
 import { listConsumableInventoryTasks } from "@/lib/repositories/consumable-inventory";
-import { requireAdminUser } from "@/lib/server/auth";
 
 export const metadata: Metadata = {
   title: "耗材盘点 - Asset Hub",
@@ -30,8 +30,7 @@ export default async function ConsumableInventoryPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  await requireAdminUser(locale);
-  
+
   const isChinese = locale === "zh";
   const [tasks, categories] = await Promise.all([
     listConsumableInventoryTasks(),
@@ -60,13 +59,15 @@ export default async function ConsumableInventoryPage({
             : "Create tasks, track progress, and export discrepancies."
         }
         actions={
-          <ConsumableInventoryCreateDialog
-            locale={locale}
-            categories={categories.map((category) => ({
-              code: category.code,
-              label: locale === "zh" ? category.labelZh : category.labelEn,
-            }))}
-          />
+          <AdminOnly>
+            <ConsumableInventoryCreateDialog
+              locale={locale}
+              categories={categories.map((category) => ({
+                code: category.code,
+                label: locale === "zh" ? category.labelZh : category.labelEn,
+              }))}
+            />
+          </AdminOnly>
         }
       />
 
@@ -143,4 +144,3 @@ export default async function ConsumableInventoryPage({
     </div>
   );
 }
-
