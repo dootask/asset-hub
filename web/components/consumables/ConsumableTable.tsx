@@ -35,7 +35,7 @@ export default function ConsumableTable({
       <Table className="text-sm">
         <TableHeader className="bg-muted/40">
           <TableRow className="text-xs uppercase tracking-wide text-muted-foreground">
-            <TableHead className="px-4 py-3">{isChinese ? "名称" : "Name"}</TableHead>
+            <TableHead className="px-4 py-3 w-[240px] md:w-[320px]">{isChinese ? "名称" : "Name"}</TableHead>
             <TableHead className="px-4 py-3">{isChinese ? "类别" : "Category"}</TableHead>
             <TableHead className="px-4 py-3">{isChinese ? "规格型号" : "Spec / Model"}</TableHead>
             <TableHead className="px-4 py-3">{isChinese ? "采购价格" : "Purchase Price"}</TableHead>
@@ -49,7 +49,7 @@ export default function ConsumableTable({
         <TableBody>
           {consumables.map((item) => (
             <TableRow key={item.id}>
-              <TableCell className="px-4 py-3">
+              <TableCell className="px-4 py-3 w-[240px] md:w-[320px]">
                 <Link href={`/${locale}/consumables/${item.id}`} className="font-medium text-primary hover:underline">
                   {item.name}
                 </Link>

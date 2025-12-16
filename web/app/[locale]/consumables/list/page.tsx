@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import ConsumableFilters from "@/components/consumables/ConsumableFilters";
 import ConsumableTable from "@/components/consumables/ConsumableTable";
+import ListPagination from "@/components/layout/ListPagination";
 import PageHeader from "@/components/layout/PageHeader";
 import { listConsumableCategories } from "@/lib/repositories/consumable-categories";
 import AdminOnly from "@/components/auth/AdminOnly";
@@ -172,32 +173,20 @@ export default async function ConsumableListPage({
         categoryLookup={categoryLookup}
       />
 
-      <div className="flex flex-col gap-3 rounded-2xl border bg-muted/30 px-4 py-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
-        <p>
-          {isChinese
-            ? `共 ${result.total} 条记录`
-            : `${result.total} records total`}
-        </p>
-        <nav className="flex items-center gap-2 text-xs">
-          {Array.from({ length: totalPages }).map((_, index) => {
-            const pageNumber = index + 1;
-            const active = pageNumber === result.page;
-            return (
-              <Link
-                key={pageNumber}
-                href={buildPageLink(pageNumber)}
-                className={`rounded-full px-3 py-1 ${
-                  active
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {pageNumber}
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
+      {result.total > 0 && (
+        <div className="flex flex-col gap-3 rounded-2xl border bg-card p-4 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
+          <p className="shrink-0">
+            {isChinese ? `共 ${result.total} 条记录` : `${result.total} records total`}
+          </p>
+          <ListPagination
+            currentPage={result.page}
+            totalPages={totalPages}
+            getHref={buildPageLink}
+            locale={locale}
+            className="md:justify-end"
+          />
+        </div>
+      )}
     </div>
   );
 }

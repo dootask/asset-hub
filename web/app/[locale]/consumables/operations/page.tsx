@@ -244,13 +244,22 @@ export default async function ConsumableOperationsPage({
             </Table>
           </div>
 
+        </section>
+      )}
+
+      {report.total > 0 && (
+        <div className="flex flex-col gap-3 rounded-2xl border bg-card p-4 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
+          <p className="shrink-0">
+            {isChinese ? `共 ${report.total} 条记录` : `${report.total} records total`}
+          </p>
           <ListPagination
             currentPage={report.page}
             totalPages={totalPages}
             getHref={getPageHref}
             locale={locale}
+            className="md:justify-end"
           />
-        </section>
+        </div>
       )}
     </div>
   );

@@ -230,7 +230,9 @@ export default function ApprovalsPage({ params }: PageProps) {
         <Table className="text-sm">
           <TableHeader className="bg-muted/50">
             <TableRow className="text-left text-xs uppercase tracking-wide text-muted-foreground hover:bg-transparent">
-              <TableHead className="px-4 py-3">{isChinese ? "标题" : "Title"}</TableHead>
+              <TableHead className="px-4 py-3 w-[260px] md:w-[360px]">
+                {isChinese ? "标题" : "Title"}
+              </TableHead>
               <TableHead className="px-4 py-3">{isChinese ? "类型" : "Type"}</TableHead>
               <TableHead className="px-4 py-3">{isChinese ? "状态" : "Status"}</TableHead>
               <TableHead className="px-4 py-3">{isChinese ? "操作概要" : "Summary"}</TableHead>
@@ -254,7 +256,7 @@ export default function ApprovalsPage({ params }: PageProps) {
                 const summary = buildOperationSummary(approval, locale);
                 return (
                   <TableRow key={approval.id}>
-                    <TableCell className="px-4 py-3 whitespace-normal">
+                    <TableCell className="px-4 py-3 whitespace-normal w-[260px] md:w-[360px]">
                       <div className="font-medium text-foreground">
                         <Link
                           href={`/${locale}/approvals/${approval.id}`}

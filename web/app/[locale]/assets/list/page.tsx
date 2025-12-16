@@ -253,7 +253,9 @@ export default function AssetListPage({
           <Table className="text-sm">
             <TableHeader className="bg-muted/50">
               <TableRow className="text-left text-xs uppercase tracking-wide text-muted-foreground hover:bg-transparent">
-                <TableHead className="px-4 py-3">{isChinese ? "资产名称" : "Asset"}</TableHead>
+                <TableHead className="px-4 py-3 w-[240px] md:w-[320px]">
+                  {isChinese ? "资产名称" : "Asset"}
+                </TableHead>
                 <TableHead className="px-4 py-3">{isChinese ? "类别" : "Category"}</TableHead>
                 <TableHead className="px-4 py-3">{isChinese ? "规格型号" : "Spec / Model"}</TableHead>
                 <TableHead className="px-4 py-3">{isChinese ? "采购价格" : "Purchase Price"}</TableHead>
@@ -271,7 +273,7 @@ export default function AssetListPage({
             <TableBody>
               {assets.map((asset) => (
                 <TableRow key={asset.id}>
-                  <TableCell className="px-4 py-3 whitespace-normal">
+                  <TableCell className="px-4 py-3 whitespace-normal w-[240px] md:w-[320px]">
                     <Link
                       href={withLocale(`/assets/${asset.id}`)}
                       className="font-medium text-primary hover:underline line-clamp-2 break-words"
@@ -341,12 +343,20 @@ export default function AssetListPage({
         </section>
       )}
 
-      <ListPagination
-        currentPage={meta.page}
-        totalPages={totalPages}
-        getHref={buildPageLink}
-        locale={locale}
-      />
+      {assets.length > 0 && !errorMessage && (
+        <div className="flex flex-col gap-3 rounded-2xl border bg-card p-4 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
+          <p className="shrink-0">
+            {isChinese ? `共 ${meta.total} 条记录` : `${meta.total} records total`}
+          </p>
+          <ListPagination
+            currentPage={meta.page}
+            totalPages={totalPages}
+            getHref={buildPageLink}
+            locale={locale}
+            className="md:justify-end"
+          />
+        </div>
+      )}
     </div>
   );
 }
