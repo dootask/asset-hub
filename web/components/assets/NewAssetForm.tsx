@@ -137,7 +137,7 @@ export default function NewAssetForm({ locale = "en", categories, companies }: P
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="asset-no" className="text-sm font-medium text-muted-foreground">
-            {isChinese ? "资产编号" : "Asset No."}
+            {isChinese ? "资产编号（留空自动生成）" : "Asset No. (auto-generated if left blank)"}
           </Label>
           <Input
             id="asset-no"
