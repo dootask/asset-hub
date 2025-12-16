@@ -215,16 +215,6 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
           <form id="edit-asset-form" className="space-y-4" onSubmit={handleSubmit}>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="edit-asset-no">
-                  {isChinese ? "资产编号" : "Asset No."}
-                </Label>
-                <Input
-                  id="edit-asset-no"
-                  value={formState.assetNo}
-                  onChange={(event) => handleChange("assetNo", event.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
                 <Label htmlFor="edit-asset-name">
                   {isChinese ? "资产名称" : "Asset Name"}
                 </Label>
@@ -236,6 +226,16 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
                 />
               </div>
               <div className="space-y-1.5">
+                <Label htmlFor="edit-asset-no">
+                  {isChinese ? "资产编号" : "Asset No."}
+                </Label>
+                <Input
+                  id="edit-asset-no"
+                  value={formState.assetNo}
+                  onChange={(event) => handleChange("assetNo", event.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
                 <Label htmlFor="edit-asset-spec-model">
                   {isChinese ? "规格型号" : "Spec / Model"}
                 </Label>
@@ -244,6 +244,41 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
                   value={formState.specModel}
                   onChange={(event) => handleChange("specModel", event.target.value)}
                 />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-asset-company">
+                  {isChinese ? "所属公司" : "Company"}
+                </Label>
+                <Select
+                  value={formState.companyCode}
+                  onValueChange={(value) => handleChange("companyCode", value)}
+                  disabled={selectCompanyOptions.length === 0}
+                >
+                  <SelectTrigger id="edit-asset-company" className="w-full">
+                    <SelectValue
+                      placeholder={
+                        selectCompanyOptions.length === 0
+                          ? isChinese
+                            ? "暂无公司"
+                            : "No companies"
+                          : undefined
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {selectCompanyOptions.length === 0 ? (
+                      <SelectItem value="" disabled>
+                        {isChinese ? "无可用公司" : "No companies available"}
+                      </SelectItem>
+                    ) : (
+                      selectCompanyOptions.map((company) => (
+                        <SelectItem key={company.id} value={company.code}>
+                          {company.label}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="edit-asset-category">
@@ -279,41 +314,6 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
                               {category.fallbackLabel}
                             </span>
                           )}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="edit-asset-company">
-                  {isChinese ? "所属公司" : "Company"}
-                </Label>
-                <Select
-                  value={formState.companyCode}
-                  onValueChange={(value) => handleChange("companyCode", value)}
-                  disabled={selectCompanyOptions.length === 0}
-                >
-                  <SelectTrigger id="edit-asset-company" className="w-full">
-                    <SelectValue
-                      placeholder={
-                        selectCompanyOptions.length === 0
-                          ? isChinese
-                            ? "暂无公司"
-                            : "No companies"
-                          : undefined
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {selectCompanyOptions.length === 0 ? (
-                      <SelectItem value="" disabled>
-                        {isChinese ? "无可用公司" : "No companies available"}
-                      </SelectItem>
-                    ) : (
-                      selectCompanyOptions.map((company) => (
-                        <SelectItem key={company.id} value={company.code}>
-                          {company.label}
                         </SelectItem>
                       ))
                     )}
@@ -360,21 +360,6 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
                   required
                   value={formState.location}
                   onChange={(event) => handleChange("location", event.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="edit-asset-purchase-price">
-                  {isChinese ? "采购价格" : "Purchase Price"}
-                </Label>
-                <Input
-                  id="edit-asset-purchase-price"
-                  type="text"
-                  inputMode="decimal"
-                  value={formState.purchasePrice}
-                  placeholder={isChinese ? "例如：18999.00" : "e.g. 18999.00"}
-                  onChange={(event) =>
-                    handleChange("purchasePrice", event.target.value)
-                  }
                 />
               </div>
               <div className="space-y-1.5">
@@ -428,6 +413,21 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
                     />
                   </PopoverContent>
                 </Popover>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-asset-purchase-price">
+                  {isChinese ? "采购价格" : "Purchase Price"}
+                </Label>
+                <Input
+                  id="edit-asset-purchase-price"
+                  type="text"
+                  inputMode="decimal"
+                  value={formState.purchasePrice}
+                  placeholder={isChinese ? "例如：18999.00" : "e.g. 18999.00"}
+                  onChange={(event) =>
+                    handleChange("purchasePrice", event.target.value)
+                  }
+                />
               </div>
             </div>
 

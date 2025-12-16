@@ -62,12 +62,12 @@ export async function GET(request: Request) {
   }
 
   const rows = result.items.map((asset) => ({
-    assetNo: asset.assetNo ?? asset.id,
     name: asset.name,
+    assetNo: asset.assetNo ?? asset.id,
     specModel: asset.specModel ?? "",
+    companyCode: asset.companyCode ?? "",
     category: asset.category,
     status: asset.status,
-    companyCode: asset.companyCode ?? "",
     owner: asset.owner,
     location: asset.location,
     purchaseDate: asset.purchaseDate,

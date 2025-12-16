@@ -331,8 +331,8 @@ export default function AssetImportExportClient({ locale, categories, companies 
             </FileUpload>
             <p className="text-xs text-muted-foreground">
               {isChinese
-                ? "请确保包含列：name, category, status, companyCode, owner, location, purchaseDate。"
-                : "Make sure the file includes columns: name, category, status, companyCode, owner, location, purchaseDate."}
+                ? "请确保至少包含列：name, category, status, companyCode, owner, location, purchaseDate（可选：assetNo, specModel, purchasePrice, purchaseCurrency）。"
+                : "Make sure the file includes at least: name, category, status, companyCode, owner, location, purchaseDate (optional: assetNo, specModel, purchasePrice, purchaseCurrency)."}
             </p>
           </div>
           {importError && (

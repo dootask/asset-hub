@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 
 const TEMPLATE_HEADERS = [
-  "assetNo",
   "name",
+  "assetNo",
   "specModel",
+  "companyCode",
   "category",
   "status",
-  "companyCode",
   "owner",
   "location",
   "purchaseDate",

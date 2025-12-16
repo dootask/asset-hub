@@ -136,17 +136,6 @@ export default function NewAssetForm({ locale = "en", categories, companies }: P
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="asset-no" className="text-sm font-medium text-muted-foreground">
-            {isChinese ? "资产编号（留空自动生成）" : "Asset No. (auto-generated if left blank)"}
-          </Label>
-          <Input
-            id="asset-no"
-            value={formState.assetNo}
-            placeholder={isChinese ? "例如：IT-2025-0001" : "e.g. IT-2025-0001"}
-            onChange={(event) => handleChange("assetNo", event.target.value)}
-          />
-        </div>
-        <div className="space-y-1.5">
           <Label htmlFor="asset-name" className="text-sm font-medium text-muted-foreground">
             {isChinese ? "资产名称" : "Asset Name"}
           </Label>
@@ -155,6 +144,17 @@ export default function NewAssetForm({ locale = "en", categories, companies }: P
             required
             value={formState.name}
             onChange={(event) => handleChange("name", event.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="asset-no" className="text-sm font-medium text-muted-foreground">
+            {isChinese ? "资产编号（留空自动生成）" : "Asset No. (auto-generated if left blank)"}
+          </Label>
+          <Input
+            id="asset-no"
+            value={formState.assetNo}
+            placeholder={isChinese ? "例如：IT-2025-0001" : "e.g. IT-2025-0001"}
+            onChange={(event) => handleChange("assetNo", event.target.value)}
           />
         </div>
         <div className="space-y-1.5">
@@ -283,19 +283,6 @@ export default function NewAssetForm({ locale = "en", categories, companies }: P
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="asset-purchase-price" className="text-sm font-medium text-muted-foreground">
-            {isChinese ? "采购价格" : "Purchase Price"}
-          </Label>
-          <Input
-            id="asset-purchase-price"
-            type="text"
-            inputMode="decimal"
-            value={formState.purchasePrice}
-            placeholder={isChinese ? "例如：18999.00" : "e.g. 18999.00"}
-            onChange={(event) => handleChange("purchasePrice", event.target.value)}
-          />
-        </div>
-        <div className="space-y-1.5">
           <Label htmlFor="asset-purchase-date" className="text-sm font-medium text-muted-foreground">
             {isChinese ? "购入日期" : "Purchase Date"}
           </Label>
@@ -343,6 +330,19 @@ export default function NewAssetForm({ locale = "en", categories, companies }: P
               />
             </PopoverContent>
           </Popover>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="asset-purchase-price" className="text-sm font-medium text-muted-foreground">
+            {isChinese ? "采购价格" : "Purchase Price"}
+          </Label>
+          <Input
+            id="asset-purchase-price"
+            type="text"
+            inputMode="decimal"
+            value={formState.purchasePrice}
+            placeholder={isChinese ? "例如：18999.00" : "e.g. 18999.00"}
+            onChange={(event) => handleChange("purchasePrice", event.target.value)}
+          />
         </div>
       </div>
 
