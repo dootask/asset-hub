@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
 import { useTranslations } from "next-intl";
-import { getSafeArea, isMicroApp, setCapsuleConfig } from "@dootask/tools";
+import { getSafeArea, isMicroApp } from "@dootask/tools";
 import DooTaskBridge from "@/components/providers/DooTaskBridge";
 import { Spinner } from "@/components/ui/spinner";
 import { usePermissions } from "@/components/providers/PermissionProvider";
@@ -61,29 +61,6 @@ export default function AppShell({
   useEffect(() => {
     document.documentElement.lang = locale === "zh" ? "zh-CN" : "en-US";
   }, [locale]);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !isMicroEnv) return;
-    const handleResize = () => {
-      const innerWidth = window.innerWidth;
-      if (innerWidth > 1280) {
-        setCapsuleConfig({
-          top: 16,
-          right: 16,
-        })
-      } else {
-        setCapsuleConfig({
-          top: 32,
-          right: 34,
-        })
-      }
-    };
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
-  }, [isMicroEnv]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !isMicroEnv) return;
@@ -218,7 +195,7 @@ export default function AppShell({
         className="mx-auto flex min-h-screen w-full gap-6 px-6 pt-[calc(1.5rem+var(--safe-area-top,0px))] pb-[calc(1.5rem+var(--safe-area-bottom,0px))]"
       >
         <aside
-          className="hidden w-60 flex-shrink-0 flex-col rounded-3xl border bg-card/60 p-5 shadow-sm lg:flex lg:sticky lg:top-[calc(1.5rem+var(--safe-area-top,0px))] lg:max-h-[calc(100vh-3rem-var(--safe-area-top,0px)-var(--safe-area-bottom,0px))] lg:overflow-y-auto"
+          className="hidden w-60 shrink-0 flex-col rounded-3xl border bg-card/60 p-5 shadow-sm lg:flex lg:sticky lg:top-[calc(1.5rem+var(--safe-area-top,0px))] lg:max-h-[calc(100vh-3rem-var(--safe-area-top,0px)-var(--safe-area-bottom,0px))] lg:overflow-y-auto"
         >
           <div className="mb-6">
             <p className="text-xs text-muted-foreground">
