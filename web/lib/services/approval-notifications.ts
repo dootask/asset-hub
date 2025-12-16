@@ -1,5 +1,6 @@
 import { normalizeLocale } from "@/lib/i18n";
 import type { ApprovalRequest } from "@/lib/types/approval";
+import { listApprovalCcRecipients } from "@/lib/repositories/approvals";
 import { createDooTaskClientFromRequest } from "@/lib/integrations/dootask-server-client";
 import { sendApprovalBotMessage } from "@/lib/integrations/dootask-notifications-server";
 
@@ -35,6 +36,20 @@ function buildApprovalCreatedText(approval: ApprovalRequest, locale?: string) {
   return lines.join("\n");
 }
 
+function buildApprovalCcCreatedText(approval: ApprovalRequest, locale?: string) {
+  const lang = normalizeLocale(locale);
+  const lines = [
+    lang === "zh" ? "**资产审批抄送**" : "**Asset Approval CC**",
+    `- ${lang === "zh" ? "类型" : "Type"}：${approval.type}`,
+    `- ${lang === "zh" ? "标题" : "Title"}：${approval.title}`,
+    `- ${lang === "zh" ? "申请人" : "Applicant"}：${
+      approval.applicantName ?? approval.applicantId ?? "-"
+    }`,
+    buildOpenMicroAppLine(approval, locale),
+  ];
+  return lines.join("\n");
+}
+
 function buildApprovalUpdatedText(
   approval: ApprovalRequest,
   locale?: string,
@@ -43,6 +58,24 @@ function buildApprovalUpdatedText(
   const lang = normalizeLocale(locale);
   const lines = [
     lang === "zh" ? "**审批状态更新**" : "**Approval Status Update**",
+    `- ${lang === "zh" ? "标题" : "Title"}：${approval.title}`,
+    `- ${lang === "zh" ? "状态" : "Status"}：${approval.status}`,
+    actorName
+      ? `- ${lang === "zh" ? "处理人" : "Actor"}：${actorName}`
+      : undefined,
+    buildOpenMicroAppLine(approval, locale),
+  ].filter(Boolean);
+  return lines.join("\n");
+}
+
+function buildApprovalCcUpdatedText(
+  approval: ApprovalRequest,
+  locale?: string,
+  actorName?: string,
+) {
+  const lang = normalizeLocale(locale);
+  const lines = [
+    lang === "zh" ? "**审批状态更新（抄送）**" : "**Approval Update (CC)**",
     `- ${lang === "zh" ? "标题" : "Title"}：${approval.title}`,
     `- ${lang === "zh" ? "状态" : "Status"}：${approval.status}`,
     actorName
@@ -65,6 +98,27 @@ export async function notifyApprovalCreated(params: {
     userId: params.approval.approverId,
     text: buildApprovalCreatedText(params.approval, params.locale),
   });
+
+  const ccRecipients = listApprovalCcRecipients(params.approval.id);
+  if (ccRecipients.length === 0) {
+    return;
+  }
+  const excluded = new Set<string>();
+  if (params.approval.approverId) excluded.add(params.approval.approverId);
+  excluded.add(params.approval.applicantId);
+
+  await Promise.all(
+    ccRecipients
+      .map((recipient) => recipient.userId)
+      .filter((userId) => userId && !excluded.has(userId))
+      .map((userId) =>
+        sendApprovalBotMessage({
+          client,
+          userId,
+          text: buildApprovalCcCreatedText(params.approval, params.locale),
+        }),
+      ),
+  );
 }
 
 function buildApprovalReassignedText(params: {
@@ -122,4 +176,28 @@ export async function notifyApprovalUpdated(params: {
       params.actorName,
     ),
   });
+
+  const ccRecipients = listApprovalCcRecipients(params.approval.id);
+  if (ccRecipients.length === 0) {
+    return;
+  }
+  const excluded = new Set<string>();
+  excluded.add(params.approval.applicantId);
+
+  await Promise.all(
+    ccRecipients
+      .map((recipient) => recipient.userId)
+      .filter((userId) => userId && !excluded.has(userId))
+      .map((userId) =>
+        sendApprovalBotMessage({
+          client,
+          userId,
+          text: buildApprovalCcUpdatedText(
+            params.approval,
+            params.locale,
+            params.actorName,
+          ),
+        }),
+      ),
+  );
 }

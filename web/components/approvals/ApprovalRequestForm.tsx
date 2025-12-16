@@ -59,6 +59,8 @@ type Applicant = {
   name?: string;
 };
 
+type CcRecipient = { id: string; name?: string };
+
 const MIN_INBOUND_ATTACHMENTS = 3;
 
 type FieldValue = string | string[];
@@ -124,6 +126,9 @@ export default function ApprovalRequestForm({
   const [userCandidates, setUserCandidates] = useState<
     Array<{ id: string; name: string }>
   >([]);
+
+  const [selectingCc, setSelectingCc] = useState(false);
+  const [ccRecipients, setCcRecipients] = useState<CcRecipient[]>([]);
   
   const feedback = useAppFeedback();
   const fieldIds = {
@@ -487,6 +492,13 @@ export default function ApprovalRequestForm({
     return null;
   };
 
+  const normalizeSelectedUsers = (result: SelectUsersReturn | undefined) => {
+    if (!result) return [];
+    if (Array.isArray(result)) return result;
+    if (Array.isArray(result.users)) return result.users;
+    return [];
+  };
+
   const handleTypeChange = (value: ApprovalType) => {
     setFormState((prev) => ({
       ...prev,
@@ -588,6 +600,82 @@ export default function ApprovalRequestForm({
       approverId: "",
       approverName: "",
     }));
+  };
+
+  const handleSelectCc = async () => {
+    if (!canUseSelector) return;
+    setSelectingCc(true);
+    try {
+      const result = (await selectUsers({
+        multipleMax: 20,
+        showSelectAll: true,
+        showDialog: false,
+      }).catch(() => null)) as SelectUsersReturn;
+
+      const rawUsers = normalizeSelectedUsers(result);
+      const picks: CcRecipient[] = [];
+      rawUsers.forEach((entry) => {
+        if (entry === null || entry === undefined) return;
+        if (typeof entry === "string" || typeof entry === "number") {
+          const id = String(entry).trim();
+          if (!id) return;
+          picks.push({ id });
+          return;
+        }
+        const id = String(entry.userid ?? entry.id ?? "").trim();
+        if (!id) return;
+        const name = (entry.nickname ?? entry.name ?? "").trim();
+        picks.push(name ? { id, name } : { id });
+      });
+
+      const unique = new Map<string, CcRecipient>();
+      picks.forEach((pick) => {
+        if (!unique.has(pick.id)) {
+          unique.set(pick.id, pick);
+        }
+      });
+
+      const selected = Array.from(unique.values());
+      const missingNames = selected
+        .filter((pick) => !pick.name)
+        .map((pick) => pick.id);
+
+      if (missingNames.length > 0) {
+        const users = await fetchUserBasicBatched(missingNames);
+        const nameMap: Record<string, string> = {};
+        users.forEach((user) => {
+          const rawId = user.userid ?? user.id;
+          const uid =
+            rawId !== undefined && rawId !== null ? String(rawId).trim() : "";
+          const userName = user.nickname ?? user.name ?? "";
+          if (!uid || !userName) return;
+          nameMap[uid] = userName;
+        });
+        selected.forEach((pick) => {
+          if (!pick.name && nameMap[pick.id]) {
+            pick.name = nameMap[pick.id];
+          }
+        });
+      }
+
+      setCcRecipients(selected);
+    } catch (err) {
+      const message = extractApiErrorMessage(
+        err,
+        isChinese ? "选择抄送人失败。" : "Failed to select CC recipients.",
+      );
+      feedback.error(message, {
+        blocking: true,
+        title: isChinese ? "选择失败" : "Selection failed",
+        acknowledgeLabel: isChinese ? "知道了" : "Got it",
+      });
+    } finally {
+      setSelectingCc(false);
+    }
+  };
+
+  const handleRemoveCc = (id: string) => {
+    setCcRecipients((prev) => prev.filter((entry) => entry.id !== id));
   };
 
   const handleOperationFieldChange = (key: string, value: string) => {
@@ -802,6 +890,10 @@ export default function ApprovalRequestForm({
                 name: formState.approverName || undefined,
               }
             : undefined,
+        cc: ccRecipients.map((entry) => ({
+          id: entry.id,
+          name: entry.name,
+        })),
         metadata: metadataPayload,
       });
 
@@ -813,6 +905,7 @@ export default function ApprovalRequestForm({
         approverName: "",
       });
       setOperationFieldValues({});
+      setCcRecipients([]);
       router.refresh();
       feedback.success(isChinese ? "审批已提交" : "Approval submitted");
     } catch (err) {
@@ -1287,6 +1380,58 @@ export default function ApprovalRequestForm({
         ) : null}
 
         {/* Keep UI minimal; backend validates approver selection. */}
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-xs font-medium text-muted-foreground">
+          {isChinese ? "抄送给" : "CC"}
+        </Label>
+        {canUseSelector ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => void handleSelectCc()}
+              disabled={selectingCc}
+            >
+              {selectingCc
+                ? isChinese
+                  ? "选择中..."
+                  : "Selecting..."
+                : isChinese
+                  ? "选择抄送人"
+                  : "Select CC"}
+            </Button>
+            {ccRecipients.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                {ccRecipients.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-sm"
+                  >
+                    <span className="font-medium">
+                      {entry.name || entry.id}
+                    </span>
+                    <button
+                      type="button"
+                      className="text-muted-foreground hover:text-foreground"
+                      onClick={() => handleRemoveCc(entry.id)}
+                      aria-label={isChinese ? "移除抄送人" : "Remove CC"}
+                    >
+                      <XICon className="size-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            {isChinese
+              ? "仅在 DooTask 宿主内可选择抄送人。"
+              : "CC selection is available in DooTask host only."}
+          </p>
+        )}
       </div>
 
       <Button

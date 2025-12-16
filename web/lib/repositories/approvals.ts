@@ -3,6 +3,7 @@ import { getDb } from "@/lib/db/client";
 import {
   type ApprovalAction,
   type ApprovalActionPayload,
+  type ApprovalCcRecipient,
   type ApprovalListFilters,
   type ApprovalRequest,
   type ApprovalStatus,
@@ -63,6 +64,13 @@ type ApprovalRow = {
   completed_at: string | null;
 };
 
+type ApprovalCcRecipientRow = {
+  approval_id: string;
+  user_id: string;
+  user_name: string | null;
+  created_at: string;
+};
+
 function parseMetadata(raw: string | null) {
   if (!raw) return null;
   try {
@@ -94,6 +102,61 @@ function mapRow(row: ApprovalRow): ApprovalRequest {
     updatedAt: row.updated_at,
     completedAt: row.completed_at,
   };
+}
+
+function mapCcRow(row: ApprovalCcRecipientRow): ApprovalCcRecipient {
+  return {
+    userId: row.user_id,
+    userName: row.user_name,
+    createdAt: row.created_at,
+  };
+}
+
+function normalizeCcRecipients(
+  payload: CreateApprovalRequestPayload["cc"] | undefined,
+) {
+  if (!payload || payload.length === 0) return [];
+
+  const seen = new Set<string>();
+  const normalized: Array<{ id: string; name?: string }> = [];
+  payload.forEach((entry) => {
+    const id = typeof entry?.id === "string" ? entry.id.trim() : "";
+    if (!id) return;
+    if (seen.has(id)) return;
+    seen.add(id);
+    const name =
+      typeof entry.name === "string" && entry.name.trim()
+        ? entry.name.trim()
+        : undefined;
+    normalized.push(name ? { id, name } : { id });
+  });
+  return normalized;
+}
+
+export function listApprovalCcRecipients(approvalId: string): ApprovalCcRecipient[] {
+  const db = getDb();
+  const rows = db
+    .prepare(
+      `SELECT approval_id, user_id, user_name, created_at
+       FROM asset_approval_cc_recipients
+       WHERE approval_id = ?
+       ORDER BY created_at ASC`,
+    )
+    .all(approvalId) as ApprovalCcRecipientRow[];
+  return rows.map(mapCcRow);
+}
+
+export function isApprovalCcRecipient(approvalId: string, userId: string): boolean {
+  const db = getDb();
+  const row = db
+    .prepare(
+      `SELECT 1 as ok
+       FROM asset_approval_cc_recipients
+       WHERE approval_id = ? AND user_id = ?
+       LIMIT 1`,
+    )
+    .get(approvalId, userId) as { ok: number } | undefined;
+  return Boolean(row?.ok);
 }
 
 function updateApprovalExternalTodoId(
@@ -148,7 +211,9 @@ function buildFilters(filters: ApprovalListFilters | undefined) {
     conditions.push(`approver_id = @userId`);
     params.userId = filters.userId;
   } else if (filters?.role === "all" && filters.userId) {
-    conditions.push(`(applicant_id = @userId OR approver_id = @userId)`);
+    conditions.push(
+      `(applicant_id = @userId OR approver_id = @userId OR id IN (SELECT approval_id FROM asset_approval_cc_recipients WHERE user_id = @userId))`,
+    );
     params.userId = filters.userId;
   } else {
     if (filters?.applicantId) {
@@ -236,65 +301,95 @@ export function createApprovalRequest(
   const db = getDb();
   const id = `APR-${randomUUID().slice(0, 8).toUpperCase()}`;
 
-  db.prepare(
+  const normalizedCc = normalizeCcRecipients(payload.cc);
+
+  const insertApprovalStmt = db.prepare(
     `INSERT INTO asset_approval_requests (
+       id,
+       asset_id,
+       consumable_id,
+       operation_id,
+       consumable_operation_id,
+       type,
+       status,
+       title,
+       reason,
+       applicant_id,
+       applicant_name,
+       approver_id,
+       approver_name,
+       metadata,
+       created_at,
+       updated_at
+     ) VALUES (
+       @id,
+       @assetId,
+       @consumableId,
+       @operationId,
+       @consumableOperationId,
+       @type,
+       'pending',
+       @title,
+       @reason,
+       @applicantId,
+       @applicantName,
+       @approverId,
+       @approverName,
+       @metadata,
+       datetime('now'),
+       datetime('now')
+     )`,
+  );
+
+  const insertCcStmt = db.prepare(
+    `INSERT OR IGNORE INTO asset_approval_cc_recipients (
+       approval_id,
+       user_id,
+       user_name,
+       created_at
+     ) VALUES (
+       @approvalId,
+       @userId,
+       @userName,
+       datetime('now')
+     )`,
+  );
+
+  const runCreate = db.transaction(() => {
+    insertApprovalStmt.run({
       id,
-      asset_id,
-      consumable_id,
-      operation_id,
-      consumable_operation_id,
-      type,
-      status,
-      title,
-      reason,
-      applicant_id,
-      applicant_name,
-      approver_id,
-      approver_name,
-      metadata,
-      created_at,
-      updated_at
-    ) VALUES (
-      @id,
-      @assetId,
-      @consumableId,
-      @operationId,
-      @consumableOperationId,
-      @type,
-      'pending',
-      @title,
-      @reason,
-      @applicantId,
-      @applicantName,
-      @approverId,
-      @approverName,
-      @metadata,
-      datetime('now'),
-      datetime('now')
-    )`,
-  ).run({
-    id,
-    assetId: payload.assetId ?? null,
-    consumableId: payload.consumableId ?? null,
-    operationId: payload.operationId ?? null,
-    consumableOperationId: payload.consumableOperationId ?? null,
-    type: payload.type,
-    title: payload.title,
-    reason: payload.reason ?? null,
-    applicantId: payload.applicant.id,
-    applicantName: payload.applicant.name ?? null,
-    approverId: payload.approver?.id ?? null,
-    approverName: payload.approver?.name ?? null,
-    metadata: payload.metadata ? JSON.stringify(payload.metadata) : null,
+      assetId: payload.assetId ?? null,
+      consumableId: payload.consumableId ?? null,
+      operationId: payload.operationId ?? null,
+      consumableOperationId: payload.consumableOperationId ?? null,
+      type: payload.type,
+      title: payload.title,
+      reason: payload.reason ?? null,
+      applicantId: payload.applicant.id,
+      applicantName: payload.applicant.name ?? null,
+      approverId: payload.approver?.id ?? null,
+      approverName: payload.approver?.name ?? null,
+      metadata: payload.metadata ? JSON.stringify(payload.metadata) : null,
+    });
+
+    normalizedCc.forEach((entry) => {
+      insertCcStmt.run({
+        approvalId: id,
+        userId: entry.id,
+        userName: entry.name ?? null,
+      });
+    });
+
+    if (payload.operationId) {
+      updateAssetOperationStatus(payload.operationId, "pending");
+    }
+
+    if (payload.consumableOperationId) {
+      updateConsumableOperationStatus(payload.consumableOperationId, "pending");
+    }
   });
 
-  if (payload.operationId) {
-    updateAssetOperationStatus(payload.operationId, "pending");
-  }
-
-  if (payload.consumableOperationId) {
-    updateConsumableOperationStatus(payload.consumableOperationId, "pending");
-  }
+  runCreate();
 
   return getApprovalRequestById(id)!;
 }

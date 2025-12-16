@@ -64,6 +64,12 @@ export interface ApprovalRequest {
   completedAt?: string | null;
 }
 
+export interface ApprovalCcRecipient {
+  userId: string;
+  userName?: string | null;
+  createdAt: string;
+}
+
 export interface CreateApprovalRequestPayload {
   assetId?: string;
   consumableId?: string;
@@ -80,6 +86,10 @@ export interface CreateApprovalRequestPayload {
     id?: string;
     name?: string;
   };
+  cc?: Array<{
+    id: string;
+    name?: string;
+  }>;
   metadata?: Record<string, unknown>;
 }
 
@@ -108,4 +118,3 @@ export interface ApprovalListFilters {
   page?: number;
   pageSize?: number;
 }
-

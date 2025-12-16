@@ -71,6 +71,8 @@ type Props = {
 
 type FieldValue = string | string[];
 
+type CcRecipient = { id: string; name?: string };
+
 const EMPTY_STRING_ARRAY: string[] = [];
 
 type DootaskUser =
@@ -97,6 +99,8 @@ export default function NewPurchaseForm({
   const [canUseSelector, setCanUseSelector] = useState(false);
   const [loadingUser, setLoadingUser] = useState(true);
   const [selectingApprover, setSelectingApprover] = useState(false);
+  const [selectingCc, setSelectingCc] = useState(false);
+  const [ccRecipients, setCcRecipients] = useState<CcRecipient[]>([]);
 
   // Applicant info
   const [applicant, setApplicant] = useState({ id: "", name: "" });
@@ -742,6 +746,13 @@ export default function NewPurchaseForm({
     return { id, name };
   };
 
+  const normalizeSelectedUsers = (result: SelectUsersReturn | null | undefined) => {
+    if (!result) return [];
+    if (Array.isArray(result)) return result;
+    if (Array.isArray(result.users)) return result.users;
+    return [];
+  };
+
   const handleSelectApprover = async () => {
     if (config?.defaultApproverType !== "none") return;
 
@@ -770,6 +781,77 @@ export default function NewPurchaseForm({
     } finally {
       setSelectingApprover(false);
     }
+  };
+
+  const handleSelectCc = async () => {
+    if (!canUseSelector) return;
+    setSelectingCc(true);
+    try {
+      const result = (await selectUsers({
+        multipleMax: 20,
+        showSelectAll: true,
+        showDialog: false,
+      }).catch(() => null)) as SelectUsersReturn;
+
+      const rawUsers = normalizeSelectedUsers(result);
+      const picks: CcRecipient[] = [];
+      rawUsers.forEach((entry) => {
+        if (entry === null || entry === undefined) return;
+        if (typeof entry === "string" || typeof entry === "number") {
+          const id = String(entry).trim();
+          if (!id) return;
+          picks.push({ id });
+          return;
+        }
+        const id = String(entry.userid ?? entry.id ?? "").trim();
+        if (!id) return;
+        const name = (entry.nickname ?? entry.name ?? "").trim();
+        picks.push(name ? { id, name } : { id });
+      });
+
+      const unique = new Map<string, CcRecipient>();
+      picks.forEach((pick) => {
+        if (!unique.has(pick.id)) {
+          unique.set(pick.id, pick);
+        }
+      });
+      const selected = Array.from(unique.values());
+
+      const missingNames = selected
+        .filter((pick) => !pick.name)
+        .map((pick) => pick.id);
+      if (missingNames.length > 0) {
+        const users = await fetchUserBasicBatched(missingNames);
+        const nameMap: Record<string, string> = {};
+        users.forEach((user) => {
+          const rawId = user.userid ?? user.id;
+          const uid =
+            rawId !== undefined && rawId !== null ? String(rawId).trim() : "";
+          const userName = user.nickname ?? user.name ?? "";
+          if (!uid || !userName) return;
+          nameMap[uid] = userName;
+        });
+        selected.forEach((pick) => {
+          if (!pick.name && nameMap[pick.id]) {
+            pick.name = nameMap[pick.id];
+          }
+        });
+      }
+
+      setCcRecipients(selected);
+    } catch (err) {
+      const message = extractApiErrorMessage(
+        err,
+        isChinese ? "选择抄送人失败。" : "Failed to select CC recipients.",
+      );
+      feedback.error(message);
+    } finally {
+      setSelectingCc(false);
+    }
+  };
+
+  const handleRemoveCc = (id: string) => {
+    setCcRecipients((prev) => prev.filter((entry) => entry.id !== id));
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -936,6 +1018,7 @@ export default function NewPurchaseForm({
         title: formState.title,
         reason: formState.reason,
         applicant: { id: applicant.id, name: applicant.name },
+        cc: ccRecipients.map((entry) => ({ id: entry.id, name: entry.name })),
         ...(purchaseAssetMode === "existing" && selectedExistingAsset?.id
           ? { assetId: selectedExistingAsset.id }
           : {}),
@@ -1443,6 +1526,58 @@ export default function NewPurchaseForm({
 
           {/* Keep UI minimal; backend validates approver selection. */}
         </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-xs font-medium text-muted-foreground">
+          {isChinese ? "抄送给" : "CC"}
+        </Label>
+        {canUseSelector ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void handleSelectCc()}
+              disabled={selectingCc}
+            >
+              {selectingCc
+                ? isChinese
+                  ? "选择中..."
+                  : "Selecting..."
+                : isChinese
+                  ? "选择抄送人"
+                  : "Select CC"}
+            </Button>
+            {ccRecipients.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                {ccRecipients.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-sm"
+                  >
+                    <span className="font-medium">
+                      {entry.name || entry.id}
+                    </span>
+                    <button
+                      type="button"
+                      className="ml-1 hover:text-destructive"
+                      onClick={() => handleRemoveCc(entry.id)}
+                      aria-label={isChinese ? "移除抄送人" : "Remove CC"}
+                    >
+                      <XICon className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            {isChinese
+              ? "仅在 DooTask 宿主内可选择抄送人。"
+              : "CC selection is available in DooTask host only."}
+          </p>
+        )}
       </div>
 
       <div className="flex items-center gap-3">

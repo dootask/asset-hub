@@ -12,6 +12,7 @@ import {
   createApprovalRequest,
   listApprovalRequests,
   reassignApprovalApprover,
+  isApprovalCcRecipient,
 } from "@/lib/repositories/approvals";
 import { getAssetById } from "@/lib/repositories/assets";
 import { createConsumableCategory } from "@/lib/repositories/consumable-categories";
@@ -120,6 +121,40 @@ describe("Approval repository", () => {
     expect(result.data.map((item) => item.title).sort()).toEqual(
       ["采购审批-我发起", "入库审批-待我审批"].sort(),
     );
+  });
+
+  it('includes CC recipients in "all" scope', () => {
+    const asset = createAsset({
+      name: "Test Device",
+      category: "Laptop",
+      status: "idle",
+      companyCode: "HITOSEA",
+      owner: "QA",
+      location: "Lab",
+      purchaseDate: "2024-03-01",
+    });
+
+    const op = createAssetOperation(asset.id, {
+      type: "purchase",
+      actor: "QA",
+      description: "申请采购",
+      status: "pending",
+    });
+
+    const approval = createApprovalRequest({
+      type: "purchase",
+      title: "采购审批-抄送测试",
+      assetId: asset.id,
+      operationId: op.id,
+      applicant: { id: "user-1", name: "QA" },
+      approver: { id: "approver-1", name: "Leader" },
+      cc: [{ id: "cc-1", name: "Watcher" }],
+    });
+
+    expect(isApprovalCcRecipient(approval.id, "cc-1")).toBe(true);
+    const result = listApprovalRequests({ role: "all", userId: "cc-1" });
+    expect(result.meta.total).toBe(1);
+    expect(result.data[0]?.id).toBe(approval.id);
   });
 
   it("applies approval actions, updates asset state, and records metadata", () => {

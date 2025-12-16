@@ -98,6 +98,17 @@ export const CREATE_TABLES = {
       FOREIGN KEY(consumable_operation_id) REFERENCES consumable_operations(id) ON DELETE SET NULL
     );
   `,
+  approvalCcRecipients: `
+    CREATE TABLE IF NOT EXISTS asset_approval_cc_recipients (
+      approval_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      user_name TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (approval_id, user_id),
+      FOREIGN KEY(approval_id) REFERENCES asset_approval_requests(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_asset_approval_cc_user_id ON asset_approval_cc_recipients(user_id);
+  `,
   consumableInventoryTasks: `
     CREATE TABLE IF NOT EXISTS consumable_inventory_tasks (
       id TEXT PRIMARY KEY,

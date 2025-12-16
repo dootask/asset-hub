@@ -1,7 +1,11 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { getApprovalRequestById } from "@/lib/repositories/approvals";
+import {
+  getApprovalRequestById,
+  isApprovalCcRecipient,
+  listApprovalCcRecipients,
+} from "@/lib/repositories/approvals";
 import { getAssetById } from "@/lib/repositories/assets";
 import { getAssetOperationById } from "@/lib/repositories/asset-operations";
 import { getConsumableById } from "@/lib/repositories/consumables";
@@ -14,6 +18,8 @@ import { extractOperationTemplateMetadata } from "@/lib/utils/operation-template
 import type { OperationTemplateMetadata } from "@/lib/types/operation-template";
 import { appConfig } from "@/lib/config";
 import { OPERATION_TEMPLATE_LABELS } from "@/lib/constants/operation-template-labels";
+import { getServerUserId } from "@/lib/server/auth";
+import { isAdminUser } from "@/lib/utils/permissions";
 
 const RESERVED_METADATA_KEYS = new Set([
   "operationTemplate",
@@ -118,12 +124,28 @@ function splitMetadata(metadata?: Record<string, unknown> | null) {
 
 export default async function ApprovalDetailPage({ params }: PageProps) {
   const { locale, id } = await params;
+  const userId = await getServerUserId();
+  if (userId === null || userId === undefined) {
+    redirect(`/${locale}/approvals`);
+  }
+  const currentUserId = String(userId);
   const approval = getApprovalRequestById(id);
 
   if (!approval) {
     notFound();
   }
 
+  if (!isAdminUser(currentUserId)) {
+    const canRead =
+      approval.applicantId === currentUserId ||
+      approval.approverId === currentUserId ||
+      isApprovalCcRecipient(approval.id, currentUserId);
+    if (!canRead) {
+      redirect(`/${locale}/approvals`);
+    }
+  }
+
+  const ccRecipients = listApprovalCcRecipients(approval.id);
   const asset = approval.assetId ? getAssetById(approval.assetId) : null;
   const consumable = approval.consumableId
     ? getConsumableById(approval.consumableId)
@@ -260,6 +282,18 @@ export default async function ApprovalDetailPage({ params }: PageProps) {
             </p>
             <p className="text-sm font-medium">
               {approval.approverName ?? approval.approverId ?? "-"}
+            </p>
+          </div>
+          <div className="md:col-span-2">
+            <p className="text-xs text-muted-foreground">
+              {isChinese ? "抄送" : "CC"}
+            </p>
+            <p className="text-sm font-medium">
+              {ccRecipients.length > 0
+                ? ccRecipients
+                    .map((entry) => entry.userName ?? entry.userId)
+                    .join("、")
+                : "-"}
             </p>
           </div>
           <div>

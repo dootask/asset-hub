@@ -167,6 +167,24 @@ function sanitizeCreatePayload(
     cleaned.metadata = payload.metadata;
   }
 
+  if (Array.isArray(payload.cc)) {
+    const cc = payload.cc
+      .map((entry) => {
+        if (!isRecord(entry)) return null;
+        const id = typeof entry.id === "string" ? entry.id.trim() : "";
+        if (!id) return null;
+        const name =
+          typeof entry.name === "string" && entry.name.trim()
+            ? entry.name.trim()
+            : undefined;
+        return name ? { id, name } : { id };
+      })
+      .filter((entry): entry is { id: string; name?: string } => entry !== null);
+    if (cc.length > 0) {
+      cleaned.cc = cc.slice(0, 20);
+    }
+  }
+
   if (cleaned.assetId && cleaned.consumableId) {
     throw new Error("审批请求不能同时关联资产与耗材");
   }
