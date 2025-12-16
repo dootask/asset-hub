@@ -56,17 +56,17 @@ export async function GET(request: Request) {
     );
   }
   const rows = result.items.map((item) => ({
-    consumableNo: item.consumableNo ?? item.id,
     name: item.name,
+    consumableNo: item.consumableNo ?? item.id,
     specModel: item.specModel ?? "",
-    category: item.category,
-    status: item.status,
     companyCode: item.companyCode ?? "",
+    category: item.category,
     quantity: item.quantity,
     unit: item.unit,
     keeper: item.keeper,
     location: item.location,
     safetyStock: item.safetyStock,
+    status: item.status,
     purchasePrice: formatCentsToMoney(item.purchasePriceCents),
     purchaseCurrency: item.purchaseCurrency ?? "CNY",
     description: item.description ?? "",

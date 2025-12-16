@@ -218,6 +218,21 @@ export default function EditConsumableDialog({
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label
+                  htmlFor="edit-consumable-name"
+                  className="inline-flex items-center gap-1"
+                >
+                  {isChinese ? "耗材名称" : "Consumable Name"}
+                  <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="edit-consumable-name"
+                  required
+                  value={formState.name}
+                  onChange={(event) => handleChange("name", event.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label
                   htmlFor="edit-consumable-no"
                   className="text-sm font-medium text-muted-foreground"
                 >
@@ -236,21 +251,6 @@ export default function EditConsumableDialog({
               </div>
               <div className="space-y-1.5">
                 <Label
-                  htmlFor="edit-consumable-name"
-                  className="inline-flex items-center gap-1"
-                >
-                  {isChinese ? "耗材名称" : "Consumable Name"}
-                  <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="edit-consumable-name"
-                  required
-                  value={formState.name}
-                  onChange={(event) => handleChange("name", event.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label
                   htmlFor="edit-consumable-spec-model"
                   className="text-sm font-medium text-muted-foreground"
                 >
@@ -262,22 +262,6 @@ export default function EditConsumableDialog({
                   placeholder={isChinese ? "例如：A4 / 80g" : "e.g. A4 / 80g"}
                   onChange={(event) =>
                     handleChange("specModel", event.target.value)
-                  }
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label
-                  htmlFor="edit-consumable-purchase-price"
-                  className="text-sm font-medium text-muted-foreground"
-                >
-                  {isChinese ? "采购价格" : "Purchase Price"}
-                </Label>
-                <Input
-                  id="edit-consumable-purchase-price"
-                  value={formState.purchasePrice}
-                  placeholder={isChinese ? "例如：99.00" : "e.g. 99.00"}
-                  onChange={(event) =>
-                    handleChange("purchasePrice", event.target.value)
                   }
                 />
               </div>
@@ -365,29 +349,6 @@ export default function EditConsumableDialog({
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="edit-consumable-status">
-                  {isChinese ? "状态" : "Status"}
-                </Label>
-                <Select
-                  value={formState.status}
-                  onValueChange={(value) =>
-                    handleChange("status", (value as "auto" | "archived") ?? "auto")
-                  }
-                >
-                  <SelectTrigger id="edit-consumable-status" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="auto">
-                      {isChinese ? "自动（按库存计算）" : "Automatic (from stock)"}
-                    </SelectItem>
-                    <SelectItem value="archived">
-                      {isChinese ? "归档（停止自动更新）" : "Archived (manual override)"}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
                 <Label
                   htmlFor="edit-consumable-quantity"
                   className="inline-flex items-center gap-1"
@@ -464,6 +425,45 @@ export default function EditConsumableDialog({
                   required
                   value={formState.safetyStock}
                   onChange={(event) => handleChange("safetyStock", event.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-consumable-status">
+                  {isChinese ? "状态" : "Status"}
+                </Label>
+                <Select
+                  value={formState.status}
+                  onValueChange={(value) =>
+                    handleChange("status", (value as "auto" | "archived") ?? "auto")
+                  }
+                >
+                  <SelectTrigger id="edit-consumable-status" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">
+                      {isChinese ? "自动（按库存计算）" : "Automatic (from stock)"}
+                    </SelectItem>
+                    <SelectItem value="archived">
+                      {isChinese ? "归档（停止自动更新）" : "Archived (manual override)"}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="edit-consumable-purchase-price"
+                  className="text-sm font-medium text-muted-foreground"
+                >
+                  {isChinese ? "采购价格" : "Purchase Price"}
+                </Label>
+                <Input
+                  id="edit-consumable-purchase-price"
+                  value={formState.purchasePrice}
+                  placeholder={isChinese ? "例如：99.00" : "e.g. 99.00"}
+                  onChange={(event) =>
+                    handleChange("purchasePrice", event.target.value)
+                  }
                 />
               </div>
               <div className="space-y-1.5 sm:col-span-2">

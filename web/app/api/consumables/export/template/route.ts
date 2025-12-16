@@ -1,17 +1,17 @@
 import { NextResponse } from "next/server";
 
 const HEADERS = [
-  "consumableNo",
   "name",
+  "consumableNo",
   "specModel",
-  "category",
-  "status",
   "companyCode",
+  "category",
   "quantity",
   "unit",
   "keeper",
   "location",
   "safetyStock",
+  "status",
   "purchasePrice",
   "purchaseCurrency",
   "description",
