@@ -26,14 +26,15 @@ const HELP_SECTIONS: SectionConfig[] = [
     key: "assets",
     zh: {
       title: "资产管理功能",
-      description: "覆盖资产的入库、维护、查询与盘点流程，确保数据口径一致。",
+      description:
+        "覆盖资产的入库、维护、查询、导入导出与盘点流程，支持业务资产编号与成本字段沉淀。",
       items: [
         {
           title: "资产列表",
           points: [
-            "按状态、类别、所属公司或关键字筛选，并支持排序与分页。",
+            "按状态、类别、所属公司或关键字筛选（资产名称/编号/规格型号/使用人等），并支持排序与分页。",
             "列表项可跳转到资产详情，便于继续操作或查看审批记录。",
-            "导出按钮会根据当前筛选条件生成 CSV，方便做外部分析。",
+            "导出按钮会根据当前筛选条件生成 CSV（导出权限可能受管理员/授权限制）。",
           ],
         },
         {
@@ -45,9 +46,9 @@ const HELP_SECTIONS: SectionConfig[] = [
           ],
         },
         {
-          title: "导入、导出与盘点",
+          title: "导入导出与盘点",
           points: [
-            "下载模板批量导入资产，支持字段校验与错误提示。",
+            "下载模板批量导入资产，支持字段校验与错误提示；资产编号留空时可按类别默认前缀自动生成（未设置前缀则回填系统 ID）。",
             "可以按筛选条件导出资产数据，用于财务或审计复核。",
             "盘点任务会在任务详情中记录实盘数量和差异说明，可生成报告。",
           ],
@@ -56,14 +57,15 @@ const HELP_SECTIONS: SectionConfig[] = [
     },
     en: {
       title: "Asset Management",
-      description: "Everything you need to onboard, maintain, search, and audit assets.",
+      description:
+        "Onboard, maintain, search, import/export, and audit assets with consistent numbering and cost tracking.",
       items: [
         {
           title: "Asset List",
           points: [
-            "Filter by status, category, company, or keyword with sortable, paginated results.",
+            "Filter by status, category, company, or keywords (name, asset no., spec/model, owner) with sortable, paginated results.",
             "Each row links to the asset detail page for follow-up actions or approvals.",
-            "Exports respect current filters so you can build CSV snapshots for finance or audits.",
+            "Exports respect current filters (export access may require admin/explicit authorization).",
           ],
         },
         {
@@ -75,9 +77,9 @@ const HELP_SECTIONS: SectionConfig[] = [
           ],
         },
         {
-          title: "Imports, Exports & Inventory",
+          title: "Imports/Exports & Inventory",
           points: [
-            "Download templates to import assets in bulk with validation feedback.",
+            "Import assets in bulk using templates with validation feedback; leaving asset numbers blank can auto-generate from the category prefix (or fall back to the system ID).",
             "Export the current filtered dataset to CSV for downstream analytics.",
             "Inventory tasks capture physical counts, differences, and downloadable results.",
           ],
@@ -103,8 +105,8 @@ const HELP_SECTIONS: SectionConfig[] = [
           title: "发起审批",
           points: [
             "可在资产详情或操作表单里直接发起审批，请求会引用审批配置。",
-            "系统根据操作类型自动选择默认审批人，也支持按角色或手动指定。",
-            "审批申请支持填写事由、上传附件，并关联操作模板字段。",
+            "默认审批人会按配置的候选范围（用户/角色成员）生成；候选不唯一时需手动选择。",
+            "支持添加抄送人（CC）用于可见范围与通知（仅在 DooTask 宿主内可选择）。",
           ],
         },
         {
@@ -133,8 +135,8 @@ const HELP_SECTIONS: SectionConfig[] = [
           title: "Submitting Approvals",
           points: [
             "Launch approval forms from asset detail or directly inside relevant operation forms.",
-            "Default approvers are derived from action configs, with optional role-based suggestions.",
-            "Requests capture titles, reasons, attachments, and template field values for auditing.",
+            "Default approvers are derived from the configured candidate scope (users or role members); you must pick one when multiple candidates exist.",
+            "You can add CC recipients for visibility and notifications (CC selection is available in DooTask host only).",
           ],
         },
         {
@@ -220,16 +222,16 @@ const HELP_SECTIONS: SectionConfig[] = [
         {
           title: "列表视图",
           points: [
-            "内置“待我审批 / 我发起的 / 全部”三个视角。",
-            "支持按审批类型、状态、时间范围、资产或耗材筛选。",
-            "分页列表可直接跳转至审批详情或关联资产。",
+            "内置“待我审批 / 我发起的 / 全部”三个视角（非管理员的“全部”仅展示与我相关的审批，包含抄送给我的记录）。",
+            "支持按审批类型、状态、时间范围、资产或耗材筛选，并可导出当前筛选结果（导出权限可能受管理员/授权限制）。",
+            "分页列表可直接跳转至审批详情或关联资产/耗材。",
           ],
         },
         {
           title: "审批详情",
           points: [
             "展示申请基础信息、事由、附件及关联的资产/耗材操作。",
-            "历史记录区会列出每一步的处理人、时间与意见。",
+            "历史记录区会列出每一步的处理人、时间与意见，并展示抄送人和审批人变更记录。",
             "支持在详情中快速切换到资产/耗材详情页继续处理。",
           ],
         },
@@ -238,7 +240,7 @@ const HELP_SECTIONS: SectionConfig[] = [
           points: [
             "只有审批人或具备审批权限的用户才能看到同意/驳回按钮。",
             "申请人随时可以撤销待审批的请求，系统管理员拥有兜底权限。",
-            "审批动作会调用 DooTask 待办接口，保持宿主状态同步。",
+            "当配置允许时，管理员/具备审批权限的用户/当前审批人可在待审批阶段更换审批人（必须在候选范围内），并同步 DooTask 待办状态。",
           ],
         },
       ],
@@ -250,16 +252,16 @@ const HELP_SECTIONS: SectionConfig[] = [
         {
           title: "List Views",
           points: [
-            "Tabs include “My Tasks”, “My Requests”, and “All”.",
+            "Tabs include “My Tasks”, “My Requests”, and “All” (for non-admin users, “All” is scoped to approvals related to you, including items CC’ed to you).",
             "Filter by type, status, timeframe, asset, consumable, or operation ID.",
-            "Each row links to the approval detail and its associated record.",
+            "Each row links to the approval detail and its associated record; export follows current filters (export access may require admin/authorization).",
           ],
         },
         {
           title: "Approval Detail",
           points: [
             "Shows metadata, reasons, attachments, and linked asset/consumable operations.",
-            "History captures every decision with actor, timestamp, and comments.",
+            "History captures every decision with actor, timestamp, comments, plus CC recipients and approver reassignment records.",
             "Quick links jump back to the related asset or consumable detail page.",
           ],
         },
@@ -268,7 +270,7 @@ const HELP_SECTIONS: SectionConfig[] = [
           points: [
             "Only approvers or admins see approve/reject buttons.",
             "Applicants can cancel pending requests; admins can intervene when needed.",
-            "Each action syncs with DooTask todos to keep the host state aligned.",
+            "If enabled by config, admins/approvers (or the currently assigned approver) can reassign approvers while pending (within candidate scope) and sync DooTask todos.",
           ],
         },
       ],
@@ -292,7 +294,7 @@ const HELP_SECTIONS: SectionConfig[] = [
           title: "角色与审批配置",
           points: [
             "角色记录业务身份，可配置成员并在审批策略中引用。",
-            "审批配置可定义某个操作是否需要审批、默认审批人类型以及是否允许覆盖。",
+            "审批配置可定义某个操作是否需要审批、默认审批人候选范围（用户/角色成员）以及是否允许更换审批人。",
             "调整配置后，新发起的审批会实时采用最新策略。",
           ],
         },
@@ -322,7 +324,7 @@ const HELP_SECTIONS: SectionConfig[] = [
           title: "Roles & Approval Configs",
           points: [
             "Roles capture business responsibilities; members can be picked via DooTask selectors.",
-            "Action configs define whether an operation needs approval, default approver type, and overrides.",
+            "Action configs define whether an operation needs approval, default approver candidate scope (users or role members), and whether reassignment is allowed.",
             "Any updates take effect immediately for newly created approval requests.",
           ],
         },
@@ -496,6 +498,13 @@ const HELP_SECTIONS: SectionConfig[] = [
           ],
         },
         {
+          title: "为什么我能看到某条审批，但没有“同意/驳回”按钮？",
+          points: [
+            "你可能是该审批的抄送人（CC），抄送仅用于查看与接收通知，不参与处理。",
+            "只有审批人、具备审批权限的用户或管理员才能执行同意/驳回等动作；如需你处理，请联系管理员调整审批人或审批配置。",
+          ],
+        },
+        {
           title: "为什么在浏览器直接打开地址会提示“请在 DooTask 插件环境中打开”？",
           points: [
             "Asset Hub 设计为 DooTask 插件，只支持在 DooTask 宿主环境中运行。",
@@ -611,4 +620,3 @@ export default async function HelpCenterPage({
     </div>
   );
 }
-
