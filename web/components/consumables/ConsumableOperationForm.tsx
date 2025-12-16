@@ -781,7 +781,7 @@ export default function ConsumableOperationForm({
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1.5">
-                    <Label className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                    <Label className="gap-1 text-xs text-muted-foreground">
                       {isChinese ? "审批人 ID" : "Approver ID"}
                       <span className="text-destructive">*</span>
                     </Label>

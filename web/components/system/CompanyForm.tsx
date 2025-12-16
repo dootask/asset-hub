@@ -91,7 +91,7 @@ export default function CompanyForm({ company, locale = "en" }: CompanyFormProps
       <div className="space-y-1.5">
         <Label
           htmlFor="company-name"
-          className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground"
+          className="gap-1 text-xs font-medium text-muted-foreground"
         >
           {isChinese ? "公司名称" : "Company Name"}
           <span className="text-destructive">*</span>
@@ -108,7 +108,7 @@ export default function CompanyForm({ company, locale = "en" }: CompanyFormProps
       <div className="space-y-1.5">
         <Label
           htmlFor="company-code"
-          className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground"
+          className="gap-1 text-xs font-medium text-muted-foreground"
         >
           {isChinese ? "公司编码" : "Company Code"}
           <span className="text-destructive">*</span>

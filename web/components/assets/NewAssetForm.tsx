@@ -138,7 +138,7 @@ export default function NewAssetForm({ locale = "en", categories, companies }: P
         <div className="space-y-1.5">
           <Label
             htmlFor="asset-name"
-            className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground"
+            className="gap-1 text-sm font-medium text-muted-foreground"
           >
             {isChinese ? "资产名称" : "Asset Name"}
             <span className="text-destructive">*</span>
@@ -175,7 +175,7 @@ export default function NewAssetForm({ locale = "en", categories, companies }: P
         <div className="space-y-1.5">
           <Label
             htmlFor="asset-company"
-            className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground"
+            className="gap-1 text-sm font-medium text-muted-foreground"
           >
             {isChinese ? "所属公司" : "Company"}
             <span className="text-destructive">*</span>
@@ -216,7 +216,7 @@ export default function NewAssetForm({ locale = "en", categories, companies }: P
         <div className="space-y-1.5">
           <Label
             htmlFor="asset-category"
-            className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground"
+            className="gap-1 text-sm font-medium text-muted-foreground"
           >
             {isChinese ? "资产类别" : "Category"}
             <span className="text-destructive">*</span>
@@ -275,7 +275,7 @@ export default function NewAssetForm({ locale = "en", categories, companies }: P
         <div className="space-y-1.5">
           <Label
             htmlFor="asset-owner"
-            className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground"
+            className="gap-1 text-sm font-medium text-muted-foreground"
           >
             {isChinese ? "使用人 / 部门" : "Owner / Dept"}
             <span className="text-destructive">*</span>
@@ -290,7 +290,7 @@ export default function NewAssetForm({ locale = "en", categories, companies }: P
         <div className="space-y-1.5">
           <Label
             htmlFor="asset-location"
-            className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground"
+            className="gap-1 text-sm font-medium text-muted-foreground"
           >
             {isChinese ? "存放位置" : "Location"}
             <span className="text-destructive">*</span>

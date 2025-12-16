@@ -297,7 +297,7 @@ const ConsumableCategoryTable = forwardRef<ConsumableCategoryTableHandle, Props>
                 <div className="space-y-1.5">
                   <Label
                     htmlFor="consumable-category-label-zh"
-                    className="inline-flex items-center gap-1"
+                    className="gap-1"
                   >
                     {isChinese ? "中文名称" : "Chinese label"}
                     <span className="text-destructive">*</span>
@@ -314,7 +314,7 @@ const ConsumableCategoryTable = forwardRef<ConsumableCategoryTableHandle, Props>
                 <div className="space-y-1.5">
                   <Label
                     htmlFor="consumable-category-label-en"
-                    className="inline-flex items-center gap-1"
+                    className="gap-1"
                   >
                     {isChinese ? "英文名称" : "English label"}
                     <span className="text-destructive">*</span>
@@ -332,7 +332,7 @@ const ConsumableCategoryTable = forwardRef<ConsumableCategoryTableHandle, Props>
               <div className="space-y-1.5">
                 <Label
                   htmlFor="consumable-category-code"
-                  className="inline-flex items-center gap-1"
+                  className="gap-1"
                 >
                   {isChinese ? "类别编码" : "Category code"}
                   <span className="text-destructive">*</span>

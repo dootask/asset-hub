@@ -267,7 +267,7 @@ const InventoryTaskList = forwardRef<InventoryTaskListHandle, Props>(
           <DialogBody>
             <form id="asset-inventory-form" className="space-y-4" onSubmit={handleSubmit}>
               <div className="space-y-1.5">
-                <Label className="inline-flex items-center gap-1">
+                <Label className="gap-1">
                   {isChinese ? "任务名称" : "Task Name"}
                   <span className="text-destructive">*</span>
                 </Label>

@@ -359,7 +359,7 @@ const AssetCategoryTable = forwardRef<AssetCategoryTableHandle, Props>(function 
                 <div className="space-y-1.5">
                   <Label
                     htmlFor="category-label-zh"
-                    className="inline-flex items-center gap-1"
+                    className="gap-1"
                   >
                     {isChinese ? "中文名称" : "Chinese Label"}
                     <span className="text-destructive">*</span>
@@ -380,7 +380,7 @@ const AssetCategoryTable = forwardRef<AssetCategoryTableHandle, Props>(function 
                 <div className="space-y-1.5">
                   <Label
                     htmlFor="category-label-en"
-                    className="inline-flex items-center gap-1"
+                    className="gap-1"
                   >
                     {isChinese ? "英文名称" : "English Label"}
                     <span className="text-destructive">*</span>

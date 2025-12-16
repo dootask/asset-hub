@@ -469,7 +469,7 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
               <div className="space-y-1.5">
                 <Label
                   htmlFor="role-name"
-                  className="inline-flex items-center gap-1"
+                  className="gap-1"
                 >
                   {isChinese ? "角色名称" : "Role Name"}
                   <span className="text-destructive">*</span>

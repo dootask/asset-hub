@@ -1145,7 +1145,7 @@ export default function ApprovalRequestForm({
       <div className="space-y-1.5">
         <Label
           htmlFor={fieldIds.title}
-          className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground"
+          className="gap-1 text-xs font-medium text-muted-foreground"
         >
           {isChinese ? "标题" : "Title"}
           <span className="text-destructive">*</span>
@@ -1163,7 +1163,7 @@ export default function ApprovalRequestForm({
       <div className="space-y-1.5">
         <Label
           htmlFor={fieldIds.reason}
-          className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground"
+          className="gap-1 text-xs font-medium text-muted-foreground"
         >
           {isChinese ? "事由" : "Reason"}
           <span className="text-destructive">*</span>
@@ -1219,7 +1219,7 @@ export default function ApprovalRequestForm({
         <div className="space-y-1.5">
         <Label
           htmlFor={fieldIds.applicantId}
-          className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground"
+          className="gap-1 text-xs font-medium text-muted-foreground"
         >
           {isChinese ? "申请人 ID" : "Applicant ID"}
           <span className="text-destructive">*</span>
@@ -1249,7 +1249,7 @@ export default function ApprovalRequestForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
+        <Label className="gap-1 text-xs font-medium text-muted-foreground">
           {isChinese ? "审批人" : "Approver"}
           <span className="text-destructive">*</span>
         </Label>
@@ -1345,7 +1345,7 @@ export default function ApprovalRequestForm({
               <div className="space-y-1.5">
                 <Label
                   htmlFor={fieldIds.approverId}
-                  className="inline-flex items-center gap-1 text-xs text-muted-foreground"
+                  className="gap-1 text-xs text-muted-foreground"
                 >
                   {isChinese ? "审批人 ID" : "Approver ID"}
                   <span className="text-destructive">*</span>

@@ -351,7 +351,7 @@ const CompanyTable = forwardRef<CompanyTableHandle, Props>(function CompanyTable
               <div className="space-y-1.5">
                 <Label
                   htmlFor="company-name"
-                  className="inline-flex items-center gap-1"
+                  className="gap-1"
                 >
                   {isChinese ? "公司名称" : "Company Name"}
                   <span className="text-destructive">*</span>
@@ -368,7 +368,7 @@ const CompanyTable = forwardRef<CompanyTableHandle, Props>(function CompanyTable
               <div className="space-y-1.5">
                 <Label
                   htmlFor="company-code"
-                  className="inline-flex items-center gap-1"
+                  className="gap-1"
                 >
                   {isChinese ? "公司编码" : "Company Code"}
                   <span className="text-destructive">*</span>

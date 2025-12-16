@@ -217,7 +217,7 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
               <div className="space-y-1.5">
                 <Label
                   htmlFor="edit-asset-name"
-                  className="inline-flex items-center gap-1"
+                  className="gap-1"
                 >
                   {isChinese ? "资产名称" : "Asset Name"}
                   <span className="text-destructive">*</span>
@@ -252,7 +252,7 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
               <div className="space-y-1.5">
                 <Label
                   htmlFor="edit-asset-company"
-                  className="inline-flex items-center gap-1"
+                  className="gap-1"
                 >
                   {isChinese ? "所属公司" : "Company"}
                   <span className="text-destructive">*</span>
@@ -291,7 +291,7 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
               <div className="space-y-1.5">
                 <Label
                   htmlFor="edit-asset-category"
-                  className="inline-flex items-center gap-1"
+                  className="gap-1"
                 >
                   {isChinese ? "资产类别" : "Category"}
                   <span className="text-destructive">*</span>
@@ -335,7 +335,7 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
               <div className="space-y-1.5">
                 <Label
                   htmlFor="edit-asset-status"
-                  className="inline-flex items-center gap-1"
+                  className="gap-1"
                 >
                   {isChinese ? "资产状态" : "Status"}
                   <span className="text-destructive">*</span>
@@ -359,7 +359,7 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
               <div className="space-y-1.5">
                 <Label
                   htmlFor="edit-asset-owner"
-                  className="inline-flex items-center gap-1"
+                  className="gap-1"
                 >
                   {isChinese ? "使用人 / 部门" : "Owner / Dept"}
                   <span className="text-destructive">*</span>
@@ -374,7 +374,7 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
               <div className="space-y-1.5">
                 <Label
                   htmlFor="edit-asset-location"
-                  className="inline-flex items-center gap-1"
+                  className="gap-1"
                 >
                   {isChinese ? "存放位置" : "Location"}
                   <span className="text-destructive">*</span>

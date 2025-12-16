@@ -149,7 +149,7 @@ export default function NewConsumableForm({
         <div className="space-y-1.5">
           <Label
             htmlFor="consumable-name"
-            className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground"
+            className="gap-1 text-sm font-medium text-muted-foreground"
           >
             {isChinese ? "耗材名称" : "Consumable Name"}
             <span className="text-destructive">*</span>
@@ -194,7 +194,7 @@ export default function NewConsumableForm({
         <div className="space-y-1.5">
           <Label
             htmlFor="consumable-company"
-            className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground"
+            className="gap-1 text-sm font-medium text-muted-foreground"
           >
             {isChinese ? "所属公司" : "Company"}
             <span className="text-destructive">*</span>
@@ -235,7 +235,7 @@ export default function NewConsumableForm({
         <div className="space-y-1.5">
           <Label
             htmlFor="consumable-category"
-            className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground"
+            className="gap-1 text-sm font-medium text-muted-foreground"
           >
             {isChinese ? "耗材类别" : "Category"}
             <span className="text-destructive">*</span>
@@ -287,7 +287,7 @@ export default function NewConsumableForm({
         <div className="space-y-1.5">
           <Label
             htmlFor="consumable-unit"
-            className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground"
+            className="gap-1 text-sm font-medium text-muted-foreground"
           >
             {isChinese ? "计量单位" : "Unit"}
             <span className="text-destructive">*</span>
@@ -303,7 +303,7 @@ export default function NewConsumableForm({
         <div className="space-y-1.5">
           <Label
             htmlFor="consumable-keeper"
-            className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground"
+            className="gap-1 text-sm font-medium text-muted-foreground"
           >
             {isChinese ? "保管人" : "Keeper"}
             <span className="text-destructive">*</span>
@@ -318,7 +318,7 @@ export default function NewConsumableForm({
         <div className="space-y-1.5">
           <Label
             htmlFor="consumable-location"
-            className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground"
+            className="gap-1 text-sm font-medium text-muted-foreground"
           >
             {isChinese ? "存放位置" : "Location"}
             <span className="text-destructive">*</span>
@@ -333,7 +333,7 @@ export default function NewConsumableForm({
         <div className="space-y-1.5">
           <Label
             htmlFor="consumable-safety-stock"
-            className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground"
+            className="gap-1 text-sm font-medium text-muted-foreground"
           >
             {isChinese ? "安全库存" : "Safety Stock"}
             <span className="text-destructive">*</span>
