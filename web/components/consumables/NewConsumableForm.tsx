@@ -18,6 +18,7 @@ import { getApiClient } from "@/lib/http/client";
 import { extractApiErrorMessage } from "@/lib/utils/api-error";
 import type { ConsumableCategory } from "@/lib/types/consumable";
 import type { Company } from "@/lib/types/system";
+import { coerceMoneyToCents } from "@/lib/utils/money";
 
 type Props = {
   locale?: string;
@@ -35,7 +36,9 @@ export default function NewConsumableForm({
   const firstCategory = categories[0]?.code ?? "";
   const firstCompany = companies[0]?.code ?? "";
   const [formState, setFormState] = useState({
+    consumableNo: "",
     name: "",
+    specModel: "",
     category: firstCategory,
     status: "auto" as "auto" | "archived",
     companyCode: firstCompany,
@@ -44,6 +47,7 @@ export default function NewConsumableForm({
     keeper: "",
     location: "",
     safetyStock: "0",
+    purchasePrice: "",
     description: "",
   });
   const [submitting, setSubmitting] = useState(false);
@@ -71,11 +75,24 @@ export default function NewConsumableForm({
       return;
     }
 
+    const rawPurchasePrice = formState.purchasePrice.trim();
+    const purchasePriceCents = coerceMoneyToCents(rawPurchasePrice);
+    if (rawPurchasePrice && purchasePriceCents === null) {
+      feedback.error(isChinese ? "采购价格格式不正确" : "Invalid purchase price", {
+        blocking: true,
+        title: isChinese ? "提交失败" : "Submit failed",
+        acknowledgeLabel: isChinese ? "知道了" : "Got it",
+      });
+      return;
+    }
+
     setSubmitting(true);
     try {
       const client = await getApiClient();
       const payload = {
+        consumableNo: formState.consumableNo.trim() || undefined,
         name: formState.name.trim(),
+        specModel: formState.specModel.trim() || undefined,
         category: formState.category,
         status: formState.status === "archived" ? "archived" : undefined,
         companyCode: formState.companyCode,
@@ -84,6 +101,8 @@ export default function NewConsumableForm({
         keeper: formState.keeper.trim(),
         location: formState.location.trim(),
         safetyStock,
+        purchasePriceCents,
+        purchaseCurrency: "CNY",
         description: formState.description.trim() || undefined,
       };
       const response = await client.post<{ data: { id: string } }>(
@@ -129,6 +148,22 @@ export default function NewConsumableForm({
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-1.5">
           <Label
+            htmlFor="consumable-no"
+            className="text-sm font-medium text-muted-foreground"
+          >
+            {isChinese
+              ? "耗材编号（留空自动生成）"
+              : "Consumable No. (auto-generated if left blank)"}
+          </Label>
+          <Input
+            id="consumable-no"
+            value={formState.consumableNo}
+            placeholder={isChinese ? "例如：OFF-000001" : "e.g. OFF-000001"}
+            onChange={(event) => handleChange("consumableNo", event.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label
             htmlFor="consumable-name"
             className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground"
           >
@@ -140,6 +175,34 @@ export default function NewConsumableForm({
             required
             value={formState.name}
             onChange={(event) => handleChange("name", event.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label
+            htmlFor="consumable-spec-model"
+            className="text-sm font-medium text-muted-foreground"
+          >
+            {isChinese ? "规格型号" : "Spec / Model"}
+          </Label>
+          <Input
+            id="consumable-spec-model"
+            value={formState.specModel}
+            placeholder={isChinese ? "例如：A4 / 80g" : "e.g. A4 / 80g"}
+            onChange={(event) => handleChange("specModel", event.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label
+            htmlFor="consumable-purchase-price"
+            className="text-sm font-medium text-muted-foreground"
+          >
+            {isChinese ? "采购价格" : "Purchase Price"}
+          </Label>
+          <Input
+            id="consumable-purchase-price"
+            value={formState.purchasePrice}
+            placeholder={isChinese ? "例如：99.00" : "e.g. 99.00"}
+            onChange={(event) => handleChange("purchasePrice", event.target.value)}
           />
         </div>
         <div className="space-y-1.5">

@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import type { Consumable } from "@/lib/types/consumable";
 import { getConsumableStatusLabel } from "@/lib/types/consumable";
+import { formatCentsToMoney } from "@/lib/utils/money";
 
 interface Props {
   consumables: Consumable[];
@@ -36,6 +37,8 @@ export default function ConsumableTable({
           <TableRow className="text-xs uppercase tracking-wide text-muted-foreground">
             <TableHead className="px-4 py-3">{isChinese ? "名称" : "Name"}</TableHead>
             <TableHead className="px-4 py-3">{isChinese ? "类别" : "Category"}</TableHead>
+            <TableHead className="px-4 py-3">{isChinese ? "规格型号" : "Spec / Model"}</TableHead>
+            <TableHead className="px-4 py-3">{isChinese ? "采购价格" : "Purchase Price"}</TableHead>
             <TableHead className="px-4 py-3">{isChinese ? "所属公司" : "Company"}</TableHead>
             <TableHead className="px-4 py-3">{isChinese ? "状态" : "Status"}</TableHead>
             <TableHead className="px-4 py-3">{isChinese ? "数量" : "Quantity"}</TableHead>
@@ -50,7 +53,7 @@ export default function ConsumableTable({
                 <Link href={`/${locale}/consumables/${item.id}`} className="font-medium text-primary hover:underline">
                   {item.name}
                 </Link>
-                <div className="text-xs text-muted-foreground">{item.id}</div>
+                <div className="text-xs text-muted-foreground">{item.consumableNo || item.id}</div>
               </TableCell>
               <TableCell className="px-4 py-3">
                 {item.category
@@ -58,6 +61,16 @@ export default function ConsumableTable({
                   : isChinese
                     ? "未分类"
                     : "Uncategorized"}
+              </TableCell>
+              <TableCell className="px-4 py-3">
+                {item.specModel || (isChinese ? "未填写" : "-")}
+              </TableCell>
+              <TableCell className="px-4 py-3">
+                {item.purchasePriceCents !== undefined && item.purchasePriceCents !== null
+                  ? `${formatCentsToMoney(item.purchasePriceCents)} ${item.purchaseCurrency ?? "CNY"}`
+                  : isChinese
+                    ? "未填写"
+                    : "-"}
               </TableCell>
               <TableCell className="px-4 py-3">
                 {item.companyCode

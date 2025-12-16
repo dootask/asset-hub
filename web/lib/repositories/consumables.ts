@@ -5,6 +5,7 @@ import type {
   ConsumableStatus,
   CreateConsumablePayload,
 } from "@/lib/types/consumable";
+import { getConsumableCategoryByCode } from "@/lib/repositories/consumable-categories";
 import {
   propagateConsumableAlertResult,
   resolveAlertsForConsumable,
@@ -13,7 +14,9 @@ import {
 
 type ConsumableRow = {
   id: string;
+  consumable_no: string | null;
   name: string;
+  spec_model: string | null;
   category: string;
   status: string;
   company_code: string | null;
@@ -23,6 +26,8 @@ type ConsumableRow = {
   keeper: string;
   location: string;
   safety_stock: number;
+  purchase_price_cents: number | null;
+  purchase_currency: string | null;
   description: string | null;
   metadata: string | null;
   created_at: string;
@@ -32,7 +37,9 @@ type ConsumableRow = {
 function mapRow(row: ConsumableRow): Consumable {
   return {
     id: row.id,
+    consumableNo: row.consumable_no ?? undefined,
     name: row.name,
+    specModel: row.spec_model ?? undefined,
     category: row.category,
     status: row.status as ConsumableStatus,
     companyCode: row.company_code ?? undefined,
@@ -42,6 +49,11 @@ function mapRow(row: ConsumableRow): Consumable {
     keeper: row.keeper,
     location: row.location,
     safetyStock: row.safety_stock,
+    purchasePriceCents:
+      typeof row.purchase_price_cents === "number"
+        ? row.purchase_price_cents
+        : undefined,
+    purchaseCurrency: row.purchase_currency ?? undefined,
     description: row.description ?? undefined,
     metadata: row.metadata ? (JSON.parse(row.metadata) as Record<string, unknown>) : null,
   };
@@ -74,7 +86,7 @@ export function listConsumables(query: ConsumableQuery = {}): ConsumableListResu
 
   if (query.search) {
     where.push(
-      "(name LIKE @search OR keeper LIKE @search OR location LIKE @search OR id LIKE @search)",
+      "(name LIKE @search OR keeper LIKE @search OR location LIKE @search OR id LIKE @search OR consumable_no LIKE @search OR spec_model LIKE @search)",
     );
     params.search = `%${query.search.trim()}%`;
   }
@@ -133,15 +145,121 @@ export function getConsumableById(id: string): Consumable | null {
   return row ? mapRow(row) : null;
 }
 
+export function isConsumableNoInUse(consumableNo: string, excludeId?: string): boolean {
+  const normalized = consumableNo.trim();
+  if (!normalized) return false;
+  const db = getDb();
+  const row = db
+    .prepare(
+      `
+      SELECT id FROM consumables
+      WHERE consumable_no = @consumableNo
+        AND (@excludeId IS NULL OR id <> @excludeId)
+      LIMIT 1
+    `,
+    )
+    .get({ consumableNo: normalized, excludeId: excludeId ?? null }) as
+    | { id: string }
+    | undefined;
+  return Boolean(row?.id);
+}
+
+function normalizeCategoryPrefix(prefix: string | null | undefined): string | null {
+  if (!prefix) return null;
+  const normalized = prefix.trim().toUpperCase();
+  if (!normalized) return null;
+  return /^[A-Z0-9]{1,10}$/.test(normalized) ? normalized : null;
+}
+
+function nextConsumableNoSeq(prefix: string): number {
+  const db = getDb();
+  const transaction = db.transaction(() => {
+    db.prepare(
+      `
+      INSERT INTO consumable_no_counters(prefix, next_seq)
+      VALUES (@prefix, 1)
+      ON CONFLICT(prefix) DO NOTHING
+    `,
+    ).run({ prefix });
+
+    const likePattern = `${prefix}-%`;
+    const start = prefix.length + 2;
+    const maxRow = db
+      .prepare(
+        `
+        SELECT MAX(CAST(SUBSTR(consumable_no, @start) AS INTEGER)) as maxSeq
+        FROM consumables
+        WHERE consumable_no LIKE @likePattern
+          AND SUBSTR(consumable_no, @start) GLOB '[0-9]*'
+      `,
+      )
+      .get({ likePattern, start }) as { maxSeq: number | null } | undefined;
+    const minNextSeq = (maxRow?.maxSeq ?? 0) + 1;
+
+    db.prepare(
+      `
+      UPDATE consumable_no_counters
+      SET next_seq = CASE WHEN next_seq < @minNextSeq THEN @minNextSeq ELSE next_seq END
+      WHERE prefix = @prefix
+    `,
+    ).run({ prefix, minNextSeq });
+
+    const row = db
+      .prepare("SELECT next_seq FROM consumable_no_counters WHERE prefix = ?")
+      .get(prefix) as { next_seq: number } | undefined;
+    const current = row?.next_seq ?? minNextSeq;
+
+    db.prepare(
+      "UPDATE consumable_no_counters SET next_seq = next_seq + 1 WHERE prefix = ?",
+    ).run(prefix);
+
+    return current;
+  });
+  return transaction();
+}
+
+function formatPrefixedConsumableNo(prefix: string, seq: number): string {
+  const padded = String(Math.max(0, seq)).padStart(6, "0");
+  return `${prefix}-${padded}`;
+}
+
+function resolveConsumableNoForCreate(
+  payload: CreateConsumablePayload,
+  fallbackId: string,
+): string {
+  const raw = payload.consumableNo?.trim() ?? "";
+  if (raw) {
+    return raw;
+  }
+
+  const category = getConsumableCategoryByCode(payload.category);
+  const prefix = normalizeCategoryPrefix(category?.consumableNoPrefix);
+  if (!prefix) {
+    return fallbackId;
+  }
+
+  const seq = nextConsumableNoSeq(prefix);
+  return formatPrefixedConsumableNo(prefix, seq);
+}
+
 export function createConsumable(
   payload: CreateConsumablePayload,
 ): Consumable {
   const db = getDb();
   const id = `CON-${randomUUID().slice(0, 6).toUpperCase()}`;
+  const consumableNo = resolveConsumableNoForCreate(payload, id);
+  const specModel = payload.specModel?.trim() ? payload.specModel.trim() : null;
+  const purchasePriceCents =
+    typeof payload.purchasePriceCents === "number"
+      ? payload.purchasePriceCents
+      : null;
+  const purchaseCurrency = payload.purchaseCurrency?.trim() || "CNY";
   db.prepare(
     `INSERT INTO consumables (
         id,
+        consumable_no,
         name,
+        spec_model,
         category,
         status,
         company_code,
@@ -151,6 +269,8 @@ export function createConsumable(
         keeper,
         location,
         safety_stock,
+        purchase_price_cents,
+        purchase_currency,
         description,
         metadata,
         created_at,
@@ -158,7 +278,9 @@ export function createConsumable(
       )
       VALUES (
         @id,
+        @consumable_no,
         @name,
+        @spec_model,
         @category,
         @status,
         @company_code,
@@ -168,6 +290,8 @@ export function createConsumable(
         @keeper,
         @location,
         @safety_stock,
+        @purchase_price_cents,
+        @purchase_currency,
         @description,
         @metadata,
         datetime('now'),
@@ -175,7 +299,9 @@ export function createConsumable(
       )`,
   ).run({
     id,
+    consumable_no: consumableNo,
     name: payload.name,
+    spec_model: specModel,
     category: payload.category,
     status: payload.status,
     company_code: payload.companyCode,
@@ -185,6 +311,8 @@ export function createConsumable(
     keeper: payload.keeper,
     location: payload.location,
     safety_stock: payload.safetyStock,
+    purchase_price_cents: purchasePriceCents,
+    purchase_currency: purchaseCurrency,
     description: payload.description ?? null,
     metadata: payload.metadata ? JSON.stringify(payload.metadata) : null,
   });
@@ -209,9 +337,35 @@ export function updateConsumable(
   const db = getDb();
   const existing = getConsumableById(id);
   if (!existing) return null;
+  const consumableNo =
+    payload.consumableNo === undefined
+      ? existing.consumableNo ?? null
+      : payload.consumableNo.trim()
+        ? payload.consumableNo.trim()
+        : null;
+  const specModel =
+    payload.specModel === undefined
+      ? existing.specModel ?? null
+      : payload.specModel.trim()
+        ? payload.specModel.trim()
+        : null;
+  const purchasePriceCents =
+    payload.purchasePriceCents === undefined
+      ? typeof existing.purchasePriceCents === "number"
+        ? existing.purchasePriceCents
+        : null
+      : typeof payload.purchasePriceCents === "number"
+        ? payload.purchasePriceCents
+        : null;
+  const purchaseCurrency =
+    payload.purchaseCurrency === undefined
+      ? existing.purchaseCurrency ?? "CNY"
+      : payload.purchaseCurrency.trim() || existing.purchaseCurrency || "CNY";
   db.prepare(
     `UPDATE consumables
-     SET name=@name,
+     SET consumable_no=@consumable_no,
+         name=@name,
+         spec_model=@spec_model,
          category=@category,
          status=@status,
          company_code=@company_code,
@@ -221,13 +375,17 @@ export function updateConsumable(
          keeper=@keeper,
          location=@location,
          safety_stock=@safety_stock,
+         purchase_price_cents=@purchase_price_cents,
+         purchase_currency=@purchase_currency,
          description=@description,
          metadata=@metadata,
          updated_at=datetime('now')
      WHERE id=@id`,
   ).run({
     id,
+    consumable_no: consumableNo,
     name: payload.name,
+    spec_model: specModel,
     category: payload.category,
     status: payload.status,
     company_code: payload.companyCode,
@@ -237,6 +395,8 @@ export function updateConsumable(
     keeper: payload.keeper,
     location: payload.location,
     safety_stock: payload.safetyStock,
+    purchase_price_cents: purchasePriceCents,
+    purchase_currency: purchaseCurrency,
     description: payload.description ?? null,
     metadata: payload.metadata ? JSON.stringify(payload.metadata) : null,
   });
@@ -313,4 +473,3 @@ export function getConsumableStockStats() {
 
   return stats;
 }
-

@@ -255,7 +255,7 @@ export default async function ApprovalDetailPage({ params }: PageProps) {
             >
               {consumable.name}{" "}
               <span className="text-xs text-muted-foreground">
-                #{consumable.id}
+                #{consumable.consumableNo || consumable.id}
               </span>
             </Link>
           ) : (

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { listConsumables } from "@/lib/repositories/consumables";
 import type { ConsumableStatus } from "@/lib/types/consumable";
 import { CONSUMABLE_STATUSES } from "@/lib/types/consumable";
+import { formatCentsToMoney } from "@/lib/utils/money";
 
 const STATUS_ALLOW_LIST = new Set<ConsumableStatus>(CONSUMABLE_STATUSES);
 
@@ -55,8 +56,9 @@ export async function GET(request: Request) {
     );
   }
   const rows = result.items.map((item) => ({
-    id: item.id,
+    consumableNo: item.consumableNo ?? item.id,
     name: item.name,
+    specModel: item.specModel ?? "",
     category: item.category,
     status: item.status,
     companyCode: item.companyCode ?? "",
@@ -65,6 +67,9 @@ export async function GET(request: Request) {
     keeper: item.keeper,
     location: item.location,
     safetyStock: item.safetyStock,
+    purchasePrice: formatCentsToMoney(item.purchasePriceCents),
+    purchaseCurrency: item.purchaseCurrency ?? "CNY",
+    description: item.description ?? "",
   }));
   const csv = toCsv(rows);
   return new NextResponse(csv, {
@@ -75,4 +80,3 @@ export async function GET(request: Request) {
     },
   });
 }
-

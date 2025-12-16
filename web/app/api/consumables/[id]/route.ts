@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   deleteConsumable,
   getConsumableById,
+  isConsumableNoInUse,
   updateConsumable,
 } from "@/lib/repositories/consumables";
 import type { ConsumableStatus } from "@/lib/types/consumable";
@@ -35,7 +36,7 @@ function deriveStatus({
   return "in-stock";
 }
 
-function sanitizePayload(payload: unknown) {
+function sanitizePayload(id: string, payload: unknown) {
   if (typeof payload !== "object" || payload === null) {
     throw new Error("请求体必须为对象");
   }
@@ -46,6 +47,33 @@ function sanitizePayload(payload: unknown) {
       throw new Error(`${field} 为必填字段`);
     }
   });
+
+  const consumableNoRaw =
+    typeof body.consumableNo === "string" ? body.consumableNo : "";
+  const consumableNo = consumableNoRaw.trim();
+  if (consumableNo) {
+    if (consumableNo.length > 64) {
+      throw new Error("耗材编号过长");
+    }
+    if (isConsumableNoInUse(consumableNo, id)) {
+      throw new Error("耗材编号已存在");
+    }
+  }
+
+  const specModelRaw =
+    typeof body.specModel === "string" ? body.specModel : "";
+  const specModel = specModelRaw.trim();
+  if (specModel && specModel.length > 255) {
+    throw new Error("规格型号过长");
+  }
+
+  const purchaseCurrencyRaw =
+    typeof body.purchaseCurrency === "string" ? body.purchaseCurrency : "";
+  const purchaseCurrency = purchaseCurrencyRaw.trim() || "CNY";
+  if (purchaseCurrency.length > 10) {
+    throw new Error("采购币种不合法");
+  }
+
   const statusInput =
     typeof body.status === "string" && body.status.trim().length > 0
       ? (body.status.trim() as StatusInput)
@@ -71,8 +99,30 @@ function sanitizePayload(payload: unknown) {
   if (reservedQuantity !== undefined && reservedQuantity > quantity) {
     throw new Error("reservedQuantity 不能大于 quantity");
   }
+
+  let purchasePriceCents: number | null | undefined;
+  const rawPrice = (body as { purchasePriceCents?: unknown }).purchasePriceCents;
+  if (rawPrice === null || rawPrice === "") {
+    purchasePriceCents = null;
+  } else if (rawPrice !== undefined) {
+    const asNumber = typeof rawPrice === "number" ? rawPrice : Number(rawPrice);
+    if (!Number.isFinite(asNumber)) {
+      throw new Error("采购价格必须为数字");
+    }
+    const asInteger = Math.trunc(asNumber);
+    if (asInteger !== asNumber) {
+      throw new Error("采购价格精度不合法");
+    }
+    if (asInteger < 0) {
+      throw new Error("采购价格不能为负数");
+    }
+    purchasePriceCents = asInteger;
+  }
+
   return {
+    consumableNo,
     name: (body.name as string).trim(),
+    specModel,
     category: (body.category as string).trim(),
     status: statusInput,
     companyCode: (body.companyCode as string).trim().toUpperCase(),
@@ -82,6 +132,8 @@ function sanitizePayload(payload: unknown) {
     keeper: (body.keeper as string).trim(),
     location: (body.location as string).trim(),
     safetyStock,
+    purchasePriceCents,
+    purchaseCurrency,
     description:
       typeof body.description === "string" && body.description.trim()
         ? body.description.trim()
@@ -123,7 +175,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
         { status: 404 },
       );
     }
-    const payload = sanitizePayload(await request.json());
+    const payload = sanitizePayload(id, await request.json());
     if (!getCompanyByCode(payload.companyCode)) {
       throw new Error("公司不存在");
     }

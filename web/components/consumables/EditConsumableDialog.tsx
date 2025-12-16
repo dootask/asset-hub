@@ -29,6 +29,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
 import { extractApiErrorMessage } from "@/lib/utils/api-error";
+import { coerceMoneyToCents, formatCentsToMoney } from "@/lib/utils/money";
 
 type Props = {
   consumable: Consumable;
@@ -49,7 +50,9 @@ export default function EditConsumableDialog({
   const [submitting, setSubmitting] = useState(false);
   const feedback = useAppFeedback();
   const [formState, setFormState] = useState({
+    consumableNo: consumable.consumableNo ?? "",
     name: consumable.name,
+    specModel: consumable.specModel ?? "",
     category: consumable.category,
     status: consumable.status === "archived" ? "archived" : "auto",
     companyCode: consumable.companyCode ?? companies[0]?.code ?? "",
@@ -58,6 +61,7 @@ export default function EditConsumableDialog({
     keeper: consumable.keeper,
     location: consumable.location,
     safetyStock: consumable.safetyStock.toString(),
+    purchasePrice: formatCentsToMoney(consumable.purchasePriceCents),
     description: consumable.description ?? "",
   });
   const categoryOptions = categories.map((category) => ({
@@ -127,11 +131,24 @@ export default function EditConsumableDialog({
       return;
     }
 
+    const rawPurchasePrice = formState.purchasePrice.trim();
+    const purchasePriceCents = coerceMoneyToCents(rawPurchasePrice);
+    if (rawPurchasePrice && purchasePriceCents === null) {
+      feedback.error(isChinese ? "采购价格格式不正确" : "Invalid purchase price", {
+        blocking: true,
+        title: isChinese ? "更新失败" : "Update failed",
+        acknowledgeLabel: isChinese ? "知道了" : "Got it",
+      });
+      return;
+    }
+
     setSubmitting(true);
     try {
       const client = await getApiClient();
       await client.put(`/apps/asset-hub/api/consumables/${consumable.id}`, {
+        consumableNo: formState.consumableNo.trim() || undefined,
         name: formState.name.trim(),
+        specModel: formState.specModel.trim() || undefined,
         category: formState.category,
         status: formState.status === "archived" ? "archived" : undefined,
         companyCode: formState.companyCode.trim(),
@@ -140,6 +157,8 @@ export default function EditConsumableDialog({
         keeper: formState.keeper.trim(),
         location: formState.location.trim(),
         safetyStock,
+        purchasePriceCents,
+        purchaseCurrency: "CNY",
         description: formState.description.trim() || undefined,
       });
       setOpen(false);
@@ -199,6 +218,24 @@ export default function EditConsumableDialog({
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label
+                  htmlFor="edit-consumable-no"
+                  className="text-sm font-medium text-muted-foreground"
+                >
+                  {isChinese
+                    ? "耗材编号（留空自动生成）"
+                    : "Consumable No. (auto-generated if left blank)"}
+                </Label>
+                <Input
+                  id="edit-consumable-no"
+                  value={formState.consumableNo}
+                  placeholder={isChinese ? "例如：OFF-000001" : "e.g. OFF-000001"}
+                  onChange={(event) =>
+                    handleChange("consumableNo", event.target.value)
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label
                   htmlFor="edit-consumable-name"
                   className="inline-flex items-center gap-1"
                 >
@@ -210,6 +247,38 @@ export default function EditConsumableDialog({
                   required
                   value={formState.name}
                   onChange={(event) => handleChange("name", event.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="edit-consumable-spec-model"
+                  className="text-sm font-medium text-muted-foreground"
+                >
+                  {isChinese ? "规格型号" : "Spec / Model"}
+                </Label>
+                <Input
+                  id="edit-consumable-spec-model"
+                  value={formState.specModel}
+                  placeholder={isChinese ? "例如：A4 / 80g" : "e.g. A4 / 80g"}
+                  onChange={(event) =>
+                    handleChange("specModel", event.target.value)
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="edit-consumable-purchase-price"
+                  className="text-sm font-medium text-muted-foreground"
+                >
+                  {isChinese ? "采购价格" : "Purchase Price"}
+                </Label>
+                <Input
+                  id="edit-consumable-purchase-price"
+                  value={formState.purchasePrice}
+                  placeholder={isChinese ? "例如：99.00" : "e.g. 99.00"}
+                  onChange={(event) =>
+                    handleChange("purchasePrice", event.target.value)
+                  }
                 />
               </div>
               <div className="space-y-1.5">

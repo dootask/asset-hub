@@ -10,6 +10,7 @@ type CategoryRow = {
   code: string;
   label_zh: string;
   label_en: string;
+  consumable_no_prefix: string | null;
   description: string | null;
   unit: string | null;
   created_at: string;
@@ -22,9 +23,20 @@ function mapRow(row: CategoryRow): ConsumableCategory {
     code: row.code,
     labelZh: row.label_zh,
     labelEn: row.label_en,
+    consumableNoPrefix: row.consumable_no_prefix,
     description: row.description,
     unit: row.unit,
   };
+}
+
+function normalizeConsumableNoPrefix(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim().toUpperCase();
+  if (!normalized) return null;
+  if (!/^[A-Z0-9]{1,10}$/.test(normalized)) {
+    throw new Error("CONSUMABLE_CATEGORY_NO_PREFIX_INVALID");
+  }
+  return normalized;
 }
 
 export function listConsumableCategories(): ConsumableCategory[] {
@@ -35,17 +47,27 @@ export function listConsumableCategories(): ConsumableCategory[] {
   return rows.map(mapRow);
 }
 
+export function getConsumableCategoryByCode(code: string): ConsumableCategory | null {
+  const db = getDb();
+  const row = db
+    .prepare(`SELECT * FROM consumable_categories WHERE code = ? LIMIT 1`)
+    .get(code) as CategoryRow | undefined;
+  return row ? mapRow(row) : null;
+}
+
 export function createConsumableCategory(
   payload: CreateConsumableCategoryPayload,
 ): ConsumableCategory {
   const db = getDb();
   const id = `CC-${randomUUID().slice(0, 6).toUpperCase()}`;
+  const consumableNoPrefix = normalizeConsumableNoPrefix(payload.consumableNoPrefix);
   db.prepare(
     `INSERT INTO consumable_categories (
         id,
         code,
         label_zh,
         label_en,
+        consumable_no_prefix,
         description,
         unit,
         created_at,
@@ -56,6 +78,7 @@ export function createConsumableCategory(
         @code,
         @label_zh,
         @label_en,
+        @consumable_no_prefix,
         @description,
         @unit,
         datetime('now'),
@@ -66,6 +89,7 @@ export function createConsumableCategory(
     code: payload.code,
     label_zh: payload.labelZh,
     label_en: payload.labelEn,
+    consumable_no_prefix: consumableNoPrefix,
     description: payload.description ?? null,
     unit: payload.unit ?? null,
   });
@@ -74,6 +98,7 @@ export function createConsumableCategory(
     code: payload.code,
     label_zh: payload.labelZh,
     label_en: payload.labelEn,
+    consumable_no_prefix: consumableNoPrefix,
     description: payload.description ?? null,
     unit: payload.unit ?? null,
     created_at: new Date().toISOString(),
@@ -98,10 +123,15 @@ export function updateConsumableCategory(
     .prepare(`SELECT * FROM consumable_categories WHERE id = ? LIMIT 1`)
     .get(id) as CategoryRow | undefined;
   if (!existing) return null;
+  const consumableNoPrefix =
+    payload.consumableNoPrefix === undefined
+      ? existing.consumable_no_prefix
+      : normalizeConsumableNoPrefix(payload.consumableNoPrefix);
   db.prepare(
     `UPDATE consumable_categories
      SET label_zh=@label_zh,
          label_en=@label_en,
+         consumable_no_prefix=@consumable_no_prefix,
          description=@description,
          unit=@unit,
          updated_at=datetime('now')
@@ -110,6 +140,7 @@ export function updateConsumableCategory(
     id,
     label_zh: payload.labelZh,
     label_en: payload.labelEn,
+    consumable_no_prefix: consumableNoPrefix,
     description: payload.description ?? null,
     unit: payload.unit ?? null,
   });
@@ -117,9 +148,9 @@ export function updateConsumableCategory(
     ...existing,
     label_zh: payload.labelZh,
     label_en: payload.labelEn,
+    consumable_no_prefix: consumableNoPrefix,
     description: payload.description ?? null,
     unit: payload.unit ?? null,
     updated_at: new Date().toISOString(),
   });
 }
-

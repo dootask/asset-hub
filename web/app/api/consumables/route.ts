@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { ConsumableStatus } from "@/lib/types/consumable";
 import {
   createConsumable,
+  isConsumableNoInUse,
   listConsumables,
 } from "@/lib/repositories/consumables";
 import { getCompanyByCode } from "@/lib/repositories/companies";
@@ -52,6 +53,32 @@ function sanitizePayload(body: unknown) {
     }
   });
 
+  const consumableNoRaw =
+    typeof payload.consumableNo === "string" ? payload.consumableNo : "";
+  const consumableNo = consumableNoRaw.trim();
+  if (consumableNo) {
+    if (consumableNo.length > 64) {
+      throw new Error("耗材编号过长");
+    }
+    if (isConsumableNoInUse(consumableNo)) {
+      throw new Error("耗材编号已存在");
+    }
+  }
+
+  const specModelRaw =
+    typeof payload.specModel === "string" ? payload.specModel : "";
+  const specModel = specModelRaw.trim();
+  if (specModel && specModel.length > 255) {
+    throw new Error("规格型号过长");
+  }
+
+  const purchaseCurrencyRaw =
+    typeof payload.purchaseCurrency === "string" ? payload.purchaseCurrency : "";
+  const purchaseCurrency = purchaseCurrencyRaw.trim() || "CNY";
+  if (purchaseCurrency.length > 10) {
+    throw new Error("采购币种不合法");
+  }
+
   const statusInput =
     typeof payload.status === "string" && payload.status.trim().length > 0
       ? (payload.status.trim() as StatusInput)
@@ -85,8 +112,30 @@ function sanitizePayload(body: unknown) {
     reservedQuantity,
     safetyStock,
   });
+
+  let purchasePriceCents: number | null | undefined;
+  const rawPrice = (payload as { purchasePriceCents?: unknown }).purchasePriceCents;
+  if (rawPrice === null || rawPrice === "") {
+    purchasePriceCents = null;
+  } else if (rawPrice !== undefined) {
+    const asNumber = typeof rawPrice === "number" ? rawPrice : Number(rawPrice);
+    if (!Number.isFinite(asNumber)) {
+      throw new Error("采购价格必须为数字");
+    }
+    const asInteger = Math.trunc(asNumber);
+    if (asInteger !== asNumber) {
+      throw new Error("采购价格精度不合法");
+    }
+    if (asInteger < 0) {
+      throw new Error("采购价格不能为负数");
+    }
+    purchasePriceCents = asInteger;
+  }
+
   return {
+    consumableNo: consumableNo || undefined,
     name: (payload.name as string).trim(),
+    specModel: specModel || undefined,
     category: (payload.category as string).trim(),
     status,
     companyCode: (payload.companyCode as string).trim().toUpperCase(),
@@ -96,6 +145,8 @@ function sanitizePayload(body: unknown) {
     keeper: (payload.keeper as string).trim(),
     location: (payload.location as string).trim(),
     safetyStock,
+    purchasePriceCents,
+    purchaseCurrency,
     description:
       typeof payload.description === "string" && payload.description.trim()
         ? payload.description.trim()

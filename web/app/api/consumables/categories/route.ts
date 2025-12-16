@@ -23,6 +23,10 @@ function sanitizePayload(body: unknown) {
     code: (payload.code as string).trim(),
     labelZh: (payload.labelZh as string).trim(),
     labelEn: (payload.labelEn as string).trim(),
+    consumableNoPrefix:
+      typeof payload.consumableNoPrefix === "string"
+        ? payload.consumableNoPrefix
+        : null,
     description:
       typeof payload.description === "string" && payload.description.trim()
         ? payload.description.trim()
@@ -50,10 +54,13 @@ export async function POST(request: Request) {
       {
         error: "INVALID_CATEGORY",
         message:
-          error instanceof Error ? error.message : "创建耗材类别失败，请稍后重试。",
+          error instanceof Error
+            ? error.message === "CONSUMABLE_CATEGORY_NO_PREFIX_INVALID"
+              ? "默认编号前缀不合法（仅支持 1-10 位大写字母/数字）。"
+              : error.message
+            : "创建耗材类别失败，请稍后重试。",
       },
       { status: 400 },
     );
   }
 }
-

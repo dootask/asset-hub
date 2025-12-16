@@ -11,6 +11,7 @@ import { listApprovalRequests } from "@/lib/repositories/approvals";
 import { listConsumableCategories } from "@/lib/repositories/consumable-categories";
 import EditConsumableDialog from "@/components/consumables/EditConsumableDialog";
 import AdminOnly from "@/components/auth/AdminOnly";
+import { formatCentsToMoney } from "@/lib/utils/money";
 
 type PageParams = { locale: string; id: string };
 
@@ -64,7 +65,7 @@ export default async function ConsumableDetailPage({ params }: PageProps) {
           },
         ]}
         title={consumable.name}
-        description={consumable.id}
+        description={consumable.consumableNo || consumable.id}
       />
       <section className="rounded-2xl border bg-card/70 p-5 text-sm">
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -81,6 +82,14 @@ export default async function ConsumableDetailPage({ params }: PageProps) {
           </AdminOnly>
         </div>
         <dl className="grid gap-4 md:grid-cols-2">
+          <div>
+            <dt className="font-medium text-muted-foreground">
+              {isChinese ? "耗材编号" : "Consumable No."}
+            </dt>
+            <dd className="text-foreground">
+              {consumable.consumableNo || consumable.id}
+            </dd>
+          </div>
           <div>
             <dt className="font-medium text-muted-foreground">{isChinese ? "状态" : "Status"}</dt>
             <dd className="text-foreground">
@@ -99,6 +108,25 @@ export default async function ConsumableDetailPage({ params }: PageProps) {
             <dt className="font-medium text-muted-foreground">{isChinese ? "库存" : "Quantity"}</dt>
             <dd className="text-foreground">
               {consumable.quantity} {consumable.unit}
+            </dd>
+          </div>
+          <div>
+            <dt className="font-medium text-muted-foreground">
+              {isChinese ? "规格型号" : "Spec / Model"}
+            </dt>
+            <dd className="text-foreground">{consumable.specModel ?? "-"}</dd>
+          </div>
+          <div>
+            <dt className="font-medium text-muted-foreground">
+              {isChinese ? "采购价格" : "Purchase Price"}
+            </dt>
+            <dd className="text-foreground">
+              {consumable.purchasePriceCents !== undefined &&
+              consumable.purchasePriceCents !== null
+                ? `${formatCentsToMoney(consumable.purchasePriceCents)} ${
+                    consumable.purchaseCurrency ?? "CNY"
+                  }`
+                : "-"}
             </dd>
           </div>
           <div>

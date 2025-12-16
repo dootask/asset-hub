@@ -101,6 +101,79 @@ function migrateAssetCategoriesTable(database: Database.Database) {
   }
 }
 
+function migrateConsumableCategoriesTable(database: Database.Database) {
+  const columns = getColumnNames(database, "consumable_categories");
+  if (!columns.has("consumable_no_prefix")) {
+    try {
+      database.exec(
+        "ALTER TABLE consumable_categories ADD COLUMN consumable_no_prefix TEXT",
+      );
+    } catch (error) {
+      console.error(
+        "Failed to migrate consumable_categories.consumable_no_prefix:",
+        error,
+      );
+    }
+  }
+}
+
+function migrateConsumablesTable(database: Database.Database) {
+  const columns = getColumnNames(database, "consumables");
+  const migrations: Array<{ column: string; sql: string }> = [
+    {
+      column: "consumable_no",
+      sql: "ALTER TABLE consumables ADD COLUMN consumable_no TEXT",
+    },
+    {
+      column: "spec_model",
+      sql: "ALTER TABLE consumables ADD COLUMN spec_model TEXT",
+    },
+    {
+      column: "purchase_price_cents",
+      sql: "ALTER TABLE consumables ADD COLUMN purchase_price_cents INTEGER",
+    },
+    {
+      column: "purchase_currency",
+      sql:
+        "ALTER TABLE consumables ADD COLUMN purchase_currency TEXT NOT NULL DEFAULT ('CNY')",
+    },
+  ];
+
+  migrations.forEach((migration) => {
+    if (columns.has(migration.column)) {
+      return;
+    }
+    try {
+      database.exec(migration.sql);
+    } catch (error) {
+      console.error(`Failed to migrate consumables.${migration.column}:`, error);
+    }
+  });
+
+  try {
+    const refreshedColumns = getColumnNames(database, "consumables");
+    if (refreshedColumns.has("consumable_no")) {
+      database.exec(
+        "UPDATE consumables SET consumable_no = id WHERE consumable_no IS NULL OR consumable_no = ''",
+      );
+    }
+  } catch (error) {
+    console.error("Failed to backfill consumables.consumable_no:", error);
+  }
+
+  try {
+    database.exec(
+      `
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_consumables_consumable_no_unique
+      ON consumables(consumable_no)
+      WHERE consumable_no IS NOT NULL AND consumable_no <> '';
+    `,
+    );
+  } catch (error) {
+    console.error("Failed to ensure idx_consumables_consumable_no_unique:", error);
+  }
+}
+
 function seedTableIfEmpty(
   database: Database.Database,
   table: string,
@@ -223,12 +296,33 @@ function seedSampleData(database: Database.Database) {
   ]);
 
   seedTableIfEmpty(database, "consumable_categories", seedConsumableCategories, [
-    "id", "code", "label_zh", "label_en", "description", "unit",
+    "id",
+    "code",
+    "label_zh",
+    "label_en",
+    "consumable_no_prefix",
+    "description",
+    "unit",
   ]);
 
   seedTableIfEmpty(database, "consumables", seedConsumables, [
-    "id", "name", "category", "status", "company_code", "quantity",
-    "reserved_quantity", "unit", "keeper", "location", "safety_stock", "description", "metadata",
+    "id",
+    "consumable_no",
+    "name",
+    "spec_model",
+    "category",
+    "status",
+    "company_code",
+    "quantity",
+    "reserved_quantity",
+    "unit",
+    "keeper",
+    "location",
+    "safety_stock",
+    "purchase_price_cents",
+    "purchase_currency",
+    "description",
+    "metadata",
   ]);
 }
 
@@ -251,6 +345,8 @@ function ensureDatabase() {
   // 轻量自迁移：为旧数据库补齐缺失列/索引
   migrateAssetsTable(db);
   migrateAssetCategoriesTable(db);
+  migrateConsumableCategoriesTable(db);
+  migrateConsumablesTable(db);
 
   // 系统配置（必须插入）
   seedSystemConfig(db);

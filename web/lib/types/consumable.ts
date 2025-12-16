@@ -36,7 +36,9 @@ export const getConsumableStatusLabel = (
 
 export interface Consumable {
   id: string;
+  consumableNo?: string;
   name: string;
+  specModel?: string;
   category: string;
   status: ConsumableStatus;
   companyCode?: string;
@@ -46,12 +48,16 @@ export interface Consumable {
   keeper: string;
   location: string;
   safetyStock: number;
+  purchasePriceCents?: number;
+  purchaseCurrency?: string;
   description?: string;
   metadata?: Record<string, unknown> | null;
 }
 
 export interface CreateConsumablePayload {
+  consumableNo?: string;
   name: string;
+  specModel?: string;
   category: string;
   status: ConsumableStatus;
   companyCode: string;
@@ -61,6 +67,8 @@ export interface CreateConsumablePayload {
   keeper: string;
   location: string;
   safetyStock: number;
+  purchasePriceCents?: number | null;
+  purchaseCurrency?: string;
   description?: string;
   metadata?: Record<string, unknown> | null;
 }
@@ -70,6 +78,7 @@ export interface ConsumableCategory {
   code: string;
   labelZh: string;
   labelEn: string;
+  consumableNoPrefix?: string | null;
   description?: string | null;
   unit?: string | null;
 }
@@ -78,7 +87,7 @@ export interface CreateConsumableCategoryPayload {
   code: string;
   labelZh: string;
   labelEn: string;
+  consumableNoPrefix?: string | null;
   description?: string;
   unit?: string;
 }
-

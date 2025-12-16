@@ -248,16 +248,25 @@ export const CREATE_TABLES = {
       code TEXT NOT NULL UNIQUE,
       label_zh TEXT NOT NULL,
       label_en TEXT NOT NULL,
+      consumable_no_prefix TEXT,
       description TEXT,
       unit TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `,
+  consumableNoCounters: `
+    CREATE TABLE IF NOT EXISTS consumable_no_counters (
+      prefix TEXT PRIMARY KEY,
+      next_seq INTEGER NOT NULL
+    );
+  `,
   consumables: `
     CREATE TABLE IF NOT EXISTS consumables (
       id TEXT PRIMARY KEY,
+      consumable_no TEXT,
       name TEXT NOT NULL,
+      spec_model TEXT,
       category TEXT NOT NULL,
       status TEXT NOT NULL,
       company_code TEXT,
@@ -267,6 +276,8 @@ export const CREATE_TABLES = {
       keeper TEXT NOT NULL DEFAULT (''),
       location TEXT NOT NULL DEFAULT (''),
       safety_stock INTEGER NOT NULL DEFAULT 0,
+      purchase_price_cents INTEGER,
+      purchase_currency TEXT NOT NULL DEFAULT ('CNY'),
       description TEXT,
       metadata TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -907,6 +918,7 @@ export const seedConsumableCategories = [
     code: "PrinterSupplies",
     label_zh: "打印耗材",
     label_en: "Printer Supplies",
+    consumable_no_prefix: "PRN",
     description: "墨盒、硒鼓等打印机耗材",
     unit: "pcs",
   },
@@ -915,6 +927,7 @@ export const seedConsumableCategories = [
     code: "OfficeSupplies",
     label_zh: "办公用品",
     label_en: "Office Supplies",
+    consumable_no_prefix: "OFF",
     description: "常用办公耗材，如笔记本、便签等",
     unit: "pcs",
   },
@@ -923,7 +936,9 @@ export const seedConsumableCategories = [
 export const seedConsumables = [
   {
     id: "CON-001",
+    consumable_no: "PRN-000001",
     name: "黑色硒鼓 135A",
+    spec_model: "HP 135A",
     category: "PrinterSupplies",
     status: "in-stock",
     company_code: "HITOSEA",
@@ -933,12 +948,16 @@ export const seedConsumables = [
     keeper: "行政部",
     location: "上海总部仓库",
     safety_stock: 10,
+    purchase_price_cents: 23900,
+    purchase_currency: "CNY",
     description: "适配 HP LaserJet MFP 135w",
     metadata: null,
   },
   {
     id: "CON-002",
+    consumable_no: "OFF-000001",
     name: "A4 复印纸 70g",
+    spec_model: "70g / A4",
     category: "OfficeSupplies",
     status: "in-stock",
     company_code: "HITOSEA",
@@ -948,6 +967,8 @@ export const seedConsumables = [
     keeper: "行政部",
     location: "上海总部仓库",
     safety_stock: 30,
+    purchase_price_cents: 3500,
+    purchase_currency: "CNY",
     description: "500 张/包，5 包/箱",
     metadata: null,
   },

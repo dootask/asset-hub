@@ -43,6 +43,7 @@ type FormState = {
   labelZh: string;
   labelEn: string;
   code: string;
+  consumableNoPrefix: string;
   description: string;
   unit: string;
 };
@@ -51,6 +52,7 @@ const DEFAULT_FORM: FormState = {
   labelZh: "",
   labelEn: "",
   code: "",
+  consumableNoPrefix: "",
   description: "",
   unit: "",
 };
@@ -87,6 +89,7 @@ const ConsumableCategoryTable = forwardRef<ConsumableCategoryTableHandle, Props>
       labelZh: category.labelZh,
       labelEn: category.labelEn,
       code: category.code,
+      consumableNoPrefix: category.consumableNoPrefix ?? "",
       description: category.description ?? "",
       unit: category.unit ?? "",
     });
@@ -101,6 +104,7 @@ const ConsumableCategoryTable = forwardRef<ConsumableCategoryTableHandle, Props>
         const payload = {
           labelZh: formState.labelZh.trim(),
           labelEn: formState.labelEn.trim(),
+          consumableNoPrefix: formState.consumableNoPrefix.trim() || null,
           description: formState.description.trim() || undefined,
           unit: formState.unit.trim() || undefined,
         };
@@ -187,6 +191,7 @@ const ConsumableCategoryTable = forwardRef<ConsumableCategoryTableHandle, Props>
               <TableRow className="text-xs uppercase tracking-wide text-muted-foreground">
                 <TableHead className="px-4 py-3">{isChinese ? "显示名称" : "Display name"}</TableHead>
                 <TableHead className="px-4 py-3">{isChinese ? "编码" : "Code"}</TableHead>
+                <TableHead className="px-4 py-3">{isChinese ? "默认编号前缀" : "No. Prefix"}</TableHead>
                 <TableHead className="px-4 py-3">{isChinese ? "单位" : "Unit"}</TableHead>
                 <TableHead className="px-4 py-3">{isChinese ? "描述" : "Description"}</TableHead>
                 <TableHead className="px-4 py-3 text-right">{isChinese ? "操作" : "Actions"}</TableHead>
@@ -205,6 +210,9 @@ const ConsumableCategoryTable = forwardRef<ConsumableCategoryTableHandle, Props>
                 </TableCell>
                 <TableCell className="px-4 py-3 text-xs text-muted-foreground">
                   {category.code}
+                </TableCell>
+                <TableCell className="px-4 py-3 text-xs text-muted-foreground">
+                  {category.consumableNoPrefix ? category.consumableNoPrefix : "-"}
                 </TableCell>
                 <TableCell className="px-4 py-3 text-xs text-muted-foreground">
                   {category.unit ?? "-"}
@@ -357,6 +365,27 @@ const ConsumableCategoryTable = forwardRef<ConsumableCategoryTableHandle, Props>
                   }
                   placeholder={isChinese ? "例如：个/箱" : "e.g. pcs / box"}
                 />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="consumable-category-no-prefix">
+                  {isChinese ? "默认编号前缀" : "Default No. Prefix"}
+                </Label>
+                <Input
+                  id="consumable-category-no-prefix"
+                  value={formState.consumableNoPrefix}
+                  onChange={(event) =>
+                    setFormState((prev) => ({
+                      ...prev,
+                      consumableNoPrefix: event.target.value.toUpperCase(),
+                    }))
+                  }
+                  placeholder={isChinese ? "例如：OFF" : "e.g. OFF"}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {isChinese
+                    ? "设置后新增/导入耗材编号留空，将自动生成如 OFF-000001。"
+                    : "When set, leaving consumable number blank will auto-generate like OFF-000001."}
+                </p>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="consumable-category-description">

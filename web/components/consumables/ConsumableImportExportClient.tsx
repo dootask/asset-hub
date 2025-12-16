@@ -120,7 +120,9 @@ export default function ConsumableImportExportClient({ locale, categories, compa
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder={isChinese ? "耗材名称、保管人..." : "Name, keeper..."}
+              placeholder={
+                isChinese ? "耗材编号、名称、规格型号、保管人..." : "No., name, spec/model, keeper..."
+              }
             />
           </div>
           <div className="space-y-1.5">
@@ -248,8 +250,8 @@ export default function ConsumableImportExportClient({ locale, categories, compa
             </FileUpload>
             <p className="text-xs text-muted-foreground">
               {isChinese
-                ? "字段需包含：name, category, status, companyCode, quantity, unit, keeper, location, safetyStock。"
-                : "Required: name, category, status, companyCode, quantity, unit, keeper, location, safetyStock."}
+                ? "请确保至少包含列：name, category, status, companyCode, quantity, unit, keeper, location, safetyStock（可选：consumableNo, specModel, purchasePrice, purchaseCurrency；编号留空可自动生成）。"
+                : "Make sure the file includes at least: name, category, status, companyCode, quantity, unit, keeper, location, safetyStock (optional: consumableNo, specModel, purchasePrice, purchaseCurrency; blank No. can be auto-generated)."}
             </p>
           </div>
           {importError && (

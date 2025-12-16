@@ -26,6 +26,41 @@ beforeEach(() => {
 });
 
 describe("Consumable repository", () => {
+  it("auto-generates consumableNo with category prefix when empty", () => {
+    createConsumableCategory({
+      code: "OfficeSupplies",
+      labelZh: "办公耗材",
+      labelEn: "Office Supplies",
+      consumableNoPrefix: "OFF",
+    });
+
+    const first = createConsumable({
+      name: "A4 纸",
+      category: "OfficeSupplies",
+      status: "in-stock",
+      companyCode: "HITOSEA",
+      quantity: 20,
+      unit: "box",
+      keeper: "Ops",
+      location: "SZ",
+      safetyStock: 10,
+    });
+    const second = createConsumable({
+      name: "订书钉",
+      category: "OfficeSupplies",
+      status: "in-stock",
+      companyCode: "HITOSEA",
+      quantity: 50,
+      unit: "box",
+      keeper: "Ops",
+      location: "SZ",
+      safetyStock: 5,
+    });
+
+    expect(first.consumableNo).toBe("OFF-000001");
+    expect(second.consumableNo).toBe("OFF-000002");
+  });
+
   it("creates and lists consumables", () => {
     createConsumableCategory({
       code: "PrinterSupplies",
