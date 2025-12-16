@@ -168,6 +168,7 @@ export default function LocaleDashboard({
       label: isChinese ? "闲置资产" : "Idle Assets",
       value: overview.stats.idle,
       adminOnly: false,
+      href: "/assets/list?status=idle",
     },
     {
       key: "operations-range",
