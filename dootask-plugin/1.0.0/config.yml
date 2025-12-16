@@ -1,3 +1,9 @@
+
+require_version:
+  version: "> 1.4.81"
+  reason:
+    en: "Requires new API features"
+    zh: "需要新的API功能"
 fields:
   - name: ASSET_HUB_ADMIN_USER_IDS
     label:
