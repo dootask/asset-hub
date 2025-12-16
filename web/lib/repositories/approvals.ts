@@ -26,6 +26,7 @@ import {
   getConsumableOperationById,
   updateConsumableOperationStatus,
 } from "@/lib/repositories/consumable-operations";
+import { updateConsumablePurchasePrice } from "@/lib/repositories/consumables";
 import { getActionConfig } from "@/lib/repositories/action-configs";
 import type { AssetOperationType } from "@/lib/types/operation";
 import type { OperationTemplateMetadata } from "@/lib/types/operation-template";
@@ -520,10 +521,7 @@ function ensureAssetCreatedForPurchase(approval: ApprovalRequest): ApprovalReque
 }
 
 function maybeSyncPurchasePriceFromApproval(approval: ApprovalRequest) {
-  if (approval.type !== "purchase") {
-    return;
-  }
-  if (!approval.assetId) {
+  if (!approval.assetId && !approval.consumableId) {
     return;
   }
 
@@ -543,10 +541,18 @@ function maybeSyncPurchasePriceFromApproval(approval: ApprovalRequest) {
     return;
   }
 
-  updateAssetPurchasePrice(approval.assetId, {
-    purchasePriceCents: cents,
-    purchaseCurrency: "CNY",
-  });
+  if (approval.assetId) {
+    updateAssetPurchasePrice(approval.assetId, {
+      purchasePriceCents: cents,
+      purchaseCurrency: "CNY",
+    });
+  }
+  if (approval.consumableId) {
+    updateConsumablePurchasePrice(approval.consumableId, {
+      purchasePriceCents: cents,
+      purchaseCurrency: "CNY",
+    });
+  }
 }
 
 function ensurePendingInboundOperation(
@@ -812,6 +818,26 @@ export function applyApprovalAction(
     updatedAt: now,
     completedAt,
   });
+
+  if (
+    payload.action === "approve" &&
+    typeof payload.syncPurchasePrice === "boolean"
+  ) {
+    const nextMetadata: Record<string, unknown> = {
+      ...(existing.metadata ?? {}),
+      syncPurchasePrice: payload.syncPurchasePrice,
+    };
+    db.prepare(
+      `UPDATE asset_approval_requests
+       SET metadata = @metadata,
+           updated_at = @updatedAt
+       WHERE id = @id`,
+    ).run({
+      id,
+      metadata: JSON.stringify(nextMetadata),
+      updatedAt: now,
+    });
+  }
 
   if (existing.operationId) {
     updateAssetOperationStatus(

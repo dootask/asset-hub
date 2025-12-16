@@ -428,6 +428,33 @@ export function deleteConsumable(id: string): boolean {
   return result.changes > 0;
 }
 
+export function updateConsumablePurchasePrice(
+  id: string,
+  payload: { purchasePriceCents: number; purchaseCurrency?: string },
+): Consumable | null {
+  const db = getDb();
+  const existing = getConsumableById(id);
+  if (!existing) {
+    return null;
+  }
+  const currency =
+    payload.purchaseCurrency?.trim() || existing.purchaseCurrency || "CNY";
+
+  db.prepare(
+    `UPDATE consumables
+     SET purchase_price_cents=@purchase_price_cents,
+         purchase_currency=@purchase_currency,
+         updated_at=datetime('now')
+     WHERE id=@id`,
+  ).run({
+    id,
+    purchase_price_cents: payload.purchasePriceCents,
+    purchase_currency: currency,
+  });
+
+  return getConsumableById(id);
+}
+
 export function getConsumableStockStats() {
   const db = getDb();
   const rows = db

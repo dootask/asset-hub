@@ -18,6 +18,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function sanitizeActionPayload(payload: unknown): {
   action: ApprovalActionPayload["action"];
   comment?: string;
+  syncPurchasePrice?: boolean;
 } {
   if (!isRecord(payload)) {
     throw new Error("请求体必须是 JSON 对象");
@@ -32,10 +33,16 @@ function sanitizeActionPayload(payload: unknown): {
     throw new Error("不支持的审批操作");
   }
 
+  const syncPurchasePrice =
+    action === "approve" && typeof payload.syncPurchasePrice === "boolean"
+      ? payload.syncPurchasePrice
+      : undefined;
+
   return {
     action,
     comment:
       typeof payload.comment === "string" ? payload.comment.trim() : undefined,
+    syncPurchasePrice,
   };
 }
 

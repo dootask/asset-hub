@@ -603,4 +603,155 @@ describe("Approval repository", () => {
     const refreshed = getConsumableById(consumable.id)!;
     expect(refreshed.quantity).toBe(45);
   });
+
+  it("syncs operation cost into asset purchase price when approved (approver-controlled)", () => {
+    const asset = createAsset({
+      name: "Test Asset",
+      category: "Server",
+      status: "in-use",
+      companyCode: "HITOSEA",
+      owner: "QA",
+      location: "Lab",
+      purchaseDate: "2024-01-01",
+      purchasePriceCents: 9999,
+      purchaseCurrency: "CNY",
+    });
+
+    const approval = createApprovalRequest({
+      type: "purchase",
+      title: "采购审批 - 服务器",
+      reason: "测试同步费用",
+      assetId: asset.id,
+      applicant: { id: "user-qa", name: "QA" },
+      approver: { id: "manager-qa", name: "Manager" },
+      metadata: {
+        purchaseAsset: { mode: "existing" },
+        syncPurchasePrice: true,
+        operationTemplate: {
+          snapshot: {
+            type: "purchase",
+            labelZh: "采购",
+            labelEn: "Purchase",
+            requireAttachment: false,
+            fields: [
+              { key: "cost", labelZh: "费用", labelEn: "Cost", widget: "number" },
+            ],
+          },
+          values: {
+            cost: "10.00",
+          },
+        },
+      },
+    });
+
+    applyApprovalAction(approval.id, {
+      action: "approve",
+      actor: { id: "manager-qa", name: "Manager" },
+      syncPurchasePrice: false,
+    });
+
+    expect(getAssetById(asset.id)?.purchasePriceCents).toBe(9999);
+  });
+
+  it("syncs operation cost into consumable purchase price when approved", () => {
+    createConsumableCategory({
+      code: "OfficeSupplies",
+      labelZh: "办公用品",
+      labelEn: "Office Supplies",
+    });
+    const consumable = createConsumable({
+      name: "A4 纸",
+      category: "OfficeSupplies",
+      status: "in-stock",
+      companyCode: "HITOSEA",
+      quantity: 50,
+      unit: "box",
+      keeper: "Ops",
+      location: "Shanghai",
+      safetyStock: 10,
+      purchasePriceCents: 100,
+      purchaseCurrency: "CNY",
+    });
+
+    const approval = createApprovalRequest({
+      type: "purchase",
+      title: "耗材采购审批",
+      reason: "测试同步费用",
+      consumableId: consumable.id,
+      applicant: { id: "ops-user", name: "Ops" },
+      approver: { id: "manager-ops", name: "Manager" },
+      metadata: {
+        operationTemplate: {
+          snapshot: {
+            type: "purchase",
+            labelZh: "采购",
+            labelEn: "Purchase",
+            requireAttachment: false,
+            fields: [
+              { key: "cost", labelZh: "费用", labelEn: "Cost", widget: "number" },
+            ],
+          },
+          values: {
+            cost: "12.34",
+          },
+        },
+        syncPurchasePrice: true,
+      },
+    });
+
+    applyApprovalAction(approval.id, {
+      action: "approve",
+      actor: { id: "manager-ops", name: "Manager" },
+      syncPurchasePrice: true,
+    });
+
+    expect(getConsumableById(consumable.id)?.purchasePriceCents).toBe(1234);
+  });
+
+  it("syncs cost into asset purchase price for non-purchase approvals when enabled", () => {
+    const asset = createAsset({
+      name: "Test Asset",
+      category: "Server",
+      status: "in-use",
+      companyCode: "HITOSEA",
+      owner: "QA",
+      location: "Lab",
+      purchaseDate: "2024-01-01",
+      purchasePriceCents: 5000,
+      purchaseCurrency: "CNY",
+    });
+
+    const approval = createApprovalRequest({
+      type: "inbound",
+      title: "入库确认",
+      reason: "测试同步费用",
+      assetId: asset.id,
+      applicant: { id: "user-qa", name: "QA" },
+      approver: { id: "manager-qa", name: "Manager" },
+      metadata: {
+        operationTemplate: {
+          snapshot: {
+            type: "inbound",
+            labelZh: "入库",
+            labelEn: "Inbound",
+            requireAttachment: false,
+            fields: [
+              { key: "cost", labelZh: "费用", labelEn: "Cost", widget: "text" },
+            ],
+          },
+          values: {
+            cost: "88.00",
+          },
+        },
+      },
+    });
+
+    applyApprovalAction(approval.id, {
+      action: "approve",
+      actor: { id: "manager-qa", name: "Manager" },
+      syncPurchasePrice: true,
+    });
+
+    expect(getAssetById(asset.id)?.purchasePriceCents).toBe(8800);
+  });
 });

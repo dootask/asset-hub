@@ -98,6 +98,7 @@ export type ApprovalAction = "approve" | "reject" | "cancel";
 export interface ApprovalActionPayload {
   action: ApprovalAction;
   comment?: string;
+  syncPurchasePrice?: boolean;
   actor: {
     id: string;
     name?: string;

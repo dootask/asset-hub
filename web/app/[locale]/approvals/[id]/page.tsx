@@ -43,6 +43,27 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+type PurchaseAssetMode = "new" | "existing";
+
+function resolvePurchaseAssetMode(
+  metadata?: Record<string, unknown> | null,
+): PurchaseAssetMode | null {
+  if (!metadata) return null;
+  const purchaseAsset = (metadata as { purchaseAsset?: unknown }).purchaseAsset;
+  if (isRecord(purchaseAsset)) {
+    const mode = (purchaseAsset as { mode?: unknown }).mode;
+    if (mode === "new" || mode === "existing") {
+      return mode;
+    }
+  }
+  const legacyMode = (metadata as { purchaseAssetMode?: unknown })
+    .purchaseAssetMode;
+  if (legacyMode === "new" || legacyMode === "existing") {
+    return legacyMode;
+  }
+  return null;
+}
+
 function parseApproverReassignments(
   metadata?: Record<string, unknown> | null,
 ): ApproverReassignment[] {
@@ -178,6 +199,34 @@ export default async function ApprovalDetailPage({ params }: PageProps) {
       : null;
   const hasOperationDetails =
     mergedOperationMetadata !== null || approverReassignments.length > 0;
+  const valuesSource =
+    (mergedOperationMetadata?.values as Record<string, unknown> | undefined) ??
+    (operationTemplateMetadata?.values as Record<string, unknown> | undefined);
+  const hasCost = Boolean(valuesSource && "cost" in valuesSource);
+  const costValue = valuesSource?.cost;
+  const purchaseMode = resolvePurchaseAssetMode(approval.metadata);
+  const hasTarget = Boolean(
+    approval.consumableId ||
+      approval.assetId ||
+      (approval.type === "purchase" &&
+        purchaseMode === "new" &&
+        isRecord((approval.metadata ?? {}).newAsset)),
+  );
+  const canSyncPurchasePrice = hasCost && hasTarget;
+  const syncPurchasePriceOption = canSyncPurchasePrice
+    ? {
+        target: approval.consumableId ? ("consumable" as const) : ("asset" as const),
+        cost: costValue as string | number | null | undefined,
+        initialChecked:
+          typeof (approval.metadata as { syncPurchasePrice?: unknown } | null)
+            ?.syncPurchasePrice === "boolean"
+            ? Boolean(
+                (approval.metadata as { syncPurchasePrice?: unknown } | null)
+                  ?.syncPurchasePrice,
+              )
+            : true,
+      }
+    : undefined;
 
   return (
     <div className="space-y-6">
@@ -390,6 +439,7 @@ export default async function ApprovalDetailPage({ params }: PageProps) {
           approverId={approval.approverId}
           approverName={approval.approverName}
           applicantId={approval.applicantId}
+          syncPurchasePriceOption={syncPurchasePriceOption}
         />
       )}
     </div>

@@ -8,11 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
 import { extractApiErrorMessage } from "@/lib/utils/api-error";
 import { usePermissions } from "@/components/providers/PermissionProvider";
 import ApprovalReassignForm from "@/components/approvals/ApprovalReassignForm";
+import { coerceMoneyToCents, formatCentsToMoney } from "@/lib/utils/money";
 
 const ACTIONS: { value: ApprovalAction; labelZh: string; labelEn: string }[] = [
   { value: "approve", labelZh: "通过", labelEn: "Approve" },
@@ -27,6 +29,11 @@ interface Props {
   approverId?: string | null;
   approverName?: string | null;
   applicantId: string;
+  syncPurchasePriceOption?: {
+    target: "asset" | "consumable";
+    cost?: string | number | null;
+    initialChecked?: boolean;
+  };
 }
 
 export default function ApprovalActionForm({ 
@@ -35,7 +42,8 @@ export default function ApprovalActionForm({
   locale,
   approverId,
   approverName,
-  applicantId 
+  applicantId,
+  syncPurchasePriceOption,
 }: Props) {
   const router = useRouter();
   const isChinese = locale === "zh";
@@ -44,12 +52,16 @@ export default function ApprovalActionForm({
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showReassign, setShowReassign] = useState(false);
+  const [syncPurchasePrice, setSyncPurchasePrice] = useState(
+    syncPurchasePriceOption?.initialChecked ?? true,
+  );
   const feedback = useAppFeedback();
   const fieldIds = {
     action: useId(),
     comment: useId(),
     actorId: useId(),
     actorName: useId(),
+    syncPurchasePrice: useId(),
   };
 
   const availableActions = useMemo(() => {
@@ -89,10 +101,40 @@ export default function ApprovalActionForm({
 
   const showActionForm = availableActions.length > 0;
   const canSubmit = Boolean(user && action && showActionForm);
+  const showSyncPurchasePrice = Boolean(syncPurchasePriceOption) && action === "approve";
+  const syncPurchasePriceCents = showSyncPurchasePrice
+    ? coerceMoneyToCents(syncPurchasePriceOption?.cost ?? null)
+    : null;
+  const syncPurchasePriceDisabled = syncPurchasePriceCents === null;
+  const syncTargetLabel = syncPurchasePriceOption?.target === "consumable"
+    ? isChinese
+      ? "耗材采购价格"
+      : "consumable purchase price"
+    : isChinese
+      ? "资产采购价格"
+      : "asset purchase price";
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!canSubmit || !user || !action) return;
+    if (showSyncPurchasePrice && syncPurchasePrice) {
+      if (syncPurchasePriceDisabled) {
+        feedback.error(
+          isChinese
+            ? "操作详情未填写有效的费用(cost)，无法同步采购价格。"
+            : "Operation cost is missing/invalid, cannot sync purchase price.",
+        );
+        return;
+      }
+      const confirmed = window.confirm(
+        isChinese
+          ? `已选择同步“费用(cost)”到${syncTargetLabel}（会覆盖当前值）。是否继续提交？`
+          : `You chose to sync cost into the ${syncTargetLabel} (will overwrite current value). Continue?`,
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
     setSubmitting(true);
 
     try {
@@ -111,6 +153,9 @@ export default function ApprovalActionForm({
       }>(endpoint, {
         action,
         comment: comment.trim() ? comment.trim() : undefined,
+        ...(showSyncPurchasePrice
+          ? { syncPurchasePrice: Boolean(syncPurchasePrice) }
+          : {}),
         actor: {
           id: String(user.id),
           name: user.nickname,
@@ -193,19 +238,57 @@ export default function ApprovalActionForm({
             />
           </div>
 
+          {syncPurchasePriceOption && action === "approve" && (
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">
+                {isChinese ? "同步设置" : "Sync Settings"}
+              </Label>
+              <label
+                htmlFor={fieldIds.syncPurchasePrice}
+                className="flex items-start gap-3 rounded-xl border bg-muted/30 px-3 py-2"
+              >
+                <Checkbox
+                  id={fieldIds.syncPurchasePrice}
+                  checked={syncPurchasePrice}
+                  onCheckedChange={(checked) =>
+                    setSyncPurchasePrice(Boolean(checked))
+                  }
+                  disabled={syncPurchasePriceDisabled}
+                  className="mt-0.5 border-muted-foreground/40"
+                />
+                <div className="space-y-1">
+                  <div className="text-sm font-medium">
+                    {isChinese
+                      ? `同步费用(cost)到${syncTargetLabel}`
+                      : `Sync cost into ${syncTargetLabel}`}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {syncPurchasePriceDisabled
+                      ? isChinese
+                        ? "未检测到有效的费用(cost)数值。"
+                        : "No valid cost value detected."
+                      : isChinese
+                        ? `将使用费用(cost)=${formatCentsToMoney(syncPurchasePriceCents)} CNY 覆盖当前采购价格。`
+                        : `Will use cost=${formatCentsToMoney(syncPurchasePriceCents)} CNY to overwrite current purchase price.`}
+                  </p>
+                </div>
+              </label>
+            </div>
+          )}
+
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
-            <Label
-              htmlFor={fieldIds.actorId}
-              className="inline-flex items-center gap-1 text-xs text-muted-foreground"
-            >
-              {isChinese ? "操作人 ID" : "Actor ID"}
-              <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id={fieldIds.actorId}
-              required
-              readOnly
+              <Label
+                htmlFor={fieldIds.actorId}
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground"
+              >
+                {isChinese ? "操作人 ID" : "Actor ID"}
+                <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id={fieldIds.actorId}
+                required
+                readOnly
                 disabled
                 value={user?.id ?? ""}
               />
