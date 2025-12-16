@@ -3,6 +3,7 @@ import { getInventoryTaskById } from "@/lib/repositories/inventory-tasks";
 import { listAssets } from "@/lib/repositories/assets";
 import type { AssetStatus } from "@/lib/types/asset";
 import { ASSET_STATUSES } from "@/lib/types/asset";
+import { ensureAdminApiAccess } from "@/lib/server/api-guards";
 
 function toCsv(rows: Record<string, string>[]) {
   const headers = Object.keys(rows[0] ?? {});
@@ -28,6 +29,9 @@ interface RouteContext {
 }
 
 export async function GET(request: Request, { params }: RouteContext) {
+  const forbidden = ensureAdminApiAccess(request, "只有系统管理员可以导出盘点清单。");
+  if (forbidden) return forbidden;
+
   const { id } = await params;
   const task = getInventoryTaskById(id);
   if (!task) {

@@ -94,6 +94,9 @@ function sanitizeUpdatePayload(body: unknown): UpdateConsumableInventoryTaskPayl
 }
 
 export async function GET(_: Request, { params }: RouteContext) {
+  const forbidden = ensureAdminApiAccess(_, "只有系统管理员可以查看盘点任务详情。");
+  if (forbidden) return forbidden;
+
   const { id } = await params;
   const task = getConsumableInventoryTask(id);
   if (!task) {
@@ -130,4 +133,3 @@ export async function PUT(request: Request, { params }: RouteContext) {
     );
   }
 }
-

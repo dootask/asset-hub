@@ -7,6 +7,7 @@ import type {
   CreateInventoryTaskPayload,
   InventoryTaskStatus,
 } from "@/lib/types/inventory";
+import { ensureAdminApiAccess } from "@/lib/server/api-guards";
 
 const VALID_STATUS: InventoryTaskStatus[] = [
   "draft",
@@ -44,12 +45,17 @@ function sanitizePayload(payload: unknown): CreateInventoryTaskPayload {
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const forbidden = ensureAdminApiAccess(request, "只有系统管理员可以查看盘点任务。");
+  if (forbidden) return forbidden;
   const tasks = listInventoryTasks();
   return NextResponse.json({ data: tasks });
 }
 
 export async function POST(request: Request) {
+  const forbidden = ensureAdminApiAccess(request, "只有系统管理员可以创建盘点任务。");
+  if (forbidden) return forbidden;
+
   try {
     const body = await request.json();
     const payload = sanitizePayload(body);
@@ -66,4 +72,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

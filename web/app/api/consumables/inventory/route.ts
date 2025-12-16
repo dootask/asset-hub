@@ -69,7 +69,9 @@ function sanitizeCreatePayload(body: unknown): CreateConsumableInventoryTaskPayl
   return payload;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const forbidden = ensureAdminApiAccess(request, "只有系统管理员可以查看盘点任务。");
+  if (forbidden) return forbidden;
   const data = listConsumableInventoryTasks();
   return NextResponse.json({ data });
 }
@@ -93,4 +95,3 @@ export async function POST(request: Request) {
     );
   }
 }
-
