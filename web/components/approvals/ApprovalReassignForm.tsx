@@ -602,9 +602,10 @@ export default function ApprovalReassignForm(props: Props) {
               <div className="space-y-1.5">
                 <Label
                   htmlFor={fieldIds.approverId}
-                  className="text-xs text-muted-foreground"
+                  className="inline-flex items-center gap-1 text-xs text-muted-foreground"
                 >
                   {isChinese ? "审批人 ID" : "Approver ID"}
+                  <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id={fieldIds.approverId}
@@ -623,7 +624,7 @@ export default function ApprovalReassignForm(props: Props) {
                   htmlFor={fieldIds.approverName}
                   className="text-xs text-muted-foreground"
                 >
-                  {isChinese ? "审批人姓名（可选）" : "Approver name (optional)"}
+                  {isChinese ? "审批人姓名" : "Approver name"}
                 </Label>
                 <Input
                   id={fieldIds.approverName}

@@ -440,7 +440,10 @@ export default function CustomReportsClient({
             <form id="custom-report-form" className="space-y-4" onSubmit={handleSubmit}>
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="space-y-1.5">
-                  <Label>{isChinese ? "名称" : "Name"}</Label>
+                  <Label className="inline-flex items-center gap-1">
+                    {isChinese ? "名称" : "Name"}
+                    <span className="text-destructive">*</span>
+                  </Label>
                   <Input
                     value={formState.name}
                     onChange={(event) =>

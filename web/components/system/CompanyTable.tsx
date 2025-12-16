@@ -349,8 +349,12 @@ const CompanyTable = forwardRef<CompanyTableHandle, Props>(function CompanyTable
           <DialogBody>
             <form id="company-form" className="space-y-4" onSubmit={handleSubmit}>
               <div className="space-y-1.5">
-                <Label htmlFor="company-name">
+                <Label
+                  htmlFor="company-name"
+                  className="inline-flex items-center gap-1"
+                >
                   {isChinese ? "公司名称" : "Company Name"}
+                  <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="company-name"
@@ -362,8 +366,12 @@ const CompanyTable = forwardRef<CompanyTableHandle, Props>(function CompanyTable
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="company-code">
+                <Label
+                  htmlFor="company-code"
+                  className="inline-flex items-center gap-1"
+                >
                   {isChinese ? "公司编码" : "Company Code"}
+                  <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="company-code"
@@ -385,7 +393,7 @@ const CompanyTable = forwardRef<CompanyTableHandle, Props>(function CompanyTable
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="company-description">
-                  {isChinese ? "描述（可选）" : "Description (optional)"}
+                  {isChinese ? "描述" : "Description"}
                 </Label>
                 <Textarea
                   id="company-description"

@@ -287,8 +287,12 @@ const ConsumableCategoryTable = forwardRef<ConsumableCategoryTableHandle, Props>
             <form id="consumable-category-form" className="space-y-4" onSubmit={handleSubmit}>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <Label htmlFor="consumable-category-label-zh">
+                  <Label
+                    htmlFor="consumable-category-label-zh"
+                    className="inline-flex items-center gap-1"
+                  >
                     {isChinese ? "中文名称" : "Chinese label"}
+                    <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="consumable-category-label-zh"
@@ -300,8 +304,12 @@ const ConsumableCategoryTable = forwardRef<ConsumableCategoryTableHandle, Props>
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="consumable-category-label-en">
+                  <Label
+                    htmlFor="consumable-category-label-en"
+                    className="inline-flex items-center gap-1"
+                  >
                     {isChinese ? "英文名称" : "English label"}
+                    <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="consumable-category-label-en"
@@ -314,8 +322,12 @@ const ConsumableCategoryTable = forwardRef<ConsumableCategoryTableHandle, Props>
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="consumable-category-code">
+                <Label
+                  htmlFor="consumable-category-code"
+                  className="inline-flex items-center gap-1"
+                >
                   {isChinese ? "类别编码" : "Category code"}
+                  <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="consumable-category-code"
@@ -348,7 +360,7 @@ const ConsumableCategoryTable = forwardRef<ConsumableCategoryTableHandle, Props>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="consumable-category-description">
-                  {isChinese ? "描述（可选）" : "Description (optional)"}
+                  {isChinese ? "描述" : "Description"}
                 </Label>
                 <Textarea
                   id="consumable-category-description"

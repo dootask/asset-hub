@@ -781,8 +781,9 @@ export default function ConsumableOperationForm({
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">
+                    <Label className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                       {isChinese ? "审批人 ID" : "Approver ID"}
+                      <span className="text-destructive">*</span>
                     </Label>
                     <Input
                       value={approverId}
@@ -792,7 +793,7 @@ export default function ConsumableOperationForm({
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs text-muted-foreground">
-                      {isChinese ? "审批人姓名（可选）" : "Approver name (optional)"}
+                      {isChinese ? "审批人姓名" : "Approver name"}
                     </Label>
                     <Input
                       value={approverName}

@@ -198,8 +198,12 @@ export default function EditConsumableDialog({
           <form id="edit-consumable-form" className="space-y-4" onSubmit={handleSubmit}>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="edit-consumable-name">
+                <Label
+                  htmlFor="edit-consumable-name"
+                  className="inline-flex items-center gap-1"
+                >
                   {isChinese ? "耗材名称" : "Consumable Name"}
+                  <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="edit-consumable-name"
@@ -209,8 +213,12 @@ export default function EditConsumableDialog({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="edit-consumable-company">
+                <Label
+                  htmlFor="edit-consumable-company"
+                  className="inline-flex items-center gap-1"
+                >
                   {isChinese ? "所属公司" : "Company"}
+                  <span className="text-destructive">*</span>
                 </Label>
                 <Select
                   value={formState.companyCode}
@@ -244,8 +252,12 @@ export default function EditConsumableDialog({
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="edit-consumable-category">
+                <Label
+                  htmlFor="edit-consumable-category"
+                  className="inline-flex items-center gap-1"
+                >
                   {isChinese ? "耗材类别" : "Category"}
+                  <span className="text-destructive">*</span>
                 </Label>
                 <Select
                   value={formState.category}
@@ -307,8 +319,12 @@ export default function EditConsumableDialog({
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="edit-consumable-quantity">
+                <Label
+                  htmlFor="edit-consumable-quantity"
+                  className="inline-flex items-center gap-1"
+                >
                   {isChinese ? "当前库存" : "Quantity"}
+                  <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="edit-consumable-quantity"
@@ -320,8 +336,12 @@ export default function EditConsumableDialog({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="edit-consumable-unit">
+                <Label
+                  htmlFor="edit-consumable-unit"
+                  className="inline-flex items-center gap-1"
+                >
                   {isChinese ? "计量单位" : "Unit"}
+                  <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="edit-consumable-unit"
@@ -331,8 +351,12 @@ export default function EditConsumableDialog({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="edit-consumable-keeper">
+                <Label
+                  htmlFor="edit-consumable-keeper"
+                  className="inline-flex items-center gap-1"
+                >
                   {isChinese ? "保管人" : "Keeper"}
+                  <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="edit-consumable-keeper"
@@ -342,8 +366,12 @@ export default function EditConsumableDialog({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="edit-consumable-location">
+                <Label
+                  htmlFor="edit-consumable-location"
+                  className="inline-flex items-center gap-1"
+                >
                   {isChinese ? "存放位置" : "Location"}
+                  <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="edit-consumable-location"
@@ -353,8 +381,12 @@ export default function EditConsumableDialog({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="edit-consumable-safety-stock">
+                <Label
+                  htmlFor="edit-consumable-safety-stock"
+                  className="inline-flex items-center gap-1"
+                >
                   {isChinese ? "安全库存" : "Safety Stock"}
+                  <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="edit-consumable-safety-stock"
@@ -367,7 +399,7 @@ export default function EditConsumableDialog({
               </div>
               <div className="space-y-1.5 sm:col-span-2">
                 <Label htmlFor="edit-consumable-description">
-                  {isChinese ? "描述（可选）" : "Description (optional)"}
+                  {isChinese ? "描述" : "Description"}
                 </Label>
                 <Textarea
                   id="edit-consumable-description"

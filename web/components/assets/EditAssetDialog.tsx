@@ -215,8 +215,12 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
           <form id="edit-asset-form" className="space-y-4" onSubmit={handleSubmit}>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="edit-asset-name">
+                <Label
+                  htmlFor="edit-asset-name"
+                  className="inline-flex items-center gap-1"
+                >
                   {isChinese ? "资产名称" : "Asset Name"}
+                  <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="edit-asset-name"
@@ -246,8 +250,12 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="edit-asset-company">
+                <Label
+                  htmlFor="edit-asset-company"
+                  className="inline-flex items-center gap-1"
+                >
                   {isChinese ? "所属公司" : "Company"}
+                  <span className="text-destructive">*</span>
                 </Label>
                 <Select
                   value={formState.companyCode}
@@ -281,8 +289,12 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="edit-asset-category">
+                <Label
+                  htmlFor="edit-asset-category"
+                  className="inline-flex items-center gap-1"
+                >
                   {isChinese ? "资产类别" : "Category"}
+                  <span className="text-destructive">*</span>
                 </Label>
                 <Select
                   value={formState.category}
@@ -321,8 +333,12 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="edit-asset-status">
+                <Label
+                  htmlFor="edit-asset-status"
+                  className="inline-flex items-center gap-1"
+                >
                   {isChinese ? "资产状态" : "Status"}
+                  <span className="text-destructive">*</span>
                 </Label>
                 <Select
                   value={formState.status}
@@ -341,8 +357,12 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="edit-asset-owner">
+                <Label
+                  htmlFor="edit-asset-owner"
+                  className="inline-flex items-center gap-1"
+                >
                   {isChinese ? "使用人 / 部门" : "Owner / Dept"}
+                  <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="edit-asset-owner"
@@ -352,8 +372,12 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="edit-asset-location">
+                <Label
+                  htmlFor="edit-asset-location"
+                  className="inline-flex items-center gap-1"
+                >
                   {isChinese ? "存放位置" : "Location"}
+                  <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="edit-asset-location"

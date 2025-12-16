@@ -1145,9 +1145,10 @@ export default function ApprovalRequestForm({
       <div className="space-y-1.5">
         <Label
           htmlFor={fieldIds.title}
-          className="text-xs font-medium text-muted-foreground"
+          className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground"
         >
           {isChinese ? "标题" : "Title"}
+          <span className="text-destructive">*</span>
         </Label>
         <Input
           id={fieldIds.title}
@@ -1162,9 +1163,10 @@ export default function ApprovalRequestForm({
       <div className="space-y-1.5">
         <Label
           htmlFor={fieldIds.reason}
-          className="text-xs font-medium text-muted-foreground"
+          className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground"
         >
           {isChinese ? "事由" : "Reason"}
+          <span className="text-destructive">*</span>
         </Label>
         <Textarea
           id={fieldIds.reason}
@@ -1215,15 +1217,16 @@ export default function ApprovalRequestForm({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label
-            htmlFor={fieldIds.applicantId}
-            className="text-xs font-medium text-muted-foreground"
-          >
-            {isChinese ? "申请人 ID" : "Applicant ID"}
-          </Label>
-          <Input
-            required
-            readOnly
+        <Label
+          htmlFor={fieldIds.applicantId}
+          className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground"
+        >
+          {isChinese ? "申请人 ID" : "Applicant ID"}
+          <span className="text-destructive">*</span>
+        </Label>
+        <Input
+          required
+          readOnly
             id={fieldIds.applicantId}
             value={applicant.id}
             disabled={loadingUser}
@@ -1246,8 +1249,9 @@ export default function ApprovalRequestForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-xs font-medium text-muted-foreground">
+        <Label className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
           {isChinese ? "审批人" : "Approver"}
+          <span className="text-destructive">*</span>
         </Label>
         
         {/* Case 1: Role-based multiple members */}
@@ -1341,9 +1345,10 @@ export default function ApprovalRequestForm({
               <div className="space-y-1.5">
                 <Label
                   htmlFor={fieldIds.approverId}
-                  className="text-xs text-muted-foreground"
+                  className="inline-flex items-center gap-1 text-xs text-muted-foreground"
                 >
                   {isChinese ? "审批人 ID" : "Approver ID"}
+                  <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id={fieldIds.approverId}
@@ -1362,7 +1367,7 @@ export default function ApprovalRequestForm({
                   htmlFor={fieldIds.approverName}
                   className="text-xs text-muted-foreground"
                 >
-                  {isChinese ? "审批人姓名（可选）" : "Approver name (optional)"}
+                  {isChinese ? "审批人姓名" : "Approver name"}
                 </Label>
                 <Input
                   id={fieldIds.approverName}

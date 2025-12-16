@@ -100,7 +100,7 @@ export default function DisposeAssetButton({ assetId, locale }: Props) {
         </AlertDialogHeader>
         <div className="space-y-2">
           <Label className="text-sm font-medium text-muted-foreground">
-            {locale === "zh" ? "报废原因（可选）" : "Reason (optional)"}
+            {locale === "zh" ? "报废原因" : "Reason"}
           </Label>
           <Textarea
             rows={3}

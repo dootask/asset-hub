@@ -357,8 +357,12 @@ const AssetCategoryTable = forwardRef<AssetCategoryTableHandle, Props>(function 
             <form id="asset-category-form" className="space-y-4" onSubmit={handleSubmit}>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <Label htmlFor="category-label-zh">
+                  <Label
+                    htmlFor="category-label-zh"
+                    className="inline-flex items-center gap-1"
+                  >
                     {isChinese ? "中文名称" : "Chinese Label"}
+                    <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="category-label-zh"
@@ -374,8 +378,12 @@ const AssetCategoryTable = forwardRef<AssetCategoryTableHandle, Props>(function 
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="category-label-en">
+                  <Label
+                    htmlFor="category-label-en"
+                    className="inline-flex items-center gap-1"
+                  >
                     {isChinese ? "英文名称" : "English Label"}
+                    <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="category-label-en"
@@ -416,7 +424,7 @@ const AssetCategoryTable = forwardRef<AssetCategoryTableHandle, Props>(function 
 
               <div className="space-y-1.5">
                 <Label htmlFor="category-asset-no-prefix">
-                  {isChinese ? "默认编号前缀（可选）" : "Default No. Prefix (optional)"}
+                  {isChinese ? "默认编号前缀" : "Default No. Prefix"}
                 </Label>
                 <Input
                   id="category-asset-no-prefix"
@@ -455,7 +463,7 @@ const AssetCategoryTable = forwardRef<AssetCategoryTableHandle, Props>(function 
 
               <div className="space-y-1.5">
                 <Label htmlFor="category-color">
-                  {isChinese ? "颜色（可选）" : "Color (optional)"}
+                  {isChinese ? "颜色" : "Color"}
                 </Label>
                 <ColorPickerInput
                   id="category-color"

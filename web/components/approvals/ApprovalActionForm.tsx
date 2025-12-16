@@ -153,9 +153,10 @@ export default function ApprovalActionForm({
           <div className="space-y-1.5">
             <Label
               htmlFor={fieldIds.action}
-              className="text-xs text-muted-foreground"
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground"
             >
               {isChinese ? "操作类型" : "Action"}
+              <span className="text-destructive">*</span>
             </Label>
             <Select
               value={action || ""}
@@ -194,16 +195,17 @@ export default function ApprovalActionForm({
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label
-                htmlFor={fieldIds.actorId}
-                className="text-xs text-muted-foreground"
-              >
-                {isChinese ? "操作人 ID" : "Actor ID"}
-              </Label>
-              <Input
-                id={fieldIds.actorId}
-                required
-                readOnly
+            <Label
+              htmlFor={fieldIds.actorId}
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground"
+            >
+              {isChinese ? "操作人 ID" : "Actor ID"}
+              <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id={fieldIds.actorId}
+              required
+              readOnly
                 disabled
                 value={user?.id ?? ""}
               />

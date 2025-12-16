@@ -130,7 +130,7 @@ export default function ConsumableInventoryCreateDialog({
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="inventory-owner">
-                  {isChinese ? "负责人（可选）" : "Owner (optional)"}
+                  {isChinese ? "负责人" : "Owner"}
                 </Label>
                 <Input
                   id="inventory-owner"

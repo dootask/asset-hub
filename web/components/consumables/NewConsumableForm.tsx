@@ -128,8 +128,12 @@ export default function NewConsumableForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="consumable-name" className="text-sm font-medium text-muted-foreground">
+          <Label
+            htmlFor="consumable-name"
+            className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground"
+          >
             {isChinese ? "耗材名称" : "Consumable Name"}
+            <span className="text-destructive">*</span>
           </Label>
           <Input
             id="consumable-name"
@@ -139,8 +143,12 @@ export default function NewConsumableForm({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="consumable-company" className="text-sm font-medium text-muted-foreground">
+          <Label
+            htmlFor="consumable-company"
+            className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground"
+          >
             {isChinese ? "所属公司" : "Company"}
+            <span className="text-destructive">*</span>
           </Label>
           <Select
             value={formState.companyCode || "none"}
@@ -178,9 +186,10 @@ export default function NewConsumableForm({
         <div className="space-y-1.5">
           <Label
             htmlFor="consumable-category"
-            className="text-sm font-medium text-muted-foreground"
+            className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground"
           >
             {isChinese ? "耗材类别" : "Category"}
+            <span className="text-destructive">*</span>
           </Label>
           <Select
             value={formState.category || "none"}
@@ -250,8 +259,12 @@ export default function NewConsumableForm({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="consumable-unit" className="text-sm font-medium text-muted-foreground">
+          <Label
+            htmlFor="consumable-unit"
+            className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground"
+          >
             {isChinese ? "计量单位" : "Unit"}
+            <span className="text-destructive">*</span>
           </Label>
           <Input
             id="consumable-unit"
@@ -262,8 +275,12 @@ export default function NewConsumableForm({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="consumable-keeper" className="text-sm font-medium text-muted-foreground">
+          <Label
+            htmlFor="consumable-keeper"
+            className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground"
+          >
             {isChinese ? "保管人" : "Keeper"}
+            <span className="text-destructive">*</span>
           </Label>
           <Input
             id="consumable-keeper"
@@ -275,9 +292,10 @@ export default function NewConsumableForm({
         <div className="space-y-1.5">
           <Label
             htmlFor="consumable-location"
-            className="text-sm font-medium text-muted-foreground"
+            className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground"
           >
             {isChinese ? "存放位置" : "Location"}
+            <span className="text-destructive">*</span>
           </Label>
           <Input
             id="consumable-location"
@@ -289,9 +307,10 @@ export default function NewConsumableForm({
         <div className="space-y-1.5">
           <Label
             htmlFor="consumable-safety-stock"
-            className="text-sm font-medium text-muted-foreground"
+            className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground"
           >
             {isChinese ? "安全库存" : "Safety Stock"}
+            <span className="text-destructive">*</span>
           </Label>
           <Input
             id="consumable-safety-stock"
@@ -304,7 +323,7 @@ export default function NewConsumableForm({
         </div>
         <div className="space-y-1.5 md:col-span-2">
           <Label htmlFor="consumable-description" className="text-sm font-medium text-muted-foreground">
-            {isChinese ? "描述（可选）" : "Description (optional)"}
+            {isChinese ? "描述" : "Description"}
           </Label>
           <Textarea
             id="consumable-description"

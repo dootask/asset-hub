@@ -467,8 +467,12 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
           <DialogBody>
             <form id="role-form" className="space-y-4" onSubmit={handleSubmit}>
               <div className="space-y-1.5">
-                <Label htmlFor="role-name">
+                <Label
+                  htmlFor="role-name"
+                  className="inline-flex items-center gap-1"
+                >
                   {isChinese ? "角色名称" : "Role Name"}
+                  <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="role-name"
@@ -505,7 +509,7 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="role-description">
-                  {isChinese ? "描述（可选）" : "Description (optional)"}
+                  {isChinese ? "描述" : "Description"}
                 </Label>
                 <Textarea
                   id="role-description"
@@ -518,7 +522,7 @@ const RoleTable = forwardRef<RoleTableHandle, Props>(function RoleTable(
               </div>
               <div className="space-y-1.5">
                 <Label>
-                  {isChinese ? "角色成员（可选）" : "Role members (optional)"}
+                  {isChinese ? "角色成员" : "Role members"}
                 </Label>
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
