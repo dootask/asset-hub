@@ -29,6 +29,7 @@ import type { AssetCategory } from "@/lib/types/asset-category";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
 import { extractApiErrorMessage } from "@/lib/utils/api-error";
+import ColorPickerInput from "@/components/common/ColorPickerInput";
 
 export interface AssetCategoryTableHandle {
   openCreateDialog: () => void;
@@ -456,13 +457,17 @@ const AssetCategoryTable = forwardRef<AssetCategoryTableHandle, Props>(function 
                 <Label htmlFor="category-color">
                   {isChinese ? "颜色（可选）" : "Color (optional)"}
                 </Label>
-                <Input
+                <ColorPickerInput
                   id="category-color"
-                  type="text"
                   placeholder="#2563eb"
                   value={formState.color}
-                  onChange={(event) =>
-                    setFormState((prev) => ({ ...prev, color: event.target.value }))
+                  pickLabel={isChinese ? "选择颜色" : "Pick color"}
+                  clearLabel={isChinese ? "清除" : "Clear"}
+                  onValueChange={(next) =>
+                    setFormState((prev) => ({
+                      ...prev,
+                      color: next,
+                    }))
                   }
                 />
               </div>
