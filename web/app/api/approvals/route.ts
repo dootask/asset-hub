@@ -25,6 +25,13 @@ import { getAssetById } from "@/lib/repositories/assets";
 
 const STATUS_ALLOW_LIST = APPROVAL_STATUSES.map((item) => item.value);
 const TYPE_ALLOW_LIST = APPROVAL_TYPES.map((item) => item.value);
+const CONSUMABLE_ONLY_TYPES: ApprovalType[] = [
+  "outbound",
+  "reserve",
+  "release",
+  "adjust",
+];
+const CONSUMABLE_ONLY_TYPE_SET = new Set<ApprovalType>(CONSUMABLE_ONLY_TYPES);
 
 function isApprovalType(value: unknown): value is ApprovalType {
   return (
@@ -189,8 +196,27 @@ function sanitizeCreatePayload(
     throw new Error("审批请求不能同时关联资产与耗材");
   }
 
+  if (cleaned.assetId && CONSUMABLE_ONLY_TYPE_SET.has(cleaned.type)) {
+    throw new Error("资产审批不支持该类型");
+  }
+
+  if (
+    cleaned.consumableId &&
+    cleaned.type !== "generic" &&
+    !CONSUMABLE_ONLY_TYPE_SET.has(cleaned.type)
+  ) {
+    throw new Error("耗材审批不支持该类型");
+  }
+
   if (cleaned.operationId && !cleaned.assetId) {
     throw new Error("资产操作审批必须提供资产 ID");
+  }
+
+  if (cleaned.assetId) {
+    const asset = getAssetById(cleaned.assetId);
+    if (!asset) {
+      throw new Error("关联的资产不存在");
+    }
   }
 
   if (cleaned.type === "purchase" && !cleaned.assetId) {
@@ -219,13 +245,6 @@ function sanitizeCreatePayload(
       const mode = (purchaseAsset as { mode?: unknown }).mode;
       if (mode === "existing" && !cleaned.assetId) {
         throw new Error("关联已有资产时必须提供资产 ID");
-      }
-    }
-
-    if (cleaned.assetId) {
-      const asset = getAssetById(cleaned.assetId);
-      if (!asset) {
-        throw new Error("关联的资产不存在");
       }
     }
   }

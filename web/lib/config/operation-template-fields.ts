@@ -419,6 +419,8 @@ export function mapApprovalTypeToTemplateType(
       return "borrow";
     case "return":
       return "return";
+    case "maintenance":
+      return "maintenance";
     case "dispose":
       return "dispose";
     default:

@@ -85,6 +85,12 @@ interface Props {
 }
 
 const EMPTY_STRING_ARRAY: string[] = [];
+const CONSUMABLE_ONLY_TYPES = new Set<ApprovalType>([
+  "outbound",
+  "reserve",
+  "release",
+  "adjust",
+]);
 
 export default function ApprovalRequestForm({
   assetId,
@@ -153,6 +159,11 @@ export default function ApprovalRequestForm({
   const operationTemplateType = mapApprovalTypeToTemplateType(formState.type as ApprovalType);
   const currentOperationTemplate =
     operationTemplateMap.get(operationTemplateType) ?? null;
+
+  const selectableTypes = useMemo(
+    () => APPROVAL_TYPES.filter((item) => !CONSUMABLE_ONLY_TYPES.has(item.value)),
+    [],
+  );
 
   const operationTemplateFields = useMemo(
     () => deriveOperationTemplateFields(operationTemplateType, currentOperationTemplate),
@@ -898,7 +909,7 @@ export default function ApprovalRequestForm({
       });
 
       setFormState({
-        type: APPROVAL_TYPES[0].value,
+        type: selectableTypes[0]?.value ?? APPROVAL_TYPES[0].value,
         title: "",
         reason: "",
         approverId: "",
@@ -1133,7 +1144,7 @@ export default function ApprovalRequestForm({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {APPROVAL_TYPES.map((type) => (
+            {selectableTypes.map((type) => (
               <SelectItem key={type.value} value={type.value}>
                 {isChinese ? type.labelZh : type.labelEn}
               </SelectItem>

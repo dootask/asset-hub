@@ -4,6 +4,7 @@ export type ApprovalType =
   | "receive"
   | "borrow"
   | "return"
+  | "maintenance"
   | "dispose"
   | "outbound"
   | "reserve"
@@ -21,6 +22,7 @@ export const APPROVAL_TYPES: {
   { value: "receive", labelZh: "领用审批", labelEn: "Receive" },
   { value: "borrow", labelZh: "借用审批", labelEn: "Borrow" },
   { value: "return", labelZh: "归还确认", labelEn: "Return" },
+  { value: "maintenance", labelZh: "维护审批", labelEn: "Maintenance" },
   { value: "dispose", labelZh: "报废处理", labelEn: "Dispose" },
   { value: "outbound", labelZh: "耗材出库", labelEn: "Outbound" },
   { value: "reserve", labelZh: "耗材预留", labelEn: "Reserve" },
