@@ -165,6 +165,46 @@ export function getOperationSummary(days = 30): DistributionItem[] {
   return rows;
 }
 
+export function getConsumableStatusDistribution(): DistributionItem[] {
+  const db = getDb();
+  const rows = db
+    .prepare(
+      `SELECT status as label, COUNT(1) as count
+       FROM consumables
+       GROUP BY status`,
+    )
+    .all() as { label: string; count: number }[];
+  return rows;
+}
+
+export function getConsumableCategoryDistribution(limit = 5): DistributionItem[] {
+  const db = getDb();
+  const rows = db
+    .prepare(
+      `SELECT category as label, COUNT(1) as count
+       FROM consumables
+       GROUP BY category
+       ORDER BY count DESC
+       LIMIT ?`,
+    )
+    .all(limit) as { label: string; count: number }[];
+  return rows;
+}
+
+export function getConsumableOperationSummary(days = 30): DistributionItem[] {
+  const db = getDb();
+  const normalized = normalizeDays(days, 30);
+  const rows = db
+    .prepare(
+      `SELECT type as label, COUNT(1) as count
+       FROM consumable_operations
+       WHERE date(created_at) >= date('now', ?)
+       GROUP BY type`,
+    )
+    .all(`-${normalized} days`) as { label: string; count: number }[];
+  return rows;
+}
+
 export function getOperationTrend(days = 14): TrendItem[] {
   const db = getDb();
   const normalized = normalizeDays(days);
@@ -208,5 +248,4 @@ export function getDashboardOverview(
     pendingApprovals: stats.pendingApprovals,
   };
 }
-
 

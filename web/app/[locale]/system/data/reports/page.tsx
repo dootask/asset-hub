@@ -1,6 +1,7 @@
 import PageHeader from "@/components/layout/PageHeader";
 import ReportsClient from "./ReportsClient";
 import { listAssetCategories } from "@/lib/repositories/asset-categories";
+import { listConsumableCategories } from "@/lib/repositories/consumable-categories";
 
 export default async function ReportsPage({
   params,
@@ -10,7 +11,8 @@ export default async function ReportsPage({
   const { locale } = await params;
   const isChinese = locale === "zh";
 
-  const categories = listAssetCategories();
+  const assetCategories = listAssetCategories();
+  const consumableCategories = listConsumableCategories();
 
   return (
     <div className="space-y-6">
@@ -35,7 +37,11 @@ export default async function ReportsPage({
         }
       />
 
-      <ReportsClient locale={locale} categories={categories} />
+      <ReportsClient
+        locale={locale}
+        assetCategories={assetCategories}
+        consumableCategories={consumableCategories}
+      />
     </div>
   );
 }

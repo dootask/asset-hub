@@ -4,6 +4,9 @@ import {
   getAssetStatusDistribution,
   getApprovalStatusDistribution,
   getApprovalTypeDistribution,
+  getConsumableCategoryDistribution,
+  getConsumableOperationSummary,
+  getConsumableStatusDistribution,
   getOperationSummary,
   getRecentApprovalOutcome,
 } from "@/lib/repositories/analytics";
@@ -15,6 +18,9 @@ export async function GET() {
   const operationsByType = getOperationSummary(30);
   const approvalsByType = getApprovalTypeDistribution();
   const approvalsRecent30d = getRecentApprovalOutcome(30);
+  const consumablesByStatus = getConsumableStatusDistribution();
+  const consumablesByCategory = getConsumableCategoryDistribution(999);
+  const consumableOperationsByType = getConsumableOperationSummary(30);
 
   return NextResponse.json({
     data: {
@@ -24,9 +30,11 @@ export async function GET() {
       approvalsByType,
       approvalsRecent30d,
       operationsByType,
+      consumablesByStatus,
+      consumablesByCategory,
+      consumableOperationsByType,
     },
   });
 }
-
 
 

@@ -8,11 +8,18 @@ import { APPROVAL_TYPES } from "@/lib/types/approval";
 import { getApiClient } from "@/lib/http/client";
 import { normalizeLocale } from "@/lib/i18n";
 import { getOperationTypeLabel } from "@/lib/types/operation";
+import type { ConsumableCategory } from "@/lib/types/consumable";
+import {
+  CONSUMABLE_STATUS_LABELS,
+  getConsumableStatusLabel,
+} from "@/lib/types/consumable";
+import { getConsumableOperationTypeLabel } from "@/lib/types/consumable-operation";
 import { downloadWithDooTask } from "@/lib/utils/download";
 
 interface Props {
   locale: string;
-  categories: AssetCategory[];
+  assetCategories: AssetCategory[];
+  consumableCategories: ConsumableCategory[];
   summary?: {
     assetsByStatus: { label: string; count: number }[];
     assetsByCategory: { label: string; count: number }[];
@@ -20,6 +27,9 @@ interface Props {
     approvalsByType: { label: string; count: number }[];
     approvalsRecent30d: { label: string; count: number }[];
     operationsByType: { label: string; count: number }[];
+    consumablesByStatus: { label: string; count: number }[];
+    consumablesByCategory: { label: string; count: number }[];
+    consumableOperationsByType: { label: string; count: number }[];
   };
 }
 
@@ -30,6 +40,9 @@ const EMPTY_SUMMARY = {
   approvalsByType: [] as Array<{ label: string; count: number }>,
   approvalsRecent30d: [] as Array<{ label: string; count: number }>,
   operationsByType: [] as Array<{ label: string; count: number }>,
+  consumablesByStatus: [] as Array<{ label: string; count: number }>,
+  consumablesByCategory: [] as Array<{ label: string; count: number }>,
+  consumableOperationsByType: [] as Array<{ label: string; count: number }>,
 };
 
 const APPROVAL_STATUS_LABELS: Record<
@@ -42,18 +55,30 @@ const APPROVAL_STATUS_LABELS: Record<
   cancelled: { zh: "已撤销", en: "Cancelled" },
 };
 
-export default function ReportsClient({ locale, categories, summary }: Props) {
+export default function ReportsClient({
+  locale,
+  assetCategories,
+  consumableCategories,
+  summary,
+}: Props) {
   const normalizedLocale = normalizeLocale(locale);
   const isChinese = normalizedLocale === "zh";
   const [data, setData] = useState(summary ?? EMPTY_SUMMARY);
 
   const categoryLabelMap = useMemo(() => {
     const map: Record<string, { zh: string; en: string }> = {};
-    categories.forEach((category) => {
+    assetCategories.forEach((category) => {
       map[category.code] = { zh: category.labelZh, en: category.labelEn };
     });
     return map;
-  }, [categories]);
+  }, [assetCategories]);
+  const consumableCategoryLabelMap = useMemo(() => {
+    const map: Record<string, { zh: string; en: string }> = {};
+    consumableCategories.forEach((category) => {
+      map[category.code] = { zh: category.labelZh, en: category.labelEn };
+    });
+    return map;
+  }, [consumableCategories]);
   const approvalTypeLabelMap = useMemo(() => {
     const map: Record<string, { zh: string; en: string }> = {};
     APPROVAL_TYPES.forEach((type) => {
@@ -88,8 +113,14 @@ export default function ReportsClient({ locale, categories, summary }: Props) {
 
   const handleDownloadAssets = () =>
     downloadWithDooTask("/apps/asset-hub/api/assets/export");
+  const handleDownloadAssetOperations = () =>
+    downloadWithDooTask("/apps/asset-hub/api/assets/operations/export");
   const handleDownloadApprovals = () =>
     downloadWithDooTask("/apps/asset-hub/api/approvals/export");
+  const handleDownloadConsumables = () =>
+    downloadWithDooTask("/apps/asset-hub/api/consumables/export");
+  const handleDownloadConsumableOperations = () =>
+    downloadWithDooTask("/apps/asset-hub/api/consumables/operations/export");
 
   const getApprovalStatusLabel = useCallback(
     (status: string) =>
@@ -101,6 +132,17 @@ export default function ReportsClient({ locale, categories, summary }: Props) {
     (status: string) =>
       status in ASSET_STATUS_LABELS
         ? getAssetStatusLabel(status as keyof typeof ASSET_STATUS_LABELS, locale)
+        : status,
+    [locale],
+  );
+
+  const getConsumableStatusLabelSafe = useCallback(
+    (status: string) =>
+      status in CONSUMABLE_STATUS_LABELS
+        ? getConsumableStatusLabel(
+            status as keyof typeof CONSUMABLE_STATUS_LABELS,
+            locale,
+          )
         : status,
     [locale],
   );
@@ -117,6 +159,15 @@ export default function ReportsClient({ locale, categories, summary }: Props) {
         link: `/${locale}/assets/list`,
       },
       {
+        titleZh: "耗材状态",
+        titleEn: "Consumables by Status",
+        data: data.consumablesByStatus.map((entry) => ({
+          label: getConsumableStatusLabelSafe(entry.label),
+          count: entry.count,
+        })),
+        link: `/${locale}/consumables/list`,
+      },
+      {
         titleZh: "资产类别",
         titleEn: "Assets by Category",
         data: data.assetsByCategory.slice(0, 8).map((entry) => ({
@@ -124,6 +175,16 @@ export default function ReportsClient({ locale, categories, summary }: Props) {
           count: entry.count,
         })),
         link: `/${locale}/assets/categories`,
+      },
+      {
+        titleZh: "耗材类别",
+        titleEn: "Consumables by Category",
+        data: data.consumablesByCategory.slice(0, 8).map((entry) => ({
+          label:
+            consumableCategoryLabelMap[entry.label]?.[normalizedLocale] ?? entry.label,
+          count: entry.count,
+        })),
+        link: `/${locale}/consumables/settings`,
       },
       {
         titleZh: "审批状态",
@@ -145,13 +206,22 @@ export default function ReportsClient({ locale, categories, summary }: Props) {
         link: `/${locale}/approvals`,
       },
       {
-        titleZh: "操作类型（30 天）",
-        titleEn: "Operations (30d)",
+        titleZh: "资产操作类型（30 天）",
+        titleEn: "Asset Operations (30d)",
         data: data.operationsByType.map((entry) => ({
           label: getOperationTypeLabel(entry.label, locale),
           count: entry.count,
         })),
         link: `/${locale}/assets/list`,
+      },
+      {
+        titleZh: "耗材操作类型（30 天）",
+        titleEn: "Consumable Operations (30d)",
+        data: data.consumableOperationsByType.map((entry) => ({
+          label: getConsumableOperationTypeLabel(entry.label, locale),
+          count: entry.count,
+        })),
+        link: `/${locale}/consumables`,
       },
       {
         titleZh: "审批结果（30 天）",
@@ -166,9 +236,11 @@ export default function ReportsClient({ locale, categories, summary }: Props) {
     [
       approvalTypeLabelMap,
       categoryLabelMap,
+      consumableCategoryLabelMap,
       data,
       getAssetStatusLabelSafe,
       getApprovalStatusLabel,
+      getConsumableStatusLabelSafe,
       locale,
       normalizedLocale,
     ],
@@ -224,8 +296,8 @@ export default function ReportsClient({ locale, categories, summary }: Props) {
             </h2>
             <p className="text-sm text-muted-foreground">
               {isChinese
-                ? "下载最新的资产与审批 CSV，后续将支持自定义模板。"
-                : "Download the latest asset and approval CSV exports. Custom templates coming soon."}
+                ? "下载最新的资产、耗材与审批 CSV，后续将支持自定义模板。"
+                : "Download the latest asset, consumable, and approval CSV exports. Custom templates coming soon."}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -235,6 +307,27 @@ export default function ReportsClient({ locale, categories, summary }: Props) {
               className="inline-flex items-center rounded-2xl border px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
             >
               {isChinese ? "资产 CSV" : "Assets CSV"}
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadAssetOperations}
+              className="inline-flex items-center rounded-2xl border px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
+            >
+              {isChinese ? "资产操作 CSV" : "Asset Ops CSV"}
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadConsumables}
+              className="inline-flex items-center rounded-2xl border px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
+            >
+              {isChinese ? "耗材 CSV" : "Consumables CSV"}
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadConsumableOperations}
+              className="inline-flex items-center rounded-2xl border px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
+            >
+              {isChinese ? "耗材操作 CSV" : "Consumable Ops CSV"}
             </button>
             <button
               type="button"
