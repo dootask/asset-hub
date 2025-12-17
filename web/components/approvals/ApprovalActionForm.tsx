@@ -54,9 +54,14 @@ export default function ApprovalActionForm({
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showReassign, setShowReassign] = useState(false);
-  const [syncPurchasePrice, setSyncPurchasePrice] = useState(
-    syncPurchasePriceOption?.initialChecked ?? true,
-  );
+  const defaultSyncPurchasePrice = useMemo(() => {
+    if (approvalType === "maintenance") {
+      return false;
+    }
+    return syncPurchasePriceOption?.initialChecked ?? true;
+  }, [approvalType, syncPurchasePriceOption?.initialChecked]);
+
+  const [syncPurchasePrice, setSyncPurchasePrice] = useState(defaultSyncPurchasePrice);
   const feedback = useAppFeedback();
   const fieldIds = {
     action: useId(),
@@ -93,6 +98,10 @@ export default function ApprovalActionForm({
       setAction(availableActions[0].value);
     }
   }, [availableActions, action]);
+
+  useEffect(() => {
+    setSyncPurchasePrice(defaultSyncPurchasePrice);
+  }, [approvalId, defaultSyncPurchasePrice]);
 
   if (!userReady) return null; // or loading spinner
 
