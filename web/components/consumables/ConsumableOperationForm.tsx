@@ -701,7 +701,7 @@ export default function ConsumableOperationForm({
                 }}
                 disabled={loadingUserCandidates}
               >
-                <SelectTrigger className="w-full max-w-[320px]">
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder={isChinese ? "请选择审批人" : "Select an approver"} />
                 </SelectTrigger>
                 <SelectContent>
