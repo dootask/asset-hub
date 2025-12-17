@@ -154,12 +154,9 @@ export default function OperationForm({
     return actionConfigs.find((config) => config.id === configId) ?? null;
   }, [actionConfigs, formState.type]);
 
-  const isInboundType = formState.type === "inbound";
-  const inboundUnlocked =
-    isInboundType &&
-    !loadingConfigs &&
-    currentActionConfig?.requiresApproval === false;
-  const operationLocked = isInboundType && !inboundUnlocked;
+  const currentRequiresApproval = currentActionConfig?.requiresApproval ?? true;
+  const operationLocked =
+    loadingConfigs || Boolean(configError) || currentRequiresApproval;
 
   useEffect(() => {
     onSubmitStateChange?.({ submitting, operationLocked });
@@ -293,15 +290,19 @@ export default function OperationForm({
     setSubmitting(true);
 
     try {
-      if (isInboundType && !inboundUnlocked) {
+      if (operationLocked) {
         throw new Error(
-          loadingConfigs
+          configError
             ? isChinese
-              ? "正在加载入库配置，请稍候。"
-              : "Loading inbound configuration, please wait."
-            : isChinese
-              ? "入库操作已配置为必须走审批，请在审批表单中提交。"
-              : "Inbound operations require approval. Please submit a request via the approval form.",
+              ? "无法加载操作配置，请稍后重试。"
+              : "Failed to load operation configuration."
+            : loadingConfigs
+              ? isChinese
+                ? "正在加载操作配置，请稍候。"
+                : "Loading operation configuration, please wait."
+              : isChinese
+                ? "该操作已配置为必须走审批，请在审批表单中提交请求。"
+                : "This operation requires approval. Please submit a request via the approval form.",
         );
       }
 
@@ -565,19 +566,15 @@ export default function OperationForm({
           {configError}
         </p>
       )}
-      {isInboundType && (
+      {(loadingConfigs || currentRequiresApproval) && !configError && (
         <div className="rounded-2xl border border-dashed border-muted-foreground/40 bg-muted/20 p-3 text-xs text-muted-foreground">
           {loadingConfigs
             ? isChinese
-              ? "正在加载入库操作配置..."
-              : "Loading inbound operation configuration..."
-            : inboundUnlocked
-              ? isChinese
-                ? "当前入库流程无需审批，可直接在此记录结果。"
-                : "Inbound operations currently do not require approval and can be logged directly."
-              : isChinese
-                ? "入库流程已配置为必须走审批，请在审批表单中提交请求。"
-                : "Inbound operations require approval. Please submit the request via the approval form."}
+              ? "正在加载操作配置..."
+              : "Loading operation configuration..."
+            : isChinese
+              ? `${getOperationTypeLabel(formState.type, "zh")}流程已配置为必须走审批，请在审批表单中提交请求。`
+              : `${getOperationTypeLabel(formState.type, "en")} operations require approval. Please submit the request via the approval form.`}
         </div>
       )}
       <div className="space-y-1.5">

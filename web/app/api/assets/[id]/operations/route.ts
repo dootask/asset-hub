@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAssetOperation, listOperationsForAsset } from "@/lib/repositories/asset-operations";
 import { getAssetById, updateAsset } from "@/lib/repositories/assets";
+import { getActionConfig } from "@/lib/repositories/action-configs";
 import {
   OPERATION_TYPES,
   type AssetOperation,
@@ -11,6 +12,7 @@ import {
   extractOwnerFromOperationMetadata,
   inferAssetStatusFromAction,
 } from "@/lib/utils/asset-state";
+import { operationTypeToActionConfigId } from "@/lib/utils/action-config";
 import {
   handleBorrowOperationCreated,
   handleReturnOperationCreated,
@@ -102,6 +104,17 @@ export async function POST(request: Request, { params }: RouteContext) {
     const payload = sanitizeOperationPayload(
       (await request.json()) as Partial<CreateAssetOperationPayload>,
     );
+
+    const config = getActionConfig(operationTypeToActionConfigId(payload.type));
+    if (config.requiresApproval) {
+      return NextResponse.json(
+        {
+          error: "APPROVAL_REQUIRED",
+          message: "该操作类型已配置为必须走审批，请在审批表单中提交请求。",
+        },
+        { status: 409 },
+      );
+    }
 
     const operation = createAssetOperation(id, payload);
     applyOperationSideEffects(asset, operation);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAssetById, updateAsset } from "@/lib/repositories/assets";
 import { createAssetOperation } from "@/lib/repositories/asset-operations";
+import { getActionConfig } from "@/lib/repositories/action-configs";
 import { extractUserFromRequest } from "@/lib/utils/request-user";
 import { isAdminUser } from "@/lib/utils/permissions";
 
@@ -22,6 +23,17 @@ export async function POST(
     return NextResponse.json(
       { error: "NOT_FOUND", message: "资产不存在" },
       { status: 404 },
+    );
+  }
+
+  const config = getActionConfig("dispose");
+  if (config.requiresApproval) {
+    return NextResponse.json(
+      {
+        error: "APPROVAL_REQUIRED",
+        message: "报废流程已配置为必须走审批，请在审批表单中提交请求。",
+      },
+      { status: 409 },
     );
   }
 
