@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
-import AssetCategoryTable, {
-  type AssetCategoryTableHandle,
-} from "@/components/assets/AssetCategoryTable";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ASSET_STATUS_LABELS, getAssetStatusLabel } from "@/lib/types/asset";
 import type { AssetCategory } from "@/lib/types/asset-category";
 import { APPROVAL_TYPES } from "@/lib/types/approval";
 import { getApiClient } from "@/lib/http/client";
+import { normalizeLocale } from "@/lib/i18n";
+import { getOperationTypeLabel } from "@/lib/types/operation";
 import { downloadWithDooTask } from "@/lib/utils/download";
 
 interface Props {
@@ -43,10 +43,17 @@ const APPROVAL_STATUS_LABELS: Record<
 };
 
 export default function ReportsClient({ locale, categories, summary }: Props) {
-  const isChinese = locale === "zh";
+  const normalizedLocale = normalizeLocale(locale);
+  const isChinese = normalizedLocale === "zh";
   const [data, setData] = useState(summary ?? EMPTY_SUMMARY);
 
-  const categoryTableRef = useRef<AssetCategoryTableHandle>(null);
+  const categoryLabelMap = useMemo(() => {
+    const map: Record<string, { zh: string; en: string }> = {};
+    categories.forEach((category) => {
+      map[category.code] = { zh: category.labelZh, en: category.labelEn };
+    });
+    return map;
+  }, [categories]);
   const approvalTypeLabelMap = useMemo(() => {
     const map: Record<string, { zh: string; en: string }> = {};
     APPROVAL_TYPES.forEach((type) => {
@@ -84,24 +91,47 @@ export default function ReportsClient({ locale, categories, summary }: Props) {
   const handleDownloadApprovals = () =>
     downloadWithDooTask("/apps/asset-hub/api/approvals/export");
 
+  const getApprovalStatusLabel = useCallback(
+    (status: string) =>
+      APPROVAL_STATUS_LABELS[status]?.[normalizedLocale] ?? status,
+    [normalizedLocale],
+  );
+
+  const getAssetStatusLabelSafe = useCallback(
+    (status: string) =>
+      status in ASSET_STATUS_LABELS
+        ? getAssetStatusLabel(status as keyof typeof ASSET_STATUS_LABELS, locale)
+        : status,
+    [locale],
+  );
+
   const tiles = useMemo(
     () => [
       {
         titleZh: "资产状态",
         titleEn: "Assets by Status",
-        data: data.assetsByStatus,
+        data: data.assetsByStatus.map((entry) => ({
+          label: getAssetStatusLabelSafe(entry.label),
+          count: entry.count,
+        })),
         link: `/${locale}/assets/list`,
       },
       {
         titleZh: "资产类别",
         titleEn: "Assets by Category",
-        data: data.assetsByCategory.slice(0, 8),
+        data: data.assetsByCategory.slice(0, 8).map((entry) => ({
+          label: categoryLabelMap[entry.label]?.[normalizedLocale] ?? entry.label,
+          count: entry.count,
+        })),
         link: `/${locale}/assets/categories`,
       },
       {
         titleZh: "审批状态",
         titleEn: "Approvals by Status",
-        data: data.approvalsByStatus,
+        data: data.approvalsByStatus.map((entry) => ({
+          label: getApprovalStatusLabel(entry.label),
+          count: entry.count,
+        })),
         link: `/${locale}/approvals`,
       },
       {
@@ -109,9 +139,7 @@ export default function ReportsClient({ locale, categories, summary }: Props) {
         titleEn: "Approvals by Type",
         data: data.approvalsByType.map((entry) => ({
           label:
-            approvalTypeLabelMap[entry.label]?.[
-              locale === "zh" ? "zh" : "en"
-            ] ?? entry.label,
+            approvalTypeLabelMap[entry.label]?.[normalizedLocale] ?? entry.label,
           count: entry.count,
         })),
         link: `/${locale}/approvals`,
@@ -119,23 +147,31 @@ export default function ReportsClient({ locale, categories, summary }: Props) {
       {
         titleZh: "操作类型（30 天）",
         titleEn: "Operations (30d)",
-        data: data.operationsByType,
+        data: data.operationsByType.map((entry) => ({
+          label: getOperationTypeLabel(entry.label, locale),
+          count: entry.count,
+        })),
         link: `/${locale}/assets/list`,
       },
       {
         titleZh: "审批结果（30 天）",
         titleEn: "Approval outcomes (30d)",
         data: data.approvalsRecent30d.map((entry) => ({
-          label:
-            APPROVAL_STATUS_LABELS[entry.label]?.[
-              locale === "zh" ? "zh" : "en"
-            ] ?? entry.label,
+          label: getApprovalStatusLabel(entry.label),
           count: entry.count,
         })),
         link: `/${locale}/approvals`,
       },
     ],
-    [data, locale, approvalTypeLabelMap],
+    [
+      approvalTypeLabelMap,
+      categoryLabelMap,
+      data,
+      getAssetStatusLabelSafe,
+      getApprovalStatusLabel,
+      locale,
+      normalizedLocale,
+    ],
   );
 
   return (
@@ -208,35 +244,6 @@ export default function ReportsClient({ locale, categories, summary }: Props) {
               {isChinese ? "审批 CSV" : "Approvals CSV"}
             </button>
           </div>
-        </div>
-      </section>
-
-      <section className="rounded-3xl border bg-card/80 p-6 shadow-sm">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-lg font-semibold">
-              {isChinese ? "类别配置" : "Category Configuration"}
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {isChinese
-                ? "管理资产类别并用于报表统计。"
-                : "Manage asset categories used throughout the reports."}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => categoryTableRef.current?.openCreateDialog()}
-            className="rounded-2xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90"
-          >
-            {isChinese ? "新增类别" : "New Category"}
-          </button>
-        </div>
-        <div className="mt-4">
-          <AssetCategoryTable
-            ref={categoryTableRef}
-            initialCategories={categories}
-            locale={locale}
-          />
         </div>
       </section>
     </>
