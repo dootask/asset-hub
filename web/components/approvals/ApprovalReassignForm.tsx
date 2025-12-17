@@ -34,6 +34,7 @@ type Props = {
   approverId?: string | null;
   approverName?: string | null;
   variant?: "embedded" | "standalone";
+  onUpdated?: () => void | Promise<void>;
 };
 
 type DootaskUser =
@@ -423,6 +424,7 @@ export default function ApprovalReassignForm(props: Props) {
         },
       });
 
+      await props.onUpdated?.();
       router.refresh();
       feedback.success(isChinese ? "审批人已更新" : "Approver updated");
     } catch (err) {

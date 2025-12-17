@@ -29,6 +29,7 @@ interface Props {
   approverId?: string | null;
   approverName?: string | null;
   applicantId: string;
+  onUpdated?: () => void | Promise<void>;
   syncPurchasePriceOption?: {
     target: "asset" | "consumable";
     cost?: string | number | null;
@@ -43,6 +44,7 @@ export default function ApprovalActionForm({
   approverId,
   approverName,
   applicantId,
+  onUpdated,
   syncPurchasePriceOption,
 }: Props) {
   const router = useRouter();
@@ -163,6 +165,7 @@ export default function ApprovalActionForm({
       });
 
       setComment("");
+      await onUpdated?.();
       router.refresh();
       feedback.success(isChinese ? "审批动作已提交" : "Action submitted");
     } catch (err) {
@@ -358,6 +361,7 @@ export default function ApprovalActionForm({
           approverId={approverId}
           approverName={approverName}
           variant="embedded"
+          onUpdated={onUpdated}
         />
       )}
     </div>

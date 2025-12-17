@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/layout/PageHeader";
 import ApprovalStatusBadge from "@/components/approvals/ApprovalStatusBadge";
@@ -139,15 +139,22 @@ export default function ApprovalDetailPageClient(props: {
 }) {
   const router = useRouter();
   const isChinese = props.locale === "zh";
+  const mountedRef = useRef(false);
   const [data, setData] = useState<ApprovalDetailPayload | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [forbidden, setForbidden] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      setLoading(true);
+  const load = useCallback(
+    async (options?: { silent?: boolean }) => {
+      const silent = options?.silent ?? false;
+      if (!mountedRef.current) return;
+      if (!silent) {
+        setLoading(true);
+      } else {
+        setRefreshing(true);
+      }
       setErrorMessage(null);
       setForbidden(false);
       try {
@@ -156,11 +163,12 @@ export default function ApprovalDetailPageClient(props: {
           `/apps/asset-hub/api/approvals/${props.id}/detail`,
           { headers: { "Cache-Control": "no-cache" } },
         );
-        if (cancelled) return;
+        if (!mountedRef.current) return;
         setData(resp.data.data);
       } catch (err: unknown) {
-        if (cancelled) return;
-        const status = (err as { response?: { status?: number } })?.response?.status;
+        if (!mountedRef.current) return;
+        const status = (err as { response?: { status?: number } })?.response
+          ?.status;
         if (status === 403) {
           setForbidden(true);
           setData(null);
@@ -173,14 +181,27 @@ export default function ApprovalDetailPageClient(props: {
         setErrorMessage(message);
         setData(null);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!mountedRef.current) return;
+        if (!silent) setLoading(false);
+        setRefreshing(false);
       }
-    }
-    load();
+    },
+    [props.id, isChinese],
+  );
+
+  useEffect(() => {
+    mountedRef.current = true;
+    void (async () => {
+      await load();
+    })();
     return () => {
-      cancelled = true;
+      mountedRef.current = false;
     };
-  }, [props.id, isChinese]);
+  }, [load]);
+
+  const handleUpdated = useCallback(async () => {
+    await load({ silent: true });
+  }, [load]);
 
   const approval = data?.approval ?? null;
 
@@ -320,7 +341,14 @@ export default function ApprovalDetailPageClient(props: {
         ]}
         title={approval.title}
         description={`#${approval.id}`}
-        actions={<ApprovalStatusBadge status={approval.status} locale={props.locale} />}
+        actions={
+          <div className="flex items-center gap-2">
+            {refreshing ? (
+              <Spinner className="h-4 w-4 text-muted-foreground" />
+            ) : null}
+            <ApprovalStatusBadge status={approval.status} locale={props.locale} />
+          </div>
+        }
       />
 
       {approval.externalTodoId && (
@@ -509,6 +537,7 @@ export default function ApprovalDetailPageClient(props: {
           approverName={approval.approverName}
           applicantId={approval.applicantId}
           syncPurchasePriceOption={derived.syncPurchasePriceOption}
+          onUpdated={handleUpdated}
         />
       )}
     </div>
