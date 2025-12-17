@@ -123,7 +123,7 @@ export default async function AssetDetailPage({ params }: PageProps) {
               {isChinese ? "规格型号" : "Spec / Model"}
             </dt>
             <dd className="text-sm font-medium">
-              {asset.specModel || (isChinese ? "未填写" : "-")}
+              {asset.specModel || "-"}
             </dd>
           </div>
           <div>
@@ -154,21 +154,35 @@ export default async function AssetDetailPage({ params }: PageProps) {
           </div>
           <div>
             <dt className="text-xs text-muted-foreground">
-              {isChinese ? "购入日期" : "Purchase Date"}
-            </dt>
-            <dd className="text-sm font-medium">{asset.purchaseDate}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-muted-foreground">
               {isChinese ? "采购价格" : "Purchase Price"}
             </dt>
             <dd className="text-sm font-medium">
               {asset.purchasePriceCents !== undefined &&
               asset.purchasePriceCents !== null
                 ? `${formatCentsToMoney(asset.purchasePriceCents)} ${asset.purchaseCurrency ?? "CNY"}`
-                : isChinese
-                  ? "未填写"
-                  : "-"}
+                : "-"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground">
+              {isChinese ? "购入日期" : "Purchase Date"}
+            </dt>
+            <dd className="text-sm font-medium">{asset.purchaseDate}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground">
+              {isChinese ? "过期时间" : "Expires At"}
+            </dt>
+            <dd className="text-sm font-medium">
+              {asset.expiresAt || "-"}
+            </dd>
+          </div>
+          <div className="sm:col-span-2">
+            <dt className="text-xs text-muted-foreground">
+              {isChinese ? "备注" : "Note"}
+            </dt>
+            <dd className="text-sm font-medium whitespace-pre-wrap break-words">
+              {asset.note || "-"}
             </dd>
           </div>
         </dl>

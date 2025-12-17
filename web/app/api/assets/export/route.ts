@@ -71,8 +71,10 @@ export async function GET(request: Request) {
     owner: asset.owner,
     location: asset.location,
     purchaseDate: asset.purchaseDate,
+    expiresAt: asset.expiresAt ?? "",
     purchasePrice: formatCentsToMoney(asset.purchasePriceCents),
     purchaseCurrency: asset.purchaseCurrency ?? "CNY",
+    note: asset.note ?? "",
   }));
 
   const csv = toCsv(rows);

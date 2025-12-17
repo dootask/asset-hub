@@ -45,6 +45,14 @@ function migrateAssetsTable(database: Database.Database) {
       sql: "ALTER TABLE assets ADD COLUMN spec_model TEXT",
     },
     {
+      column: "expires_at",
+      sql: "ALTER TABLE assets ADD COLUMN expires_at TEXT",
+    },
+    {
+      column: "note",
+      sql: "ALTER TABLE assets ADD COLUMN note TEXT",
+    },
+    {
       column: "purchase_price_cents",
       sql: "ALTER TABLE assets ADD COLUMN purchase_price_cents INTEGER",
     },

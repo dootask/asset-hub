@@ -7,6 +7,43 @@ import { getCompanyByCode } from "@/lib/repositories/companies";
 import { extractUserFromRequest } from "@/lib/utils/request-user";
 import { isAdminUser } from "@/lib/utils/permissions";
 
+function sanitizeOptionalDate(value: unknown, fieldLabel: string): string | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value !== "string") {
+    throw new Error(`${fieldLabel}格式不合法`);
+  }
+  const normalized = value.trim();
+  if (!normalized) {
+    return "";
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    throw new Error(`${fieldLabel}格式必须为 YYYY-MM-DD`);
+  }
+  const parsed = new Date(`${normalized}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`${fieldLabel}不是有效日期`);
+  }
+  return normalized;
+}
+
+function sanitizeOptionalText(value: unknown, fieldLabel: string, maxLen: number): string | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value !== "string") {
+    throw new Error(`${fieldLabel}格式不合法`);
+  }
+  if (!value.trim()) {
+    return "";
+  }
+  if (value.length > maxLen) {
+    throw new Error(`${fieldLabel}过长`);
+  }
+  return value;
+}
+
 function parseStatuses(searchParams: URLSearchParams): AssetStatus[] | undefined {
   const rawStatuses = [
     ...searchParams.getAll("status"),
@@ -134,6 +171,8 @@ function sanitizePayload(payload: Partial<CreateAssetPayload>): CreateAssetPaylo
     companyCode: company.code,
     assetNo: assetNo || undefined,
     specModel: specModel || undefined,
+    expiresAt: sanitizeOptionalDate((payload as { expiresAt?: unknown }).expiresAt, "过期时间"),
+    note: sanitizeOptionalText((payload as { note?: unknown }).note, "备注", 5000),
     purchasePriceCents,
     purchaseCurrency,
   } as CreateAssetPayload;

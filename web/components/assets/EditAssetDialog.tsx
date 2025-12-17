@@ -14,6 +14,7 @@ import type { Company } from "@/lib/types/system";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -37,7 +38,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
 import { useAppFeedback } from "@/components/providers/feedback-provider";
 import { getApiClient } from "@/lib/http/client";
 import { extractApiErrorMessage } from "@/lib/utils/api-error";
@@ -51,6 +51,29 @@ type Props = {
   companies: Company[];
 };
 
+function parseYmdDate(value: string): Date | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (!match) return undefined;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+    return undefined;
+  }
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (Number.isNaN(date.getTime())) return undefined;
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return undefined;
+  }
+  return date;
+}
+
 type FormState = {
   assetNo: string;
   name: string;
@@ -61,6 +84,8 @@ type FormState = {
   owner: string;
   location: string;
   purchaseDate: string;
+  expiresAt: string;
+  note: string;
   purchasePrice: string;
 };
 
@@ -76,6 +101,9 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [purchaseDateOpen, setPurchaseDateOpen] = useState(false);
+  const [purchaseMonth, setPurchaseMonth] = useState<Date | undefined>(undefined);
+  const [expiresDateOpen, setExpiresDateOpen] = useState(false);
+  const [expiresMonth, setExpiresMonth] = useState<Date | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
   const [formState, setFormState] = useState<FormState>({
     assetNo: asset.assetNo ?? "",
@@ -87,6 +115,8 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
     owner: asset.owner,
     location: asset.location,
     purchaseDate: asset.purchaseDate,
+    expiresAt: asset.expiresAt ?? "",
+    note: asset.note ?? "",
     purchasePrice: formatCentsToMoney(asset.purchasePriceCents),
   });
   const feedback = useAppFeedback();
@@ -134,11 +164,8 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
     setFormState((prev) => ({ ...prev, [field]: value }));
   };
 
-  const purchaseDateValue = (() => {
-    if (!formState.purchaseDate) return undefined;
-    const parsed = new Date(formState.purchaseDate);
-    return Number.isNaN(parsed.getTime()) ? undefined : parsed;
-  })();
+  const purchaseDateValue = parseYmdDate(formState.purchaseDate);
+  const expiresDateValue = parseYmdDate(formState.expiresAt);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -169,6 +196,8 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
         owner: formState.owner,
         location: formState.location,
         purchaseDate: formState.purchaseDate,
+        expiresAt: formState.expiresAt,
+        note: formState.note,
         purchasePriceCents,
         purchaseCurrency: asset.purchaseCurrency ?? "CNY",
       };
@@ -390,53 +419,67 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
                 <Label htmlFor="edit-asset-purchase-date">
                   {isChinese ? "购入日期" : "Purchase Date"}
                 </Label>
-                <Popover
-                  open={purchaseDateOpen}
-                  onOpenChange={setPurchaseDateOpen}
-                >
-                  <PopoverTrigger asChild>
-                    <Button
-                      id="edit-asset-purchase-date"
-                      variant="outline"
-                      type="button"
-                      data-empty={!purchaseDateValue}
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !purchaseDateValue && "text-muted-foreground",
-                      )}
+                <div className="relative">
+                  <Input
+                    id="edit-asset-purchase-date"
+                    required
+                    value={formState.purchaseDate}
+                    placeholder="YYYY-MM-DD"
+                    className="bg-background pr-10"
+                    onChange={(event) => {
+                      const nextValue = event.target.value;
+                      handleChange("purchaseDate", nextValue);
+                      const parsed = parseYmdDate(nextValue);
+                      if (parsed) {
+                        setPurchaseMonth(parsed);
+                      }
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "ArrowDown") {
+                        event.preventDefault();
+                        setPurchaseDateOpen(true);
+                      }
+                    }}
+                  />
+                  <Popover open={purchaseDateOpen} onOpenChange={setPurchaseDateOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="absolute top-1/2 right-2 size-6 -translate-y-1/2"
+                      >
+                        <CalendarIcon className="size-3.5" />
+                        <span className="sr-only">
+                          {isChinese ? "选择日期" : "Select date"}
+                        </span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="w-auto overflow-hidden p-0"
+                      align="end"
+                      alignOffset={-8}
+                      sideOffset={10}
                     >
-                      <CalendarIcon className="mr-1 h-4 w-4" />
-                      {purchaseDateValue
-                        ? purchaseDateValue.toLocaleDateString(
-                            isChinese ? "zh-CN" : "en-US",
-                            {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                            },
-                          )
-                        : isChinese
-                          ? "选择日期"
-                          : "Pick a date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={purchaseDateValue}
-                      locale={isChinese ? zhCN : enUS}
-                      captionLayout="dropdown"
-                      weekStartsOn={0}
-                      startMonth={new Date(new Date().getFullYear() - 5, 0)}
-                      endMonth={new Date(new Date().getFullYear() + 5, 11)}
-                      onSelect={(date: Date | undefined) => {
-                        if (!date) return;
-                        handleChange("purchaseDate", date.toISOString().slice(0, 10));
-                        setPurchaseDateOpen(false);
-                      }}
-                    />
-                  </PopoverContent>
-                </Popover>
+                      <Calendar
+                        mode="single"
+                        selected={purchaseDateValue}
+                        locale={isChinese ? zhCN : enUS}
+                        captionLayout="dropdown"
+                        month={purchaseMonth ?? purchaseDateValue}
+                        onMonthChange={setPurchaseMonth}
+                        weekStartsOn={0}
+                        startMonth={new Date(new Date().getFullYear() - 5, 0)}
+                        endMonth={new Date(new Date().getFullYear() + 5, 11)}
+                        onSelect={(date: Date | undefined) => {
+                          if (!date) return;
+                          handleChange("purchaseDate", date.toISOString().slice(0, 10));
+                          setPurchaseMonth(date);
+                          setPurchaseDateOpen(false);
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="edit-asset-purchase-price">
@@ -451,6 +494,86 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
                   onChange={(event) =>
                     handleChange("purchasePrice", event.target.value)
                   }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-asset-expires-at">
+                  {isChinese ? "过期时间" : "Expires At"}
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="edit-asset-expires-at"
+                    value={formState.expiresAt}
+                    placeholder="YYYY-MM-DD"
+                    className="bg-background pr-10"
+                    onChange={(event) => {
+                      const nextValue = event.target.value;
+                      handleChange("expiresAt", nextValue);
+                      if (!nextValue.trim()) {
+                        return;
+                      }
+                      const parsed = parseYmdDate(nextValue);
+                      if (parsed) {
+                        setExpiresMonth(parsed);
+                      }
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "ArrowDown") {
+                        event.preventDefault();
+                        setExpiresDateOpen(true);
+                      }
+                    }}
+                  />
+                  <Popover open={expiresDateOpen} onOpenChange={setExpiresDateOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="absolute top-1/2 right-2 size-6 -translate-y-1/2"
+                      >
+                        <CalendarIcon className="size-3.5" />
+                        <span className="sr-only">
+                          {isChinese ? "选择日期" : "Select date"}
+                        </span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="w-auto overflow-hidden p-0"
+                      align="end"
+                      alignOffset={-8}
+                      sideOffset={10}
+                    >
+                      <Calendar
+                        mode="single"
+                        selected={expiresDateValue}
+                        locale={isChinese ? zhCN : enUS}
+                        captionLayout="dropdown"
+                        month={expiresMonth ?? expiresDateValue ?? undefined}
+                        onMonthChange={setExpiresMonth}
+                        weekStartsOn={0}
+                        startMonth={new Date(new Date().getFullYear() - 10, 0)}
+                        endMonth={new Date(new Date().getFullYear() + 20, 11)}
+                        onSelect={(date: Date | undefined) => {
+                          if (!date) return;
+                          handleChange("expiresAt", date.toISOString().slice(0, 10));
+                          setExpiresMonth(date);
+                          setExpiresDateOpen(false);
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="edit-asset-note">
+                  {isChinese ? "备注" : "Note"}
+                </Label>
+                <Textarea
+                  id="edit-asset-note"
+                  value={formState.note}
+                  rows={4}
+                  placeholder={isChinese ? "可填写补充信息" : "Optional notes..."}
+                  onChange={(event) => handleChange("note", event.target.value)}
                 />
               </div>
             </div>

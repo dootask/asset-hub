@@ -40,6 +40,8 @@ export interface Asset {
   owner: string;
   location: string;
   purchaseDate: string; // ISO string
+  expiresAt?: string; // YYYY-MM-DD
+  note?: string;
   purchasePriceCents?: number;
   purchaseCurrency?: string;
 }
@@ -54,6 +56,8 @@ export interface CreateAssetPayload {
   owner: string;
   location: string;
   purchaseDate: string;
+  expiresAt?: string;
+  note?: string;
   purchasePriceCents?: number | null;
   purchaseCurrency?: string;
 }

@@ -268,6 +268,9 @@ export default function AssetListPage({
                 <TableHead className="px-4 py-3">
                   {isChinese ? "购入日期" : "Purchase Date"}
                 </TableHead>
+                <TableHead className="px-4 py-3">
+                  {isChinese ? "过期时间" : "Expires At"}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -290,7 +293,7 @@ export default function AssetListPage({
                   </TableCell>
                   <TableCell className="px-4 py-3">
                     <span className="text-sm text-foreground">
-                      {asset.specModel || (isChinese ? "未填写" : "-")}
+                      {asset.specModel || "-"}
                     </span>
                   </TableCell>
                   <TableCell className="px-4 py-3">
@@ -298,9 +301,7 @@ export default function AssetListPage({
                       {asset.purchasePriceCents !== undefined &&
                       asset.purchasePriceCents !== null
                         ? `${formatCentsToMoney(asset.purchasePriceCents)} ${asset.purchaseCurrency ?? "CNY"}`
-                        : isChinese
-                          ? "未填写"
-                          : "-"}
+                        : "-"}
                     </span>
                   </TableCell>
                   <TableCell className="px-4 py-3">
@@ -331,9 +332,16 @@ export default function AssetListPage({
                         ? new Date(asset.purchaseDate).toLocaleDateString(
                             locale === "zh" ? "zh-CN" : "en-US",
                           )
-                        : isChinese
-                          ? "未填写"
-                          : "Not provided"}
+                        : "-"}
+                    </span>
+                  </TableCell>
+                  <TableCell className="px-4 py-3">
+                    <span className="text-sm text-foreground">
+                      {asset.expiresAt
+                        ? new Date(asset.expiresAt).toLocaleDateString(
+                            locale === "zh" ? "zh-CN" : "en-US",
+                          )
+                        : "-"}
                     </span>
                   </TableCell>
                 </TableRow>

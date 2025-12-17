@@ -11,6 +11,8 @@ export const CREATE_TABLES = {
       owner TEXT NOT NULL,
       location TEXT NOT NULL,
       purchase_date TEXT NOT NULL,
+      expires_at TEXT,
+      note TEXT,
       purchase_price_cents INTEGER,
       purchase_currency TEXT NOT NULL DEFAULT ('CNY'),
       created_at TEXT NOT NULL DEFAULT (datetime('now')),

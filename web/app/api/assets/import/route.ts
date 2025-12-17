@@ -70,6 +70,16 @@ function normalizeStatus(value: string): AssetStatus | null {
   return matchFromLabel ?? null;
 }
 
+function normalizeOptionalDate(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return null;
+  }
+  const parsed = new Date(`${trimmed}T00:00:00Z`);
+  return Number.isNaN(parsed.getTime()) ? null : trimmed;
+}
+
 function splitCsvLine(line: string): string[] {
   const cells: string[] = [];
   let current = "";
@@ -174,6 +184,13 @@ export function parseAssetImportContent(content: string) {
       return;
     }
 
+    const rawExpiresAt = record.expiresat?.trim() ?? "";
+    const expiresAt = rawExpiresAt ? normalizeOptionalDate(rawExpiresAt) : null;
+    if (rawExpiresAt && !expiresAt) {
+      errors.push(`第 ${rowNumber} 行的过期时间格式无效: ${record.expiresat}`);
+      return;
+    }
+
     rows.push({
       assetNo: record.assetno?.trim() ?? "",
       name: record.name,
@@ -184,6 +201,8 @@ export function parseAssetImportContent(content: string) {
       owner: record.owner,
       location: record.location,
       purchaseDate: record.purchasedate,
+      expiresAt: expiresAt ?? "",
+      note: record.note ?? "",
       purchasePriceCents,
       purchaseCurrency,
     });

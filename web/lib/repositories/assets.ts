@@ -14,6 +14,8 @@ type AssetRow = {
   owner: string;
   location: string;
   purchase_date: string;
+  expires_at: string | null;
+  note: string | null;
   purchase_price_cents: number | null;
   purchase_currency: string | null;
 };
@@ -46,6 +48,8 @@ function mapRow(row: AssetRow): Asset {
     owner: row.owner,
     location: row.location,
     purchaseDate: row.purchase_date,
+    expiresAt: row.expires_at ?? undefined,
+    note: row.note ?? undefined,
     purchasePriceCents:
       typeof row.purchase_price_cents === "number"
         ? row.purchase_price_cents
@@ -224,6 +228,10 @@ export function createAsset(payload: CreateAssetPayload): Asset {
   const id = `AST-${randomUUID().slice(0, 8).toUpperCase()}`;
   const assetNo = resolveAssetNoForCreate(payload, id);
   const specModel = payload.specModel?.trim() ? payload.specModel.trim() : null;
+  const expiresAtRaw = typeof payload.expiresAt === "string" ? payload.expiresAt : "";
+  const expiresAt = expiresAtRaw.trim() ? expiresAtRaw.trim() : null;
+  const noteRaw = typeof payload.note === "string" ? payload.note : "";
+  const note = noteRaw.trim() ? noteRaw : null;
   const purchasePriceCents =
     typeof payload.purchasePriceCents === "number"
       ? payload.purchasePriceCents
@@ -242,6 +250,8 @@ export function createAsset(payload: CreateAssetPayload): Asset {
        owner,
        location,
        purchase_date,
+       expires_at,
+       note,
        purchase_price_cents,
        purchase_currency,
        created_at,
@@ -258,6 +268,8 @@ export function createAsset(payload: CreateAssetPayload): Asset {
        @owner,
        @location,
        @purchaseDate,
+       @expires_at,
+       @note,
        @purchase_price_cents,
        @purchase_currency,
        datetime('now'),
@@ -274,6 +286,8 @@ export function createAsset(payload: CreateAssetPayload): Asset {
     owner: payload.owner,
     location: payload.location,
     purchaseDate: payload.purchaseDate,
+    expires_at: expiresAt,
+    note,
     purchase_price_cents: purchasePriceCents,
     purchase_currency: purchaseCurrency,
   });
@@ -283,6 +297,8 @@ export function createAsset(payload: CreateAssetPayload): Asset {
     ...payload,
     assetNo,
     specModel: specModel ?? undefined,
+    expiresAt: expiresAt ?? undefined,
+    note: note ?? undefined,
     purchasePriceCents: purchasePriceCents ?? undefined,
     purchaseCurrency,
   };
@@ -308,6 +324,18 @@ export function updateAsset(id: string, payload: CreateAssetPayload): Asset | nu
       : payload.specModel.trim()
         ? payload.specModel.trim()
         : null;
+  const expiresAt =
+    payload.expiresAt === undefined
+      ? existing.expiresAt ?? null
+      : payload.expiresAt.trim()
+        ? payload.expiresAt.trim()
+        : null;
+  const note =
+    payload.note === undefined
+      ? existing.note ?? null
+      : payload.note.trim()
+        ? payload.note
+        : null;
   const purchasePriceCents =
     payload.purchasePriceCents === undefined
       ? typeof existing.purchasePriceCents === "number"
@@ -332,6 +360,8 @@ export function updateAsset(id: string, payload: CreateAssetPayload): Asset | nu
          owner=@owner,
          location=@location,
          purchase_date=@purchaseDate,
+         expires_at=@expires_at,
+         note=@note,
          purchase_price_cents=@purchase_price_cents,
          purchase_currency=@purchase_currency,
          updated_at=datetime('now')
@@ -347,6 +377,8 @@ export function updateAsset(id: string, payload: CreateAssetPayload): Asset | nu
     owner: payload.owner,
     location: payload.location,
     purchaseDate: payload.purchaseDate,
+    expires_at: expiresAt,
+    note,
     purchase_price_cents: purchasePriceCents,
     purchase_currency: purchaseCurrency,
   });
@@ -356,6 +388,8 @@ export function updateAsset(id: string, payload: CreateAssetPayload): Asset | nu
     ...payload,
     assetNo: assetNo ?? undefined,
     specModel: specModel ?? undefined,
+    expiresAt: expiresAt ?? undefined,
+    note: note ?? undefined,
     purchasePriceCents: purchasePriceCents ?? undefined,
     purchaseCurrency,
   };

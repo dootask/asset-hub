@@ -64,11 +64,15 @@ describe("Asset repository", () => {
       owner: "QA",
       location: "Lab",
       purchaseDate: "2024-01-01",
+      expiresAt: "2026-12-31",
+      note: "Line 1\nLine 2",
     });
 
     const page = listAssets({ page: 1, pageSize: 5 });
     expect(page.total).toBeGreaterThan(0);
     expect(page.items[0].name).toEqual("Test Laptop");
+    expect(page.items[0].expiresAt).toBe("2026-12-31");
+    expect(page.items[0].note).toBe("Line 1\nLine 2");
   });
 
   it("filters by status", () => {
