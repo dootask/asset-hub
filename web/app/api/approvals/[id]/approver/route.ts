@@ -24,6 +24,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function sanitizePayload(payload: unknown): {
   approver: { id: string; name?: string };
   actor?: { id: string; name?: string };
+  comment?: string;
 } {
   if (!isRecord(payload)) {
     throw new Error("请求体必须是 JSON 对象");
@@ -33,6 +34,10 @@ function sanitizePayload(payload: unknown): {
   if (!isRecord(approver) || typeof approver.id !== "string" || !approver.id.trim()) {
     throw new Error("缺少审批人信息");
   }
+
+  const rawComment = payload.comment;
+  const comment =
+    typeof rawComment === "string" && rawComment.trim() ? rawComment.trim() : undefined;
 
   const actor = payload.actor;
   return {
@@ -52,6 +57,7 @@ function sanitizePayload(payload: unknown): {
                 : undefined,
           }
         : undefined,
+    comment,
   };
 }
 
@@ -124,12 +130,23 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       );
     }
 
+    if (existing.approverId !== resolvedApprover.id && !payload.comment) {
+      return NextResponse.json(
+        {
+          error: "COMMENT_REQUIRED",
+          message: "更换审批人需要填写备注。",
+        },
+        { status: 400 },
+      );
+    }
+
     const updated = reassignApprovalApprover(id, {
       approver: resolvedApprover,
       actor: {
         id: actorId,
         name: currentUser.nickname,
       },
+      comment: payload.comment,
     });
 
     const previousApproverLabel =
@@ -146,6 +163,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
           locale,
           actorName,
           previousApproverLabel,
+          comment: payload.comment,
         });
       })();
     }

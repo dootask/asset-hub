@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -92,10 +93,13 @@ export default function ApprovalReassignForm(props: Props) {
     name: props.approverName ?? undefined,
   });
 
+  const [comment, setComment] = useState("");
+
   const fieldIds = {
     approverId: useId(),
     approverName: useId(),
     roleApprover: useId(),
+    comment: useId(),
   };
 
   const actorId = user ? String(user.id) : null;
@@ -303,6 +307,20 @@ export default function ApprovalReassignForm(props: Props) {
     return nextApprover.id.trim().length === 0;
   }, [canEdit, lockedByConfig, needsRolePick, needsUserPick, nextApprover.id]);
 
+  const hasApproverChanged = useMemo(() => {
+    const nextId = nextApprover.id.trim();
+    const currentId = (props.approverId ?? "").trim();
+    if (!nextId) return false;
+    return nextId !== currentId;
+  }, [nextApprover.id, props.approverId]);
+
+  const missingComment = useMemo(() => {
+    if (!canEdit) return false;
+    if (lockedByConfig) return false;
+    if (!hasApproverChanged) return false;
+    return comment.trim().length === 0;
+  }, [canEdit, lockedByConfig, hasApproverChanged, comment]);
+
   const currentLabel =
     props.approverName ??
     props.approverId ??
@@ -401,6 +419,14 @@ export default function ApprovalReassignForm(props: Props) {
     if (!user || !actorId) return;
     if (lockedByConfig) return;
     if (missingSelection) return;
+    if (!hasApproverChanged) {
+      feedback.info(isChinese ? "审批人未发生变化" : "Approver unchanged");
+      return;
+    }
+    if (missingComment) {
+      feedback.warning(isChinese ? "请填写备注后再提交。" : "Please provide a comment.");
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -418,6 +444,7 @@ export default function ApprovalReassignForm(props: Props) {
           id: nextApprover.id.trim(),
           name: nextApprover.name?.trim() || undefined,
         },
+        comment: comment.trim(),
         actor: {
           id: String(user.id),
           name: user.nickname,
@@ -648,9 +675,49 @@ export default function ApprovalReassignForm(props: Props) {
         !needsRolePick &&
         !needsUserPick && null}
 
+      {!lockedByConfig && (
+        <div className="space-y-1.5">
+          <Label
+            htmlFor={fieldIds.comment}
+            className="text-xs font-medium text-muted-foreground"
+          >
+            {isChinese ? "备注" : "Comment"}
+            {hasApproverChanged && <span className="text-destructive">*</span>}
+          </Label>
+          <Textarea
+            id={fieldIds.comment}
+            value={comment}
+            onChange={(event) => setComment(event.target.value)}
+            placeholder={
+              isChinese ? "请输入更换审批人的原因/说明" : "Why are you reassigning?"
+            }
+            rows={3}
+            aria-invalid={missingComment}
+            disabled={submitting}
+          />
+          {!hasApproverChanged ? (
+            <p className="text-xs text-muted-foreground">
+              {isChinese
+                ? "选择新的审批人后需要填写备注。"
+                : "Provide a comment when you change the approver."}
+            </p>
+          ) : missingComment ? (
+            <p className="text-xs text-destructive">
+              {isChinese ? "更换审批人需要填写备注。" : "Comment is required."}
+            </p>
+          ) : null}
+        </div>
+      )}
+
       <Button
         type="submit"
-        disabled={submitting || lockedByConfig || missingSelection}
+        disabled={
+          submitting ||
+          lockedByConfig ||
+          missingSelection ||
+          !hasApproverChanged ||
+          missingComment
+        }
         className="w-full rounded-2xl"
       >
         {submitting

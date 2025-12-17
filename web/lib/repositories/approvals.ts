@@ -908,6 +908,7 @@ export function reassignApprovalApprover(
   payload: {
     approver: { id: string; name?: string };
     actor: { id: string; name?: string };
+    comment?: string;
   },
 ): ApprovalRequest {
   const existing = getApprovalRequestById(id);
@@ -923,37 +924,47 @@ export function reassignApprovalApprover(
     throw new Error("缺少审批人信息");
   }
 
+  const hasApproverChanged = existing.approverId !== nextApproverId;
+  const comment =
+    typeof payload.comment === "string" ? payload.comment.trim() : "";
+  if (hasApproverChanged && !comment) {
+    throw new Error("更换审批人需要填写备注");
+  }
+
+  if (!hasApproverChanged) {
+    return existing;
+  }
+
   const now = new Date().toISOString();
   const nextMetadata: Record<string, unknown> = {
     ...(existing.metadata ?? {}),
   };
 
-  if (existing.approverId !== nextApproverId) {
-    const history = Array.isArray(
-      (nextMetadata as { approverReassignments?: unknown }).approverReassignments,
-    )
-      ? (nextMetadata as { approverReassignments: unknown[] }).approverReassignments
-      : [];
+  const history = Array.isArray(
+    (nextMetadata as { approverReassignments?: unknown }).approverReassignments,
+  )
+    ? (nextMetadata as { approverReassignments: unknown[] }).approverReassignments
+    : [];
 
-    history.push({
-      at: now,
-      from: {
-        id: existing.approverId ?? null,
-        name: existing.approverName ?? null,
-      },
-      to: {
-        id: nextApproverId,
-        name: payload.approver.name ?? null,
-      },
-      actor: {
-        id: payload.actor.id,
-        name: payload.actor.name ?? null,
-      },
-    });
+  history.push({
+    at: now,
+    from: {
+      id: existing.approverId ?? null,
+      name: existing.approverName ?? null,
+    },
+    to: {
+      id: nextApproverId,
+      name: payload.approver.name ?? null,
+    },
+    actor: {
+      id: payload.actor.id,
+      name: payload.actor.name ?? null,
+    },
+    comment,
+  });
 
-    (nextMetadata as { approverReassignments: unknown[] }).approverReassignments =
-      history;
-  }
+  (nextMetadata as { approverReassignments: unknown[] }).approverReassignments =
+    history;
 
   const db = getDb();
   db.prepare(

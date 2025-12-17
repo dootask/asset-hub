@@ -126,8 +126,13 @@ function buildApprovalReassignedText(params: {
   locale?: string;
   actorName?: string;
   previousApproverLabel?: string;
+  comment?: string;
 }) {
   const lang = normalizeLocale(params.locale);
+  const comment =
+    typeof params.comment === "string" && params.comment.trim()
+      ? params.comment.trim()
+      : null;
   const lines = [
     lang === "zh" ? "**审批转交提醒**" : "**Approval Reassigned**",
     `- ${lang === "zh" ? "标题" : "Title"}：${params.approval.title}`,
@@ -137,6 +142,7 @@ function buildApprovalReassignedText(params: {
     params.actorName
       ? `- ${lang === "zh" ? "操作人" : "Actor"}：${params.actorName}`
       : undefined,
+    comment ? `- ${lang === "zh" ? "备注" : "Comment"}：${comment}` : undefined,
     buildOpenMicroAppLine(params.approval, params.locale),
   ].filter(Boolean);
   return lines.join("\n");
@@ -148,6 +154,7 @@ export async function notifyApprovalReassigned(params: {
   locale?: string;
   actorName?: string;
   previousApproverLabel?: string;
+  comment?: string;
 }) {
   const client = createDooTaskClientFromRequest(params.request);
   if (!client) return;

@@ -3,6 +3,7 @@ type Reassignment = {
   from?: { id?: string | null; name?: string | null } | null;
   to?: { id?: string | null; name?: string | null } | null;
   actor?: { id?: string | null; name?: string | null } | null;
+  comment?: string | null;
 };
 
 function formatPerson(person?: { id?: string | null; name?: string | null } | null) {
@@ -31,6 +32,11 @@ export default function ApproverReassignmentsView(props: {
               {props.locale === "zh" ? "操作人" : "Actor"}:{" "}
               {formatPerson(item.actor)}
             </p>
+            {item.comment ? (
+              <p className="text-xs text-muted-foreground">
+                {props.locale === "zh" ? "备注" : "Comment"}: {item.comment}
+              </p>
+            ) : null}
             {index !== props.items.length - 1 && (
               <div className="pt-2">
                 <div className="h-px bg-border" />

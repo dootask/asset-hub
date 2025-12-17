@@ -27,6 +27,7 @@ type ApproverReassignment = {
   from: { id: string | null; name: string | null };
   to: { id: string | null; name: string | null };
   actor: { id: string | null; name: string | null };
+  comment?: string | null;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -69,6 +70,7 @@ function parseApproverReassignments(
     const from = isRecord(entry.from) ? entry.from : {};
     const to = isRecord(entry.to) ? entry.to : {};
     const actor = isRecord(entry.actor) ? entry.actor : {};
+    const comment = typeof entry.comment === "string" ? entry.comment : null;
 
     result.push({
       at: entry.at,
@@ -84,6 +86,7 @@ function parseApproverReassignments(
         id: typeof actor.id === "string" ? actor.id : null,
         name: typeof actor.name === "string" ? actor.name : null,
       },
+      comment,
     });
   });
 

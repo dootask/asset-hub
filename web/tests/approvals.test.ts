@@ -345,6 +345,7 @@ describe("Approval repository", () => {
     const updated = reassignApprovalApprover(approval.id, {
       approver: { id: "approver-2", name: "Leader B" },
       actor: { id: "user-1", name: "Applicant" },
+      comment: "临时请假，转交处理",
     });
 
     expect(updated.approverId).toBe("approver-2");
@@ -358,6 +359,25 @@ describe("Approval repository", () => {
     expect(
       (history as Array<{ to?: { id?: string } }>)[0]?.to?.id,
     ).toBe("approver-2");
+    expect(
+      (history as Array<{ comment?: string | null }>)[0]?.comment,
+    ).toBe("临时请假，转交处理");
+  });
+
+  it("requires comment when reassigning approver", () => {
+    const approval = createApprovalRequest({
+      type: "purchase",
+      title: "采购审批",
+      applicant: { id: "user-1", name: "Applicant" },
+      approver: { id: "approver-1", name: "Leader A" },
+    });
+
+    expect(() =>
+      reassignApprovalApprover(approval.id, {
+        approver: { id: "approver-2", name: "Leader B" },
+        actor: { id: "user-1", name: "Applicant" },
+      }),
+    ).toThrow(/需要填写备注/);
   });
 
   it("prevents reassigning approver after approval is handled", () => {
