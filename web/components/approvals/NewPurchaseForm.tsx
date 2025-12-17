@@ -1055,7 +1055,7 @@ export default function NewPurchaseForm({
         variant: "warning",
         title: isChinese ? "确认覆盖采购价格" : "Confirm overwrite purchase price",
         description: isChinese
-          ? "已选择同步“费用(cost)”到资产采购价格，这会覆盖该资产当前的采购价格。是否继续提交？"
+          ? "已选择同步“费用”到资产采购价格，这会覆盖该资产当前的采购价格。是否继续提交？"
           : "You chose to sync cost into the asset purchase price. This will overwrite the current purchase price. Continue?",
         primaryAction: {
           label: isChinese ? "继续提交" : "Continue",
@@ -1325,10 +1325,10 @@ export default function NewPurchaseForm({
               <p className="text-xs text-muted-foreground">
                 {purchaseAssetMode === "existing"
                   ? isChinese
-                    ? "可将操作详情中的“费用(cost)”同步为该资产的采购价格（会覆盖原值）。"
+                    ? "可将操作详情中的“费用”同步为该资产的采购价格（会覆盖原值）。"
                     : "Sync operation cost into this asset purchase price (will overwrite)."
                   : isChinese
-                    ? "可将操作详情中的“费用(cost)”同步为新资产的采购价格。"
+                    ? "可将操作详情中的“费用”同步为新资产的采购价格。"
                     : "Sync operation cost into the new asset purchase price."}
               </p>
               {!rawCostValue && (

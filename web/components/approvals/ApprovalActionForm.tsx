@@ -123,14 +123,14 @@ export default function ApprovalActionForm({
       if (syncPurchasePriceDisabled) {
         feedback.error(
           isChinese
-            ? "操作详情未填写有效的费用(cost)，无法同步采购价格。"
+            ? "操作详情未填写有效的费用，无法同步采购价格。"
             : "Operation cost is missing/invalid, cannot sync purchase price.",
         );
         return;
       }
       const confirmed = window.confirm(
         isChinese
-          ? `已选择同步“费用(cost)”到${syncTargetLabel}（会覆盖当前值）。是否继续提交？`
+          ? `已选择同步“费用”到${syncTargetLabel}（会覆盖当前值）。是否继续提交？`
           : `You chose to sync cost into the ${syncTargetLabel} (will overwrite current value). Continue?`,
       );
       if (!confirmed) {
@@ -262,16 +262,16 @@ export default function ApprovalActionForm({
                 <div className="space-y-1">
                   <div className="text-sm font-medium">
                     {isChinese
-                      ? `同步费用(cost)到${syncTargetLabel}`
+                      ? `同步费用到${syncTargetLabel}`
                       : `Sync cost into ${syncTargetLabel}`}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {syncPurchasePriceDisabled
                       ? isChinese
-                        ? "未检测到有效的费用(cost)数值。"
+                        ? "未检测到有效的费用数值。"
                         : "No valid cost value detected."
                       : isChinese
-                        ? `将使用费用(cost)=${formatCentsToMoney(syncPurchasePriceCents)} CNY 覆盖当前采购价格。`
+                        ? `将使用费用=${formatCentsToMoney(syncPurchasePriceCents)} CNY 覆盖当前采购价格。`
                         : `Will use cost=${formatCentsToMoney(syncPurchasePriceCents)} CNY to overwrite current purchase price.`}
                   </p>
                 </div>
