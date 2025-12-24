@@ -10,6 +10,7 @@ const TEMPLATE_HEADERS = [
   "owner",
   "location",
   "purchaseDate",
+  "expiresAt",
   "purchasePrice",
   "purchaseCurrency",
 ];
