@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { ThemeInitScript } from "@/components/providers/ThemeInitScript";
 import { FeedbackProvider } from "@/components/providers/feedback-provider";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -26,16 +27,18 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const themeStorageKey = "asset_hub_theme";
   return (
     <html lang="en" suppressHydrationWarning>
       <body
         suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <ThemeInitScript storageKey={themeStorageKey} />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
-          storageKey="asset_hub_theme"
+          storageKey={themeStorageKey}
           enableSystem
           disableTransitionOnChange
         >
