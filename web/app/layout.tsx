@@ -32,7 +32,13 @@ export default function RootLayout({
         suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          storageKey="asset_hub_theme"
+          enableSystem
+          disableTransitionOnChange
+        >
           <FeedbackProvider>
             {children}
             <Toaster position="top-center" />
