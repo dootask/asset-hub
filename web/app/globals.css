@@ -43,6 +43,15 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+html {
+  visibility: hidden;
+}
+
+html.dark,
+html.light {
+  visibility: visible;
+}
+
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
