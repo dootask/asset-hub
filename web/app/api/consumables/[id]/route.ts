@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import {
-  deleteConsumable,
   getConsumableById,
   isConsumableNoInUse,
+  softDeleteConsumable,
   updateConsumable,
 } from "@/lib/repositories/consumables";
 import type { ConsumableStatus } from "@/lib/types/consumable";
@@ -222,10 +222,35 @@ export async function DELETE(request: Request, { params }: RouteContext) {
   }
 
   const { id } = await params;
-  const removed = deleteConsumable(id);
+  let deleteReason = "";
+  try {
+    const rawPayload = await request.json();
+    const reason = (rawPayload as { reason?: unknown }).reason;
+    if (typeof reason !== "string" || !reason.trim()) {
+      throw new Error("请填写删除原因");
+    }
+    if (reason.trim().length > 500) {
+      throw new Error("删除原因过长");
+    }
+    deleteReason = reason.trim();
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error: "INVALID_PAYLOAD",
+        message:
+          error instanceof Error ? error.message : "删除原因不合法。",
+      },
+      { status: 400 },
+    );
+  }
+
+  const removed = softDeleteConsumable(id, {
+    deletedBy: user!.id,
+    deleteReason,
+  });
   if (!removed) {
     return NextResponse.json(
-      { error: "NOT_FOUND", message: "耗材不存在。" },
+      { error: "NOT_FOUND", message: "耗材不存在或已被删除。" },
       { status: 404 },
     );
   }

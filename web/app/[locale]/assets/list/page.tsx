@@ -14,6 +14,7 @@ import { getApiClient } from "@/lib/http/client";
 import AdminOnly from "@/components/auth/AdminOnly";
 import { extractApiErrorMessage } from "@/lib/utils/api-error";
 import { formatCentsToMoney } from "@/lib/utils/money";
+import { stripDeletedSuffix } from "@/lib/utils/asset-number";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -219,6 +220,12 @@ export default function AssetListPage({
               >
                 {isChinese ? "分类管理" : "Manage Categories"}
               </Link>
+              <Link
+                href={withLocale("/assets/recycle-bin")}
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+              >
+                {isChinese ? "回收站" : "Recycle Bin"}
+              </Link>
             </div>
           </AdminOnly>
         }
@@ -279,13 +286,13 @@ export default function AssetListPage({
                   <TableCell className="px-4 py-3 whitespace-normal w-[240px] md:w-[320px]">
                     <Link
                       href={withLocale(`/assets/${asset.id}`)}
-                      className="font-medium text-primary hover:underline line-clamp-2 break-words"
+                      className="font-medium text-primary hover:underline line-clamp-2 wrap-break-word"
                       title={asset.name}
                     >
                       {asset.name}
                     </Link>
                     <div className="text-xs text-muted-foreground">
-                      {asset.assetNo || asset.id}
+                      {stripDeletedSuffix(asset.assetNo) || asset.id}
                     </div>
                   </TableCell>
                   <TableCell className="px-4 py-3">

@@ -105,7 +105,7 @@ function renderValue(entry: TemplateEntry, locale: string): ReactNode {
   }
 
   return (
-    <span className="break-words">
+    <span className="wrap-break-word">
       {typeof entry.value === "string" ? entry.value : String(entry.value)}
     </span>
   );

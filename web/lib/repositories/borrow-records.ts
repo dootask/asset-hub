@@ -178,6 +178,7 @@ export function listOverdueBorrowRecords(referenceDate?: string) {
        FROM asset_borrow_records abr
        JOIN assets ON assets.id = abr.asset_id
        WHERE abr.status = 'active'
+         AND assets.deleted_at IS NULL
          AND abr.planned_return_date IS NOT NULL
          AND date(abr.planned_return_date) < date(@referenceDate)
        ORDER BY abr.planned_return_date ASC, abr.created_at ASC`,

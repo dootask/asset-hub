@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   const db = getDb();
 
   const { assets } = db
-    .prepare(`SELECT COUNT(1) as assets FROM assets`)
+    .prepare(`SELECT COUNT(1) as assets FROM assets WHERE deleted_at IS NULL`)
     .get() as { assets: number };
 
   const { companies } = db
@@ -38,4 +38,3 @@ export async function GET(request: Request) {
     },
   });
 }
-

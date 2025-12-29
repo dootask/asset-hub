@@ -96,7 +96,9 @@ export function deleteCompany(id: string): boolean {
 export function countAssetsForCompany(code: string): number {
   const db = getDb();
   const row = db
-    .prepare(`SELECT COUNT(1) as count FROM assets WHERE company_code = ?`)
+    .prepare(
+      `SELECT COUNT(1) as count FROM assets WHERE company_code = ? AND deleted_at IS NULL`,
+    )
     .get(code) as { count: number } | undefined;
   return row?.count ?? 0;
 }
@@ -104,8 +106,9 @@ export function countAssetsForCompany(code: string): number {
 export function countConsumablesForCompany(code: string): number {
   const db = getDb();
   const row = db
-    .prepare(`SELECT COUNT(1) as count FROM consumables WHERE company_code = ?`)
+    .prepare(
+      `SELECT COUNT(1) as count FROM consumables WHERE company_code = ? AND deleted_at IS NULL`,
+    )
     .get(code) as { count: number } | undefined;
   return row?.count ?? 0;
 }
-

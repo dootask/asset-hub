@@ -113,7 +113,10 @@ describe("Consumable repository", () => {
     expect(updated?.status).toBe("low-stock");
     expect(updated?.reservedQuantity).toBe(2);
 
-    const removed = deleteConsumable(consumable.id);
+    const removed = deleteConsumable(consumable.id, {
+      deletedBy: "tester",
+      deleteReason: "测试删除",
+    });
     expect(removed).toBe(true);
   });
 });

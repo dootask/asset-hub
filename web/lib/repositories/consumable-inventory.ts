@@ -140,7 +140,10 @@ function selectConsumablesForTask(filters?: Record<string, unknown>) {
     params.keeper = keeper;
   }
 
-  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+  const where = [
+    "deleted_at IS NULL",
+    ...(conditions.length ? conditions : []),
+  ].join(" AND ");
   const rows = db
     .prepare(
       `SELECT id,
@@ -151,7 +154,7 @@ function selectConsumablesForTask(filters?: Record<string, unknown>) {
               reserved_quantity,
               unit
          FROM consumables
-        ${where}
+        WHERE ${where}
         ORDER BY name`,
     )
     .all(params) as Array<{
@@ -451,4 +454,3 @@ export function updateConsumableInventoryTask(
 
   return getConsumableInventoryTask(id);
 }
-

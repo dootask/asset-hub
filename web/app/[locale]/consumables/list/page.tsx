@@ -136,6 +136,12 @@ export default async function ConsumableListPage({
               >
                 {isChinese ? "类别管理" : "Categories"}
               </Link>
+              <Link
+                href={withLocale("/consumables/recycle-bin")}
+                className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+              >
+                {isChinese ? "回收站" : "Recycle Bin"}
+              </Link>
             </div>
           </AdminOnly>
         }

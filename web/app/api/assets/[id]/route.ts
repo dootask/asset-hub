@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  deleteAsset,
   getAssetById,
   isAssetNoInUse,
+  softDeleteAsset,
   updateAsset,
 } from "@/lib/repositories/assets";
 import { getAssetCategoryByCode } from "@/lib/repositories/asset-categories";
@@ -139,6 +139,20 @@ function sanitizePayload(
   } as CreateAssetPayload;
 }
 
+function parseDeleteReason(payload: unknown): string {
+  if (!payload || typeof payload !== "object") {
+    throw new Error("请填写删除原因");
+  }
+  const reason = (payload as { reason?: unknown }).reason;
+  if (typeof reason !== "string" || !reason.trim()) {
+    throw new Error("请填写删除原因");
+  }
+  if (reason.trim().length > 500) {
+    throw new Error("删除原因过长");
+  }
+  return reason.trim();
+}
+
 export async function GET(
   _: NextRequest,
   context: { params: Promise<{ id: string }> },
@@ -209,7 +223,25 @@ export async function DELETE(
     );
   }
 
-  const removed = deleteAsset(id);
+  let deleteReason = "";
+  try {
+    const rawPayload = await request.json();
+    deleteReason = parseDeleteReason(rawPayload);
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error: "INVALID_PAYLOAD",
+        message:
+          error instanceof Error ? error.message : "删除原因不合法。",
+      },
+      { status: 400 },
+    );
+  }
+
+  const removed = softDeleteAsset(id, {
+    deletedBy: user!.id,
+    deleteReason,
+  });
 
   if (!removed) {
     return NextResponse.json(

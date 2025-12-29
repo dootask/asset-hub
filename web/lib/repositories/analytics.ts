@@ -52,7 +52,8 @@ export function getAssetStats(): AssetStats {
         SUM(CASE WHEN status = 'idle' THEN 1 ELSE 0 END) as idle,
         SUM(CASE WHEN status = 'maintenance' THEN 1 ELSE 0 END) as maintenance,
         SUM(CASE WHEN status = 'retired' THEN 1 ELSE 0 END) as retired
-       FROM assets`,
+       FROM assets
+       WHERE deleted_at IS NULL`,
     )
     .get() as {
       total: number;
@@ -78,6 +79,7 @@ export function getAssetStatusDistribution(): DistributionItem[] {
     .prepare(
       `SELECT status as label, COUNT(1) as count
        FROM assets
+       WHERE deleted_at IS NULL
        GROUP BY status`,
     )
     .all() as { label: string; count: number }[];
@@ -90,6 +92,7 @@ export function getAssetCategoryDistribution(limit = 5): DistributionItem[] {
     .prepare(
       `SELECT category as label, COUNT(1) as count
        FROM assets
+       WHERE deleted_at IS NULL
        GROUP BY category
        ORDER BY count DESC
        LIMIT ?`,
@@ -104,6 +107,7 @@ export function getApprovalStatusDistribution(): DistributionItem[] {
     .prepare(
       `SELECT status as label, COUNT(1) as count
        FROM asset_approval_requests
+       WHERE deleted_at IS NULL
        GROUP BY status`,
     )
     .all() as { label: string; count: number }[];
@@ -116,6 +120,7 @@ export function getApprovalTypeDistribution(): DistributionItem[] {
     .prepare(
       `SELECT type as label, COUNT(1) as count
        FROM asset_approval_requests
+       WHERE deleted_at IS NULL
        GROUP BY type`,
     )
     .all() as { label: string; count: number }[];
@@ -128,7 +133,8 @@ export function getRecentApprovalOutcome(days = 30): DistributionItem[] {
     .prepare(
       `SELECT status as label, COUNT(1) as count
        FROM asset_approval_requests
-       WHERE date(created_at) >= date('now', ?)
+       WHERE deleted_at IS NULL
+         AND date(created_at) >= date('now', ?)
        GROUP BY status`,
     )
     .all(`-${days} days`) as { label: string; count: number }[];
@@ -142,7 +148,8 @@ export function getApprovalTrend(days = 14): TrendItem[] {
     .prepare(
       `SELECT strftime('%Y-%m-%d', created_at) as date, COUNT(1) as count
        FROM asset_approval_requests
-       WHERE date(created_at) >= date('now', ?)
+       WHERE deleted_at IS NULL
+         AND date(created_at) >= date('now', ?)
        GROUP BY date
        ORDER BY date ASC`,
     )
@@ -158,7 +165,8 @@ export function getOperationSummary(days = 30): DistributionItem[] {
     .prepare(
       `SELECT type as label, COUNT(1) as count
        FROM asset_operations
-       WHERE date(created_at) >= date('now', ?)
+       WHERE deleted_at IS NULL
+         AND date(created_at) >= date('now', ?)
        GROUP BY type`,
     )
     .all(`-${normalized} days`) as { label: string; count: number }[];
@@ -171,6 +179,7 @@ export function getConsumableStatusDistribution(): DistributionItem[] {
     .prepare(
       `SELECT status as label, COUNT(1) as count
        FROM consumables
+       WHERE deleted_at IS NULL
        GROUP BY status`,
     )
     .all() as { label: string; count: number }[];
@@ -183,6 +192,7 @@ export function getConsumableCategoryDistribution(limit = 5): DistributionItem[]
     .prepare(
       `SELECT category as label, COUNT(1) as count
        FROM consumables
+       WHERE deleted_at IS NULL
        GROUP BY category
        ORDER BY count DESC
        LIMIT ?`,
@@ -198,7 +208,8 @@ export function getConsumableOperationSummary(days = 30): DistributionItem[] {
     .prepare(
       `SELECT type as label, COUNT(1) as count
        FROM consumable_operations
-       WHERE date(created_at) >= date('now', ?)
+       WHERE deleted_at IS NULL
+         AND date(created_at) >= date('now', ?)
        GROUP BY type`,
     )
     .all(`-${normalized} days`) as { label: string; count: number }[];
@@ -212,7 +223,8 @@ export function getOperationTrend(days = 14): TrendItem[] {
     .prepare(
       `SELECT strftime('%Y-%m-%d', created_at) as date, COUNT(1) as count
        FROM asset_operations
-       WHERE date(created_at) >= date('now', ?)
+       WHERE deleted_at IS NULL
+         AND date(created_at) >= date('now', ?)
        GROUP BY date
        ORDER BY date ASC`,
     )
@@ -226,7 +238,8 @@ export function getPendingApprovalCount() {
     .prepare(
       `SELECT COUNT(1) as count
        FROM asset_approval_requests
-       WHERE status = 'pending'`,
+       WHERE deleted_at IS NULL
+         AND status = 'pending'`,
     )
     .get() as { count: number };
   return row.count;
@@ -248,4 +261,3 @@ export function getDashboardOverview(
     pendingApprovals: stats.pendingApprovals,
   };
 }
-

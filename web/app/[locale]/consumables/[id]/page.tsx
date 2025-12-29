@@ -3,15 +3,20 @@ import type { Metadata } from "next";
 import PageHeader from "@/components/layout/PageHeader";
 import ConsumableOperationForm from "@/components/consumables/ConsumableOperationForm";
 import ConsumableOperationTimeline from "@/components/consumables/ConsumableOperationTimeline";
-import { getConsumableById } from "@/lib/repositories/consumables";
+import {
+  getConsumableById,
+  getConsumableByIdIncludingDeleted,
+} from "@/lib/repositories/consumables";
 import { listOperationsForConsumable } from "@/lib/repositories/consumable-operations";
 import { getConsumableStatusLabel } from "@/lib/types/consumable";
 import { listCompanies } from "@/lib/repositories/companies";
 import { listApprovalRequests } from "@/lib/repositories/approvals";
 import { listConsumableCategories } from "@/lib/repositories/consumable-categories";
 import EditConsumableDialog from "@/components/consumables/EditConsumableDialog";
+import ConsumableDeleteRestoreActions from "@/components/consumables/ConsumableDeleteRestoreActions";
 import AdminOnly from "@/components/auth/AdminOnly";
 import { formatCentsToMoney } from "@/lib/utils/money";
+import { stripDeletedSuffix } from "@/lib/utils/asset-number";
 
 type PageParams = { locale: string; id: string };
 
@@ -28,9 +33,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ConsumableDetailPage({ params }: PageProps) {
   const { locale, id } = await params;
-  const consumable = getConsumableById(id);
-  const operations = listOperationsForConsumable(id);
-  const approvals = listApprovalRequests({ consumableId: id }).data;
+  const consumable =
+    getConsumableById(id) ?? getConsumableByIdIncludingDeleted(id);
   const isChinese = locale === "zh";
   const companies = listCompanies();
   const categories = listConsumableCategories();
@@ -38,6 +42,10 @@ export default async function ConsumableDetailPage({ params }: PageProps) {
   if (!consumable) {
     notFound();
   }
+
+  const isDeleted = Boolean(consumable.deletedAt);
+  const operations = isDeleted ? [] : listOperationsForConsumable(id);
+  const approvals = listApprovalRequests({ consumableId: id }).data;
 
   const companyName =
     consumable.companyCode &&
@@ -65,20 +73,38 @@ export default async function ConsumableDetailPage({ params }: PageProps) {
           },
         ]}
         title={consumable.name}
-        description={consumable.consumableNo || consumable.id}
+        description={stripDeletedSuffix(consumable.consumableNo) || consumable.id}
+        actions={
+          <AdminOnly>
+            <ConsumableDeleteRestoreActions
+              consumableId={consumable.id}
+              locale={locale}
+              isDeleted={isDeleted}
+            />
+          </AdminOnly>
+        }
       />
+      {isDeleted ? (
+        <section className="rounded-2xl border border-dashed border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
+          {isChinese
+            ? "该耗材已被删除，可通过右上角按钮恢复。"
+            : "This consumable has been deleted. Restore it from the action button above."}
+        </section>
+      ) : null}
       <section className="rounded-2xl border bg-card/70 p-5 text-sm">
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-base font-semibold">
             {isChinese ? "基础信息" : "Basic Info"}
           </h2>
           <AdminOnly>
-            <EditConsumableDialog
-              consumable={consumable}
-              categories={categories}
-              companies={companies}
-              locale={locale}
-            />
+            {!isDeleted ? (
+              <EditConsumableDialog
+                consumable={consumable}
+                categories={categories}
+                companies={companies}
+                locale={locale}
+              />
+            ) : null}
           </AdminOnly>
         </div>
         <dl className="grid gap-4 md:grid-cols-2">
@@ -87,7 +113,7 @@ export default async function ConsumableDetailPage({ params }: PageProps) {
               {isChinese ? "耗材编号" : "Consumable No."}
             </dt>
             <dd className="text-foreground">
-              {consumable.consumableNo || consumable.id}
+              {stripDeletedSuffix(consumable.consumableNo) || consumable.id}
             </dd>
           </div>
           <div>
@@ -187,12 +213,14 @@ export default async function ConsumableDetailPage({ params }: PageProps) {
               ? "无需审批的操作将直接入账；需要审批的操作会生成待审批记录，审批通过后自动更新库存。"
               : "Operations that do not require approval post immediately; those requiring approval will create a pending request and update stock after approval."}
           </p>
-          <ConsumableOperationForm
-            consumableId={consumable.id}
-            consumableName={consumable.name}
-            locale={locale}
-            unit={consumable.unit}
-          />
+          {!isDeleted ? (
+            <ConsumableOperationForm
+              consumableId={consumable.id}
+              consumableName={consumable.name}
+              locale={locale}
+              unit={consumable.unit}
+            />
+          ) : null}
         </section>
       </div>
     </div>

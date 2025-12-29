@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getAssetById } from "@/lib/repositories/assets";
+import { getAssetById, getAssetByIdIncludingDeleted } from "@/lib/repositories/assets";
 import { listOperationsForAsset } from "@/lib/repositories/asset-operations";
 import OperationTimeline from "@/components/assets/OperationTimeline";
 import OperationFormDialog from "@/components/assets/OperationFormDialog";
@@ -10,6 +10,7 @@ import ApprovalStatusBadge from "@/components/approvals/ApprovalStatusBadge";
 import { listApprovalRequests } from "@/lib/repositories/approvals";
 import DisposeAssetButton from "@/components/assets/DisposeAssetButton";
 import EditAssetDialog from "@/components/assets/EditAssetDialog";
+import AssetDeleteRestoreActions from "@/components/assets/AssetDeleteRestoreActions";
 import PageHeader from "@/components/layout/PageHeader";
 import { getAssetStatusLabel } from "@/lib/types/asset";
 import { listAssetCategories } from "@/lib/repositories/asset-categories";
@@ -17,6 +18,7 @@ import { listOperationTemplates } from "@/lib/repositories/operation-templates";
 import { listCompanies } from "@/lib/repositories/companies";
 import AdminOnly from "@/components/auth/AdminOnly";
 import { formatCentsToMoney } from "@/lib/utils/money";
+import { stripDeletedSuffix } from "@/lib/utils/asset-number";
 
 type PageParams = { id: string; locale: string };
 type PageProps = {
@@ -34,13 +36,14 @@ export async function generateMetadata({
 
 export default async function AssetDetailPage({ params }: PageProps) {
   const { id, locale } = await params;
-  const asset = getAssetById(id);
+  const asset = getAssetById(id) ?? getAssetByIdIncludingDeleted(id);
 
   if (!asset) {
     notFound();
   }
 
-  const operations = listOperationsForAsset(asset.id);
+  const isDeleted = Boolean(asset.deletedAt);
+  const operations = isDeleted ? [] : listOperationsForAsset(asset.id);
   const approvalsResult = listApprovalRequests({
     assetId: asset.id,
     pageSize: 5,
@@ -81,13 +84,30 @@ export default async function AssetDetailPage({ params }: PageProps) {
           },
         ]}
         title={asset.name}
-        description={asset.assetNo || asset.id}
+        description={stripDeletedSuffix(asset.assetNo) || asset.id}
         actions={
           <AdminOnly>
-            <DisposeAssetButton assetId={asset.id} locale={locale} />
+            <div className="flex flex-wrap items-center gap-2">
+              {!isDeleted ? (
+                <DisposeAssetButton assetId={asset.id} locale={locale} />
+              ) : null}
+              <AssetDeleteRestoreActions
+                assetId={asset.id}
+                locale={locale}
+                isDeleted={isDeleted}
+              />
+            </div>
           </AdminOnly>
         }
       />
+
+      {isDeleted ? (
+        <section className="rounded-2xl border border-dashed border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
+          {isChinese
+            ? "该资产已被删除，可通过右上角按钮恢复。"
+            : "This asset has been deleted. Restore it from the action button above."}
+        </section>
+      ) : null}
 
       <section className="rounded-2xl border bg-muted/30 p-6">
         <div className="flex items-center justify-between gap-3">
@@ -95,12 +115,14 @@ export default async function AssetDetailPage({ params }: PageProps) {
             {isChinese ? "基础信息" : "Basic Info"}
           </h2>
           <AdminOnly>
-            <EditAssetDialog
-              asset={asset}
-              locale={locale}
-              categories={categories}
-              companies={companies}
-            />
+            {!isDeleted ? (
+              <EditAssetDialog
+                asset={asset}
+                locale={locale}
+                categories={categories}
+                companies={companies}
+              />
+            ) : null}
           </AdminOnly>
         </div>
         <dl className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -109,7 +131,7 @@ export default async function AssetDetailPage({ params }: PageProps) {
               {isChinese ? "资产编号" : "Asset No."}
             </dt>
             <dd className="text-sm font-medium">
-              {asset.assetNo || asset.id}
+              {stripDeletedSuffix(asset.assetNo) || asset.id}
             </dd>
           </div>
           <div>
@@ -181,7 +203,7 @@ export default async function AssetDetailPage({ params }: PageProps) {
             <dt className="text-xs text-muted-foreground">
               {isChinese ? "备注" : "Note"}
             </dt>
-            <dd className="text-sm font-medium whitespace-pre-wrap break-words">
+            <dd className="text-sm font-medium whitespace-pre-wrap wrap-break-word">
               {asset.note || "-"}
             </dd>
           </div>
@@ -203,11 +225,13 @@ export default async function AssetDetailPage({ params }: PageProps) {
             </div>
             <div className="w-full sm:w-auto">
               <AdminOnly>
-                <OperationFormDialog
-                  assetId={asset.id}
-                  locale={locale}
-                  templates={operationTemplates}
-                />
+                {!isDeleted ? (
+                  <OperationFormDialog
+                    assetId={asset.id}
+                    locale={locale}
+                    templates={operationTemplates}
+                  />
+                ) : null}
               </AdminOnly>
             </div>
           </div>
@@ -271,12 +295,20 @@ export default async function AssetDetailPage({ params }: PageProps) {
         </div>
 
         <div className="mt-6">
-          <ApprovalRequestForm
-            assetId={asset.id}
-            assetName={asset.name}
-            locale={locale}
-            operationTemplates={operationTemplates}
-          />
+          {!isDeleted ? (
+            <ApprovalRequestForm
+              assetId={asset.id}
+              assetName={asset.name}
+              locale={locale}
+              operationTemplates={operationTemplates}
+            />
+          ) : (
+            <p className="rounded-2xl border border-dashed border-muted-foreground/40 p-4 text-sm text-muted-foreground">
+              {isChinese
+                ? "该资产已删除，无法发起新的审批。"
+                : "This asset is deleted and cannot start new approvals."}
+            </p>
+          )}
         </div>
       </section>
     </div>

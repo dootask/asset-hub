@@ -129,6 +129,7 @@ export async function GET(request: Request) {
          a.location
        FROM asset_operations ao
        JOIN assets a ON a.id = ao.asset_id
+       WHERE ao.deleted_at IS NULL AND a.deleted_at IS NULL
        ORDER BY ao.created_at DESC`,
     )
     .all() as Row[];

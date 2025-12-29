@@ -25,6 +25,7 @@ type OperationRow = {
   metadata: string | null;
   created_at: string;
   updated_at: string;
+  deleted_at?: string | null;
 };
 
 type ConsumableStockRow = {
@@ -151,7 +152,7 @@ function applyOperationEffects(row: OperationRow) {
               status,
               keeper
          FROM consumables
-        WHERE id = ?`,
+        WHERE id = ? AND deleted_at IS NULL`,
     )
     .get(row.consumable_id) as ConsumableStockRow | undefined;
 
@@ -189,7 +190,7 @@ function applyOperationEffects(row: OperationRow) {
               reserved_quantity = @reserved_quantity,
               status = @status,
               updated_at = datetime('now')
-        WHERE id = @id`,
+        WHERE id = @id AND deleted_at IS NULL`,
     )
     .run({
       id: stock.id,
@@ -213,7 +214,9 @@ function applyOperationEffects(row: OperationRow) {
 function getOperationRow(operationId: string): OperationRow | undefined {
   const db = getDb();
   return db
-    .prepare(`SELECT * FROM consumable_operations WHERE id = ?`)
+    .prepare(
+      `SELECT * FROM consumable_operations WHERE id = ? AND deleted_at IS NULL`,
+    )
     .get(operationId) as OperationRow | undefined;
 }
 
@@ -224,7 +227,7 @@ export function listOperationsForConsumable(
   const rows = db
     .prepare(
       `SELECT * FROM consumable_operations
-        WHERE consumable_id = ?
+        WHERE consumable_id = ? AND deleted_at IS NULL
         ORDER BY created_at DESC`,
     )
     .all(consumableId) as OperationRow[];
@@ -233,7 +236,7 @@ export function listOperationsForConsumable(
 }
 
 function buildAuditFilters(query: ConsumableOperationAuditQuery) {
-  const where: string[] = [];
+  const where: string[] = ["co.deleted_at IS NULL", "c.deleted_at IS NULL"];
   const params: Record<string, unknown> = {};
 
   if (query.types?.length) {
@@ -475,7 +478,7 @@ export function updateConsumableOperationStatus(
       `UPDATE consumable_operations
           SET status = @status,
               updated_at = datetime('now')
-        WHERE id = @id`,
+        WHERE id = @id AND deleted_at IS NULL`,
     ).run({ status, id: operationId });
 
     const updatedRow = getOperationRow(operationId)!;
@@ -495,4 +498,3 @@ export function updateConsumableOperationStatus(
     throw error;
   }
 }
-

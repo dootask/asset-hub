@@ -18,7 +18,15 @@ type AssetRow = {
   note: string | null;
   purchase_price_cents: number | null;
   purchase_currency: string | null;
+  deleted_at: string | null;
+  deleted_by: string | null;
+  delete_reason: string | null;
+  restored_at: string | null;
+  restored_by: string | null;
 };
+
+const ASSET_NO_MAX_LENGTH = 64;
+const DELETE_SUFFIX_PATTERN = /_delete_[a-z0-9]{6}$/i;
 
 export interface AssetQuery {
   search?: string;
@@ -55,7 +63,40 @@ function mapRow(row: AssetRow): Asset {
         ? row.purchase_price_cents
         : undefined,
     purchaseCurrency: row.purchase_currency ?? undefined,
+    deletedAt: row.deleted_at ?? undefined,
+    deletedBy: row.deleted_by ?? undefined,
+    deleteReason: row.delete_reason ?? undefined,
+    restoredAt: row.restored_at ?? undefined,
+    restoredBy: row.restored_by ?? undefined,
   };
+}
+
+function getAssetRowById(id: string, includeDeleted = false): AssetRow | null {
+  const db = getDb();
+  const row = db
+    .prepare(
+      `SELECT * FROM assets WHERE id = ?${includeDeleted ? "" : " AND deleted_at IS NULL"}`,
+    )
+    .get(id) as AssetRow | undefined;
+  return row ?? null;
+}
+
+function appendDeleteSuffix(value: string, maxLength = ASSET_NO_MAX_LENGTH): string {
+  const suffix = `_delete_${randomUUID().slice(0, 6).toLowerCase()}`;
+  const available = Math.max(0, maxLength - suffix.length);
+  const base = value.length > available ? value.slice(0, available) : value;
+  return `${base}${suffix}`;
+}
+
+function stripDeleteSuffix(value: string): string {
+  return value.replace(DELETE_SUFFIX_PATTERN, "");
+}
+
+function appendRestoreSuffix(value: string, maxLength = ASSET_NO_MAX_LENGTH): string {
+  const suffix = `_${randomUUID().slice(0, 6).toLowerCase()}`;
+  const available = Math.max(0, maxLength - suffix.length);
+  const base = value.length > available ? value.slice(0, available) : value;
+  return `${base}${suffix}`;
 }
 
 export function listAssets(query: AssetQuery = {}): AssetListResult {
@@ -65,7 +106,7 @@ export function listAssets(query: AssetQuery = {}): AssetListResult {
   const pageSize = Math.min(100, Math.max(1, query.pageSize ?? 10));
   const offset = (page - 1) * pageSize;
 
-  const where: string[] = [];
+  const where: string[] = ["deleted_at IS NULL"];
   const params: Record<string, unknown> = {};
 
   if (query.search) {
@@ -122,9 +163,77 @@ export function listAssets(query: AssetQuery = {}): AssetListResult {
   };
 }
 
-export function getAssetById(id: string): Asset | null {
+export function listDeletedAssets(query: AssetQuery = {}): AssetListResult {
   const db = getDb();
-  const row = db.prepare("SELECT * FROM assets WHERE id = ?").get(id) as AssetRow | undefined;
+
+  const page = Math.max(1, query.page ?? 1);
+  const pageSize = Math.min(100, Math.max(1, query.pageSize ?? 10));
+  const offset = (page - 1) * pageSize;
+
+  const where: string[] = ["deleted_at IS NOT NULL"];
+  const params: Record<string, unknown> = {};
+
+  if (query.search) {
+    where.push(
+      "(name LIKE @search OR owner LIKE @search OR id LIKE @search OR location LIKE @search OR asset_no LIKE @search OR spec_model LIKE @search)",
+    );
+    params.search = `%${query.search.trim()}%`;
+  }
+
+  if (query.category) {
+    where.push("category = @category");
+    params.category = query.category;
+  }
+
+  if (query.companyCode) {
+    where.push("company_code = @companyCode");
+    params.companyCode = query.companyCode;
+  }
+
+  if (query.status && query.status.length > 0) {
+    const safeStatuses = query.status.slice(0, 5);
+    const statusPlaceholders = safeStatuses.map((_, idx) => `@status${idx}`);
+    where.push(`status IN (${statusPlaceholders.join(",")})`);
+    safeStatuses.forEach((status, idx) => {
+      params[`status${idx}`] = status;
+    });
+  }
+
+  const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  const total = db
+    .prepare(`SELECT COUNT(1) as count FROM assets ${whereClause}`)
+    .get(params) as { count: number };
+
+  const rows = db
+    .prepare(
+      `
+      SELECT * FROM assets
+      ${whereClause}
+      ORDER BY deleted_at DESC
+      LIMIT @limit OFFSET @offset
+    `,
+    )
+    .all({
+      ...params,
+      limit: pageSize,
+      offset,
+    }) as AssetRow[];
+
+  return {
+    items: rows.map(mapRow),
+    total: total.count,
+    page,
+    pageSize,
+  };
+}
+
+export function getAssetById(id: string): Asset | null {
+  const row = getAssetRowById(id);
+  return row ? mapRow(row) : null;
+}
+
+export function getAssetByIdIncludingDeleted(id: string): Asset | null {
+  const row = getAssetRowById(id, true);
   return row ? mapRow(row) : null;
 }
 
@@ -137,6 +246,7 @@ export function isAssetNoInUse(assetNo: string, excludeId?: string): boolean {
       `
       SELECT id FROM assets
       WHERE asset_no = @assetNo
+        AND deleted_at IS NULL
       AND (@excludeId IS NULL OR id <> @excludeId)
       LIMIT 1
     `,
@@ -174,6 +284,7 @@ function nextAssetNoSeq(prefix: string): number {
         FROM assets
         WHERE asset_no LIKE @likePattern
           AND SUBSTR(asset_no, @start) GLOB '[0-9]*'
+          AND deleted_at IS NULL
       `,
       )
       .get({ likePattern, start }) as { maxSeq: number | null } | undefined;
@@ -365,7 +476,7 @@ export function updateAsset(id: string, payload: CreateAssetPayload): Asset | nu
          purchase_price_cents=@purchase_price_cents,
          purchase_currency=@purchase_currency,
          updated_at=datetime('now')
-     WHERE id=@id`,
+     WHERE id=@id AND deleted_at IS NULL`,
   ).run({
     id,
     asset_no: assetNo,
@@ -395,9 +506,162 @@ export function updateAsset(id: string, payload: CreateAssetPayload): Asset | nu
   };
 }
 
-export function deleteAsset(id: string): boolean {
+export function deleteAsset(
+  id: string,
+  payload: { deletedBy: string; deleteReason: string },
+): boolean {
+  return softDeleteAsset(id, payload);
+}
+
+export function softDeleteAsset(
+  id: string,
+  payload: { deletedBy: string; deleteReason: string },
+): boolean {
   const db = getDb();
-  const result = db.prepare("DELETE FROM assets WHERE id = ?").run(id);
+  const existing = getAssetRowById(id);
+  if (!existing || existing.deleted_at) {
+    return false;
+  }
+
+  const assetNo =
+    existing.asset_no && existing.asset_no.trim()
+      ? appendDeleteSuffix(existing.asset_no.trim(), ASSET_NO_MAX_LENGTH)
+      : existing.asset_no;
+
+  const runDelete = db.transaction(() => {
+    const result = db
+      .prepare(
+        `UPDATE assets
+         SET asset_no = @asset_no,
+             deleted_at = datetime('now'),
+             deleted_by = @deletedBy,
+             delete_reason = @deleteReason,
+             restored_at = NULL,
+             restored_by = NULL,
+             updated_at = datetime('now')
+         WHERE id = @id AND deleted_at IS NULL`,
+      )
+      .run({
+        id,
+        asset_no: assetNo,
+        deletedBy: payload.deletedBy,
+        deleteReason: payload.deleteReason,
+      });
+
+    db.prepare(
+      `UPDATE asset_operations
+       SET deleted_at = datetime('now'),
+           deleted_by = @deletedBy,
+           delete_reason = @deleteReason,
+           restored_at = NULL,
+           restored_by = NULL,
+           updated_at = datetime('now')
+       WHERE asset_id = @id AND deleted_at IS NULL`,
+    ).run({
+      id,
+      deletedBy: payload.deletedBy,
+      deleteReason: payload.deleteReason,
+    });
+
+    db.prepare(
+      `UPDATE asset_approval_requests
+       SET deleted_at = datetime('now'),
+           deleted_by = @deletedBy,
+           delete_reason = @deleteReason,
+           restored_at = NULL,
+           restored_by = NULL,
+           updated_at = datetime('now')
+       WHERE asset_id = @id AND deleted_at IS NULL`,
+    ).run({
+      id,
+      deletedBy: payload.deletedBy,
+      deleteReason: payload.deleteReason,
+    });
+
+    return result.changes > 0;
+  });
+
+  return runDelete();
+}
+
+export function restoreAsset(id: string, restoredBy: string): Asset | null {
+  const db = getDb();
+  const existing = getAssetRowById(id, true);
+  if (!existing || !existing.deleted_at) {
+    return null;
+  }
+
+  let restoredAssetNo =
+    existing.asset_no && existing.asset_no.trim()
+      ? stripDeleteSuffix(existing.asset_no.trim())
+      : existing.asset_no;
+
+  if (
+    restoredAssetNo &&
+    restoredAssetNo.trim() &&
+    isAssetNoInUse(restoredAssetNo.trim(), id)
+  ) {
+    restoredAssetNo = appendRestoreSuffix(
+      restoredAssetNo.trim(),
+      ASSET_NO_MAX_LENGTH,
+    );
+  }
+
+  const runRestore = db.transaction(() => {
+    db.prepare(
+      `UPDATE assets
+       SET asset_no = @asset_no,
+           deleted_at = NULL,
+           deleted_by = NULL,
+           delete_reason = NULL,
+           restored_at = datetime('now'),
+           restored_by = @restoredBy,
+           updated_at = datetime('now')
+       WHERE id = @id`,
+    ).run({
+      id,
+      asset_no: restoredAssetNo,
+      restoredBy,
+    });
+
+    db.prepare(
+      `UPDATE asset_operations
+       SET deleted_at = NULL,
+           deleted_by = NULL,
+           delete_reason = NULL,
+           restored_at = datetime('now'),
+           restored_by = @restoredBy,
+           updated_at = datetime('now')
+       WHERE asset_id = @id AND deleted_at IS NOT NULL`,
+    ).run({ id, restoredBy });
+
+    db.prepare(
+      `UPDATE asset_approval_requests
+       SET deleted_at = NULL,
+           deleted_by = NULL,
+           delete_reason = NULL,
+           restored_at = datetime('now'),
+           restored_by = @restoredBy,
+           updated_at = datetime('now')
+       WHERE asset_id = @id AND deleted_at IS NOT NULL`,
+    ).run({ id, restoredBy });
+  });
+
+  runRestore();
+
+  return getAssetById(id);
+}
+
+export function permanentlyDeleteAsset(id: string): boolean {
+  const db = getDb();
+  const existing = getAssetRowById(id, true);
+  if (!existing || !existing.deleted_at) {
+    return false;
+  }
+
+  const result = db
+    .prepare("DELETE FROM assets WHERE id = ? AND deleted_at IS NOT NULL")
+    .run(id);
   return result.changes > 0;
 }
 
@@ -417,7 +681,7 @@ export function updateAssetPurchasePrice(
      SET purchase_price_cents=@purchase_price_cents,
          purchase_currency=@purchase_currency,
          updated_at=datetime('now')
-     WHERE id=@id`,
+     WHERE id=@id AND deleted_at IS NULL`,
   ).run({
     id,
     purchase_price_cents: payload.purchasePriceCents,

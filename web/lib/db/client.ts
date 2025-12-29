@@ -61,6 +61,26 @@ function migrateAssetsTable(database: Database.Database) {
       sql:
         "ALTER TABLE assets ADD COLUMN purchase_currency TEXT NOT NULL DEFAULT ('CNY')",
     },
+    {
+      column: "deleted_at",
+      sql: "ALTER TABLE assets ADD COLUMN deleted_at TEXT",
+    },
+    {
+      column: "deleted_by",
+      sql: "ALTER TABLE assets ADD COLUMN deleted_by TEXT",
+    },
+    {
+      column: "delete_reason",
+      sql: "ALTER TABLE assets ADD COLUMN delete_reason TEXT",
+    },
+    {
+      column: "restored_at",
+      sql: "ALTER TABLE assets ADD COLUMN restored_at TEXT",
+    },
+    {
+      column: "restored_by",
+      sql: "ALTER TABLE assets ADD COLUMN restored_by TEXT",
+    },
   ];
 
   migrations.forEach((migration) => {
@@ -109,6 +129,86 @@ function migrateAssetCategoriesTable(database: Database.Database) {
   }
 }
 
+function migrateAssetOperationsTable(database: Database.Database) {
+  const columns = getColumnNames(database, "asset_operations");
+  const migrations: Array<{ column: string; sql: string }> = [
+    {
+      column: "deleted_at",
+      sql: "ALTER TABLE asset_operations ADD COLUMN deleted_at TEXT",
+    },
+    {
+      column: "deleted_by",
+      sql: "ALTER TABLE asset_operations ADD COLUMN deleted_by TEXT",
+    },
+    {
+      column: "delete_reason",
+      sql: "ALTER TABLE asset_operations ADD COLUMN delete_reason TEXT",
+    },
+    {
+      column: "restored_at",
+      sql: "ALTER TABLE asset_operations ADD COLUMN restored_at TEXT",
+    },
+    {
+      column: "restored_by",
+      sql: "ALTER TABLE asset_operations ADD COLUMN restored_by TEXT",
+    },
+  ];
+
+  migrations.forEach((migration) => {
+    if (columns.has(migration.column)) {
+      return;
+    }
+    try {
+      database.exec(migration.sql);
+    } catch (error) {
+      console.error(
+        `Failed to migrate asset_operations.${migration.column}:`,
+        error,
+      );
+    }
+  });
+}
+
+function migrateApprovalRequestsTable(database: Database.Database) {
+  const columns = getColumnNames(database, "asset_approval_requests");
+  const migrations: Array<{ column: string; sql: string }> = [
+    {
+      column: "deleted_at",
+      sql: "ALTER TABLE asset_approval_requests ADD COLUMN deleted_at TEXT",
+    },
+    {
+      column: "deleted_by",
+      sql: "ALTER TABLE asset_approval_requests ADD COLUMN deleted_by TEXT",
+    },
+    {
+      column: "delete_reason",
+      sql: "ALTER TABLE asset_approval_requests ADD COLUMN delete_reason TEXT",
+    },
+    {
+      column: "restored_at",
+      sql: "ALTER TABLE asset_approval_requests ADD COLUMN restored_at TEXT",
+    },
+    {
+      column: "restored_by",
+      sql: "ALTER TABLE asset_approval_requests ADD COLUMN restored_by TEXT",
+    },
+  ];
+
+  migrations.forEach((migration) => {
+    if (columns.has(migration.column)) {
+      return;
+    }
+    try {
+      database.exec(migration.sql);
+    } catch (error) {
+      console.error(
+        `Failed to migrate asset_approval_requests.${migration.column}:`,
+        error,
+      );
+    }
+  });
+}
+
 function migrateConsumableCategoriesTable(database: Database.Database) {
   const columns = getColumnNames(database, "consumable_categories");
   if (!columns.has("consumable_no_prefix")) {
@@ -145,6 +245,26 @@ function migrateConsumablesTable(database: Database.Database) {
       sql:
         "ALTER TABLE consumables ADD COLUMN purchase_currency TEXT NOT NULL DEFAULT ('CNY')",
     },
+    {
+      column: "deleted_at",
+      sql: "ALTER TABLE consumables ADD COLUMN deleted_at TEXT",
+    },
+    {
+      column: "deleted_by",
+      sql: "ALTER TABLE consumables ADD COLUMN deleted_by TEXT",
+    },
+    {
+      column: "delete_reason",
+      sql: "ALTER TABLE consumables ADD COLUMN delete_reason TEXT",
+    },
+    {
+      column: "restored_at",
+      sql: "ALTER TABLE consumables ADD COLUMN restored_at TEXT",
+    },
+    {
+      column: "restored_by",
+      sql: "ALTER TABLE consumables ADD COLUMN restored_by TEXT",
+    },
   ];
 
   migrations.forEach((migration) => {
@@ -180,6 +300,46 @@ function migrateConsumablesTable(database: Database.Database) {
   } catch (error) {
     console.error("Failed to ensure idx_consumables_consumable_no_unique:", error);
   }
+}
+
+function migrateConsumableOperationsTable(database: Database.Database) {
+  const columns = getColumnNames(database, "consumable_operations");
+  const migrations: Array<{ column: string; sql: string }> = [
+    {
+      column: "deleted_at",
+      sql: "ALTER TABLE consumable_operations ADD COLUMN deleted_at TEXT",
+    },
+    {
+      column: "deleted_by",
+      sql: "ALTER TABLE consumable_operations ADD COLUMN deleted_by TEXT",
+    },
+    {
+      column: "delete_reason",
+      sql: "ALTER TABLE consumable_operations ADD COLUMN delete_reason TEXT",
+    },
+    {
+      column: "restored_at",
+      sql: "ALTER TABLE consumable_operations ADD COLUMN restored_at TEXT",
+    },
+    {
+      column: "restored_by",
+      sql: "ALTER TABLE consumable_operations ADD COLUMN restored_by TEXT",
+    },
+  ];
+
+  migrations.forEach((migration) => {
+    if (columns.has(migration.column)) {
+      return;
+    }
+    try {
+      database.exec(migration.sql);
+    } catch (error) {
+      console.error(
+        `Failed to migrate consumable_operations.${migration.column}:`,
+        error,
+      );
+    }
+  });
 }
 
 function seedTableIfEmpty(
@@ -353,8 +513,11 @@ function ensureDatabase() {
   // 轻量自迁移：为旧数据库补齐缺失列/索引
   migrateAssetsTable(db);
   migrateAssetCategoriesTable(db);
+  migrateAssetOperationsTable(db);
+  migrateApprovalRequestsTable(db);
   migrateConsumableCategoriesTable(db);
   migrateConsumablesTable(db);
+  migrateConsumableOperationsTable(db);
 
   // 系统配置（必须插入）
   seedSystemConfig(db);

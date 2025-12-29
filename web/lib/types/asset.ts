@@ -44,6 +44,11 @@ export interface Asset {
   note?: string;
   purchasePriceCents?: number;
   purchaseCurrency?: string;
+  deletedAt?: string | null;
+  deletedBy?: string | null;
+  deleteReason?: string | null;
+  restoredAt?: string | null;
+  restoredBy?: string | null;
 }
 
 export interface CreateAssetPayload {

@@ -193,7 +193,9 @@ export function deleteAssetCategory(id: string) {
   }
 
   const usage = db
-    .prepare(`SELECT COUNT(1) as count FROM assets WHERE category = ?`)
+    .prepare(
+      `SELECT COUNT(1) as count FROM assets WHERE category = ? AND deleted_at IS NULL`,
+    )
     .get(existing.code) as { count: number };
   if (usage.count > 0) {
     throw new Error("CATEGORY_IN_USE");
@@ -201,4 +203,3 @@ export function deleteAssetCategory(id: string) {
 
   db.prepare(`DELETE FROM asset_categories WHERE id = ?`).run(id);
 }
-

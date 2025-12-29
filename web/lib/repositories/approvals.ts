@@ -169,7 +169,7 @@ function updateApprovalExternalTodoId(
     `UPDATE asset_approval_requests
      SET external_todo_id = @externalTodoId,
          updated_at = datetime('now')
-     WHERE id = @id`,
+     WHERE id = @id AND deleted_at IS NULL`,
   ).run({
     id,
     externalTodoId,
@@ -184,7 +184,7 @@ export function setApprovalExternalTodo(
 }
 
 function buildFilters(filters: ApprovalListFilters | undefined) {
-  const conditions: string[] = [];
+  const conditions: string[] = ["deleted_at IS NULL"];
   const params: Record<string, unknown> = {};
 
   if (filters?.status?.length) {
@@ -290,7 +290,9 @@ export function listApprovalRequests(filters?: ApprovalListFilters) {
 export function getApprovalRequestById(id: string): ApprovalRequest | null {
   const db = getDb();
   const row = db
-    .prepare(`SELECT * FROM asset_approval_requests WHERE id = ?`)
+    .prepare(
+      `SELECT * FROM asset_approval_requests WHERE id = ? AND deleted_at IS NULL`,
+    )
     .get(id) as ApprovalRow | undefined;
 
   return row ? mapRow(row) : null;
@@ -493,7 +495,7 @@ function linkApprovalToAssetOperation(approvalId: string, operationId: string) {
     `UPDATE asset_approval_requests
      SET operation_id = @operationId,
          updated_at = datetime('now')
-     WHERE id = @approvalId`,
+     WHERE id = @approvalId AND deleted_at IS NULL`,
   ).run({ approvalId, operationId });
 }
 
@@ -503,7 +505,7 @@ function linkApprovalToAsset(approvalId: string, assetId: string) {
     `UPDATE asset_approval_requests
      SET asset_id = @assetId,
          updated_at = datetime('now')
-     WHERE id = @approvalId`,
+     WHERE id = @approvalId AND deleted_at IS NULL`,
   ).run({ approvalId, assetId });
 }
 
@@ -843,7 +845,7 @@ export function applyApprovalAction(
          approver_name = COALESCE(@approverName, approver_name),
          updated_at = @updatedAt,
          completed_at = COALESCE(@completedAt, completed_at)
-     WHERE id = @id`,
+     WHERE id = @id AND deleted_at IS NULL`,
   ).run({
     id,
     status,
@@ -866,7 +868,7 @@ export function applyApprovalAction(
       `UPDATE asset_approval_requests
        SET metadata = @metadata,
            updated_at = @updatedAt
-       WHERE id = @id`,
+       WHERE id = @id AND deleted_at IS NULL`,
     ).run({
       id,
       metadata: JSON.stringify(nextMetadata),
@@ -973,7 +975,7 @@ export function reassignApprovalApprover(
          approver_name = @approverName,
          metadata = @metadata,
          updated_at = @updatedAt
-     WHERE id = @id`,
+     WHERE id = @id AND deleted_at IS NULL`,
   ).run({
     id,
     approverId: nextApproverId,

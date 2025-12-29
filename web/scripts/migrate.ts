@@ -74,6 +74,31 @@ function ensureSchemaUpgrades() {
   ensureColumn("assets", "company_code", "company_code TEXT");
   ensureColumn("consumables", "company_code", "company_code TEXT");
   ensureColumn("roles", "member_user_ids", "member_user_ids TEXT");
+  ensureColumn("assets", "deleted_at", "deleted_at TEXT");
+  ensureColumn("assets", "deleted_by", "deleted_by TEXT");
+  ensureColumn("assets", "delete_reason", "delete_reason TEXT");
+  ensureColumn("assets", "restored_at", "restored_at TEXT");
+  ensureColumn("assets", "restored_by", "restored_by TEXT");
+  ensureColumn("consumables", "deleted_at", "deleted_at TEXT");
+  ensureColumn("consumables", "deleted_by", "deleted_by TEXT");
+  ensureColumn("consumables", "delete_reason", "delete_reason TEXT");
+  ensureColumn("consumables", "restored_at", "restored_at TEXT");
+  ensureColumn("consumables", "restored_by", "restored_by TEXT");
+  ensureColumn("asset_operations", "deleted_at", "deleted_at TEXT");
+  ensureColumn("asset_operations", "deleted_by", "deleted_by TEXT");
+  ensureColumn("asset_operations", "delete_reason", "delete_reason TEXT");
+  ensureColumn("asset_operations", "restored_at", "restored_at TEXT");
+  ensureColumn("asset_operations", "restored_by", "restored_by TEXT");
+  ensureColumn("consumable_operations", "deleted_at", "deleted_at TEXT");
+  ensureColumn("consumable_operations", "deleted_by", "deleted_by TEXT");
+  ensureColumn("consumable_operations", "delete_reason", "delete_reason TEXT");
+  ensureColumn("consumable_operations", "restored_at", "restored_at TEXT");
+  ensureColumn("consumable_operations", "restored_by", "restored_by TEXT");
+  ensureColumn("asset_approval_requests", "deleted_at", "deleted_at TEXT");
+  ensureColumn("asset_approval_requests", "deleted_by", "deleted_by TEXT");
+  ensureColumn("asset_approval_requests", "delete_reason", "delete_reason TEXT");
+  ensureColumn("asset_approval_requests", "restored_at", "restored_at TEXT");
+  ensureColumn("asset_approval_requests", "restored_by", "restored_by TEXT");
 }
 
 function ensureSystemSetting(key: string, value: string) {

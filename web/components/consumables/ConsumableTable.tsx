@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import type { Consumable } from "@/lib/types/consumable";
 import { getConsumableStatusLabel } from "@/lib/types/consumable";
 import { formatCentsToMoney } from "@/lib/utils/money";
+import { stripDeletedSuffix } from "@/lib/utils/asset-number";
 
 interface Props {
   consumables: Consumable[];
@@ -53,7 +54,9 @@ export default function ConsumableTable({
                 <Link href={`/${locale}/consumables/${item.id}`} className="font-medium text-primary hover:underline">
                   {item.name}
                 </Link>
-                <div className="text-xs text-muted-foreground">{item.consumableNo || item.id}</div>
+                <div className="text-xs text-muted-foreground">
+                  {stripDeletedSuffix(item.consumableNo) || item.id}
+                </div>
               </TableCell>
               <TableCell className="px-4 py-3">
                 {item.category

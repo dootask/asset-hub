@@ -32,7 +32,15 @@ type ConsumableRow = {
   metadata: string | null;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
+  deleted_by: string | null;
+  delete_reason: string | null;
+  restored_at: string | null;
+  restored_by: string | null;
 };
+
+const CONSUMABLE_NO_MAX_LENGTH = 64;
+const DELETE_SUFFIX_PATTERN = /_delete_[a-z0-9]{6}$/i;
 
 function mapRow(row: ConsumableRow): Consumable {
   return {
@@ -56,7 +64,49 @@ function mapRow(row: ConsumableRow): Consumable {
     purchaseCurrency: row.purchase_currency ?? undefined,
     description: row.description ?? undefined,
     metadata: row.metadata ? (JSON.parse(row.metadata) as Record<string, unknown>) : null,
+    deletedAt: row.deleted_at ?? undefined,
+    deletedBy: row.deleted_by ?? undefined,
+    deleteReason: row.delete_reason ?? undefined,
+    restoredAt: row.restored_at ?? undefined,
+    restoredBy: row.restored_by ?? undefined,
   };
+}
+
+function getConsumableRowById(
+  id: string,
+  includeDeleted = false,
+): ConsumableRow | null {
+  const db = getDb();
+  const row = db
+    .prepare(
+      `SELECT * FROM consumables WHERE id = ?${includeDeleted ? "" : " AND deleted_at IS NULL"}`,
+    )
+    .get(id) as ConsumableRow | undefined;
+  return row ?? null;
+}
+
+function appendDeleteSuffix(
+  value: string,
+  maxLength = CONSUMABLE_NO_MAX_LENGTH,
+): string {
+  const suffix = `_delete_${randomUUID().slice(0, 6).toLowerCase()}`;
+  const available = Math.max(0, maxLength - suffix.length);
+  const base = value.length > available ? value.slice(0, available) : value;
+  return `${base}${suffix}`;
+}
+
+function stripDeleteSuffix(value: string): string {
+  return value.replace(DELETE_SUFFIX_PATTERN, "");
+}
+
+function appendRestoreSuffix(
+  value: string,
+  maxLength = CONSUMABLE_NO_MAX_LENGTH,
+): string {
+  const suffix = `_${randomUUID().slice(0, 6).toLowerCase()}`;
+  const available = Math.max(0, maxLength - suffix.length);
+  const base = value.length > available ? value.slice(0, available) : value;
+  return `${base}${suffix}`;
 }
 
 export interface ConsumableQuery {
@@ -81,7 +131,7 @@ export function listConsumables(query: ConsumableQuery = {}): ConsumableListResu
   const pageSize = Math.min(100, Math.max(1, query.pageSize ?? 10));
   const offset = (page - 1) * pageSize;
 
-  const where: string[] = [];
+  const where: string[] = ["deleted_at IS NULL"];
   const params: Record<string, unknown> = {};
 
   if (query.search) {
@@ -137,11 +187,77 @@ export function listConsumables(query: ConsumableQuery = {}): ConsumableListResu
   };
 }
 
-export function getConsumableById(id: string): Consumable | null {
+export function listDeletedConsumables(
+  query: ConsumableQuery = {},
+): ConsumableListResult {
   const db = getDb();
-  const row = db.prepare(`SELECT * FROM consumables WHERE id = ?`).get(id) as
-    | ConsumableRow
-    | undefined;
+  const page = Math.max(1, query.page ?? 1);
+  const pageSize = Math.min(100, Math.max(1, query.pageSize ?? 10));
+  const offset = (page - 1) * pageSize;
+
+  const where: string[] = ["deleted_at IS NOT NULL"];
+  const params: Record<string, unknown> = {};
+
+  if (query.search) {
+    where.push(
+      "(name LIKE @search OR keeper LIKE @search OR location LIKE @search OR id LIKE @search OR consumable_no LIKE @search OR spec_model LIKE @search)",
+    );
+    params.search = `%${query.search.trim()}%`;
+  }
+
+  if (query.category) {
+    where.push("category = @category");
+    params.category = query.category;
+  }
+
+  if (query.status && query.status.length > 0) {
+    const limited = query.status.slice(0, 5);
+    const placeholders = limited.map((_, idx) => `@status${idx}`);
+    where.push(`status IN (${placeholders.join(", ")})`);
+    limited.forEach((status, idx) => {
+      params[`status${idx}`] = status;
+    });
+  }
+
+  if (query.companyCode) {
+    where.push("company_code = @companyCode");
+    params.companyCode = query.companyCode;
+  }
+
+  const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+  const totalRow = db
+    .prepare(`SELECT COUNT(1) as count FROM consumables ${whereClause}`)
+    .get(params) as { count: number };
+
+  const rows = db
+    .prepare(
+      `SELECT * FROM consumables
+       ${whereClause}
+       ORDER BY deleted_at DESC
+       LIMIT @limit OFFSET @offset`,
+    )
+    .all({
+      ...params,
+      limit: pageSize,
+      offset,
+    }) as ConsumableRow[];
+
+  return {
+    items: rows.map(mapRow),
+    total: totalRow.count,
+    page,
+    pageSize,
+  };
+}
+
+export function getConsumableById(id: string): Consumable | null {
+  const row = getConsumableRowById(id);
+  return row ? mapRow(row) : null;
+}
+
+export function getConsumableByIdIncludingDeleted(id: string): Consumable | null {
+  const row = getConsumableRowById(id, true);
   return row ? mapRow(row) : null;
 }
 
@@ -154,6 +270,7 @@ export function isConsumableNoInUse(consumableNo: string, excludeId?: string): b
       `
       SELECT id FROM consumables
       WHERE consumable_no = @consumableNo
+        AND deleted_at IS NULL
         AND (@excludeId IS NULL OR id <> @excludeId)
       LIMIT 1
     `,
@@ -191,6 +308,7 @@ function nextConsumableNoSeq(prefix: string): number {
         FROM consumables
         WHERE consumable_no LIKE @likePattern
           AND SUBSTR(consumable_no, @start) GLOB '[0-9]*'
+          AND deleted_at IS NULL
       `,
       )
       .get({ likePattern, start }) as { maxSeq: number | null } | undefined;
@@ -380,7 +498,7 @@ export function updateConsumable(
          description=@description,
          metadata=@metadata,
          updated_at=datetime('now')
-     WHERE id=@id`,
+     WHERE id=@id AND deleted_at IS NULL`,
   ).run({
     id,
     consumable_no: consumableNo,
@@ -416,16 +534,198 @@ export function updateConsumable(
   return updated;
 }
 
-export function deleteConsumable(id: string): boolean {
+export function softDeleteConsumable(
+  id: string,
+  payload: { deletedBy: string; deleteReason: string },
+): boolean {
   const db = getDb();
-  const result = db.prepare(`DELETE FROM consumables WHERE id = ?`).run(id);
-  if (result.changes > 0) {
+  const existing = getConsumableRowById(id);
+  if (!existing || existing.deleted_at) {
+    return false;
+  }
+
+  const consumableNo =
+    existing.consumable_no && existing.consumable_no.trim()
+      ? appendDeleteSuffix(existing.consumable_no.trim(), CONSUMABLE_NO_MAX_LENGTH)
+      : existing.consumable_no;
+
+  const runDelete = db.transaction(() => {
+    const result = db
+      .prepare(
+        `UPDATE consumables
+         SET consumable_no = @consumable_no,
+             deleted_at = datetime('now'),
+             deleted_by = @deletedBy,
+             delete_reason = @deleteReason,
+             restored_at = NULL,
+             restored_by = NULL,
+             updated_at = datetime('now')
+         WHERE id = @id AND deleted_at IS NULL`,
+      )
+      .run({
+        id,
+        consumable_no: consumableNo,
+        deletedBy: payload.deletedBy,
+        deleteReason: payload.deleteReason,
+      });
+
+    db.prepare(
+      `UPDATE consumable_operations
+       SET deleted_at = datetime('now'),
+           deleted_by = @deletedBy,
+           delete_reason = @deleteReason,
+           restored_at = NULL,
+           restored_by = NULL,
+           updated_at = datetime('now')
+       WHERE consumable_id = @id AND deleted_at IS NULL`,
+    ).run({
+      id,
+      deletedBy: payload.deletedBy,
+      deleteReason: payload.deleteReason,
+    });
+
+    db.prepare(
+      `UPDATE asset_approval_requests
+       SET deleted_at = datetime('now'),
+           deleted_by = @deletedBy,
+           delete_reason = @deleteReason,
+           restored_at = NULL,
+           restored_by = NULL,
+           updated_at = datetime('now')
+       WHERE consumable_id = @id AND deleted_at IS NULL`,
+    ).run({
+      id,
+      deletedBy: payload.deletedBy,
+      deleteReason: payload.deleteReason,
+    });
+
+    return result.changes > 0;
+  });
+
+  const deleted = runDelete();
+  if (deleted) {
     const resolvedAlerts = resolveAlertsForConsumable(id);
     if (resolvedAlerts.length) {
       void propagateConsumableAlertResult({ resolved: resolvedAlerts });
     }
   }
-  return result.changes > 0;
+
+  return deleted;
+}
+
+export function deleteConsumable(
+  id: string,
+  payload: { deletedBy: string; deleteReason: string },
+): boolean {
+  return softDeleteConsumable(id, payload);
+}
+
+export function restoreConsumable(
+  id: string,
+  restoredBy: string,
+): Consumable | null {
+  const db = getDb();
+  const existing = getConsumableRowById(id, true);
+  if (!existing || !existing.deleted_at) {
+    return null;
+  }
+
+  let restoredConsumableNo =
+    existing.consumable_no && existing.consumable_no.trim()
+      ? stripDeleteSuffix(existing.consumable_no.trim())
+      : existing.consumable_no;
+
+  if (
+    restoredConsumableNo &&
+    restoredConsumableNo.trim() &&
+    isConsumableNoInUse(restoredConsumableNo.trim(), id)
+  ) {
+    restoredConsumableNo = appendRestoreSuffix(
+      restoredConsumableNo.trim(),
+      CONSUMABLE_NO_MAX_LENGTH,
+    );
+  }
+
+  const runRestore = db.transaction(() => {
+    db.prepare(
+      `UPDATE consumables
+       SET consumable_no = @consumable_no,
+           deleted_at = NULL,
+           deleted_by = NULL,
+           delete_reason = NULL,
+           restored_at = datetime('now'),
+           restored_by = @restoredBy,
+           updated_at = datetime('now')
+       WHERE id = @id`,
+    ).run({
+      id,
+      consumable_no: restoredConsumableNo,
+      restoredBy,
+    });
+
+    db.prepare(
+      `UPDATE consumable_operations
+       SET deleted_at = NULL,
+           deleted_by = NULL,
+           delete_reason = NULL,
+           restored_at = datetime('now'),
+           restored_by = @restoredBy,
+           updated_at = datetime('now')
+       WHERE consumable_id = @id AND deleted_at IS NOT NULL`,
+    ).run({ id, restoredBy });
+
+    db.prepare(
+      `UPDATE asset_approval_requests
+       SET deleted_at = NULL,
+           deleted_by = NULL,
+           delete_reason = NULL,
+           restored_at = datetime('now'),
+           restored_by = @restoredBy,
+           updated_at = datetime('now')
+       WHERE consumable_id = @id AND deleted_at IS NOT NULL`,
+    ).run({ id, restoredBy });
+  });
+
+  runRestore();
+  const restored = getConsumableById(id);
+  if (restored) {
+    void propagateConsumableAlertResult(
+      syncConsumableAlertSnapshot({
+        consumableId: restored.id,
+        consumableName: restored.name,
+        keeper: restored.keeper,
+        status: restored.status,
+        quantity: restored.quantity,
+        reservedQuantity: restored.reservedQuantity,
+      }),
+    );
+  }
+  return restored;
+}
+
+export function permanentlyDeleteConsumable(id: string): boolean {
+  const db = getDb();
+  const existing = getConsumableRowById(id, true);
+  if (!existing || !existing.deleted_at) {
+    return false;
+  }
+
+  const runDelete = db.transaction(() => {
+    const result = db
+      .prepare("DELETE FROM consumables WHERE id = ? AND deleted_at IS NOT NULL")
+      .run(id);
+
+    if (result.changes > 0) {
+      const resolvedAlerts = resolveAlertsForConsumable(id);
+      if (resolvedAlerts.length) {
+        void propagateConsumableAlertResult({ resolved: resolvedAlerts });
+      }
+    }
+
+    return result.changes > 0;
+  });
+
+  return runDelete();
 }
 
 export function updateConsumablePurchasePrice(
@@ -445,7 +745,7 @@ export function updateConsumablePurchasePrice(
      SET purchase_price_cents=@purchase_price_cents,
          purchase_currency=@purchase_currency,
          updated_at=datetime('now')
-     WHERE id=@id`,
+     WHERE id=@id AND deleted_at IS NULL`,
   ).run({
     id,
     purchase_price_cents: payload.purchasePriceCents,
@@ -461,6 +761,7 @@ export function getConsumableStockStats() {
     .prepare(
       `SELECT status, COUNT(1) as total
          FROM consumables
+        WHERE deleted_at IS NULL
         GROUP BY status`,
     )
     .all() as { status: string; total: number }[];

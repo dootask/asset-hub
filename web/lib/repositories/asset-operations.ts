@@ -17,6 +17,7 @@ type OperationRow = {
   metadata: string | null;
   created_at: string;
   updated_at: string;
+  deleted_at?: string | null;
 };
 
 function parseMetadata(raw: string | null) {
@@ -45,7 +46,9 @@ export function listOperationsForAsset(assetId: string): AssetOperation[] {
   const db = getDb();
   const rows = db
     .prepare(
-      `SELECT * FROM asset_operations WHERE asset_id = ? ORDER BY created_at DESC`,
+      `SELECT * FROM asset_operations
+       WHERE asset_id = ? AND deleted_at IS NULL
+       ORDER BY created_at DESC`,
     )
     .all(assetId) as OperationRow[];
 
@@ -57,7 +60,7 @@ export function getAssetOperationById(
 ): AssetOperation | null {
   const db = getDb();
   const row = db
-    .prepare(`SELECT * FROM asset_operations WHERE id = ?`)
+    .prepare(`SELECT * FROM asset_operations WHERE id = ? AND deleted_at IS NULL`)
     .get(operationId) as OperationRow | undefined;
 
   return row ? mapRow(row) : null;
@@ -71,7 +74,7 @@ export function updateAssetOperationStatus(
   db.prepare(
     `UPDATE asset_operations
      SET status = @status, updated_at = datetime('now')
-     WHERE id = @operationId`,
+     WHERE id = @operationId AND deleted_at IS NULL`,
   ).run({ status, operationId });
 }
 
@@ -142,9 +145,9 @@ export function getOperationStats(): OperationStats[] {
               COUNT(1) as total,
               SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending
          FROM asset_operations
+        WHERE deleted_at IS NULL
         GROUP BY type`,
     )
     .all() as { type: AssetOperationType; total: number; pending: number }[];
   return rows;
 }
-
