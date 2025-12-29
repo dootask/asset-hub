@@ -33,7 +33,7 @@ pnpm dev
 - `/apps/asset-hub/{locale}`：首页。
 - `/apps/asset-hub/{locale}/assets/list`：资产列表。
 - `/apps/asset-hub/{locale}/assets/[id]`：资产详情，支持基础信息弹窗编辑、操作时间线、审批入口。
-- `/apps/asset-hub/{locale}/assets/import-export`：资产导入 / 导出，CSV 模板包含 `companyCode` 字段用于指定所属公司。
+- `/apps/asset-hub/{locale}/assets/import-export`：资产导入 / 导出，XLSX 模板包含 `companyCode` 字段用于指定所属公司。
 - `/apps/asset-hub/{locale}/system`：系统管理总览 → 公司 / 角色 / 审批配置。
 - `/apps/asset-hub/{locale}/system/alerts`：告警配置页，可启用/停用耗材低库存告警与 DooTask 待办推送。
 - `/apps/asset-hub/{locale}/consumables/import-export`：耗材导入 / 导出，同样要求 `companyCode` 字段以关联公司。

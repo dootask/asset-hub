@@ -32,8 +32,8 @@ export default async function ReportsPage({
         title={isChinese ? "数据与报表" : "Data & Reports"}
         description={
           isChinese
-            ? "查看资产业务的聚合指标，并下载 CSV 报表。"
-            : "Review aggregated metrics for asset operations and download CSV reports."
+            ? "查看资产业务的聚合指标，并下载 XLSX 报表。"
+            : "Review aggregated metrics for asset operations and download XLSX reports."
         }
       />
 

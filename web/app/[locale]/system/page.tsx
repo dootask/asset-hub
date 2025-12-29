@@ -53,7 +53,7 @@ const CARDS = [
     titleEn: "Data Reports",
     descriptionZh: "查看资产业务的聚合指标并下载标准报表。",
     descriptionEn:
-      "Review aggregated metrics and download standard CSV reports.",
+      "Review aggregated metrics and download standard XLSX reports.",
   },
   {
     id: "operations",

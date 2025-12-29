@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { listAssets } from "@/lib/repositories/assets";
 import type { AssetStatus } from "@/lib/types/asset";
-import { ASSET_STATUSES } from "@/lib/types/asset";
+import { ASSET_STATUSES, ASSET_STATUS_LABELS } from "@/lib/types/asset";
 import { formatCentsToMoney } from "@/lib/utils/money";
+import { buildWorkbookBufferFromAoA } from "@/lib/utils/xlsx";
 
 function parseStatuses(searchParams: URLSearchParams): AssetStatus[] | undefined {
   const rawStatuses = [
@@ -17,27 +18,10 @@ function parseStatuses(searchParams: URLSearchParams): AssetStatus[] | undefined
   return normalized.length ? normalized : undefined;
 }
 
-function toCsv(rows: Record<string, string>[]) {
-  const headers = Object.keys(rows[0] ?? {});
-  const data = [
-    headers.join(","),
-    ...rows.map((row) =>
-      headers
-        .map((header) => {
-          const value = row[header] ?? "";
-          if (value.includes(",") || value.includes('"') || value.includes("\n")) {
-            return `"${value.replace(/"/g, '""')}"`;
-          }
-          return value;
-        })
-        .join(","),
-    ),
-  ];
-  return data.join("\n");
-}
-
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
+  const lang = (searchParams.get("lang") ?? "en").toLowerCase();
+  const isChinese = lang === "zh";
   const search = searchParams.get("search") ?? undefined;
   const category = searchParams.get("category") ?? undefined;
   const status = parseStatuses(searchParams);
@@ -61,27 +45,80 @@ export async function GET(request: Request) {
     );
   }
 
-  const rows = result.items.map((asset) => ({
-    name: asset.name,
-    assetNo: asset.assetNo ?? asset.id,
-    specModel: asset.specModel ?? "",
-    companyCode: asset.companyCode ?? "",
-    category: asset.category,
-    status: asset.status,
-    owner: asset.owner,
-    location: asset.location,
-    purchaseDate: asset.purchaseDate,
-    expiresAt: asset.expiresAt ?? "",
-    purchasePrice: formatCentsToMoney(asset.purchasePriceCents),
-    purchaseCurrency: asset.purchaseCurrency ?? "CNY",
-    note: asset.note ?? "",
-  }));
+  const headers = isChinese
+    ? [
+        "资产名称",
+        "资产编号",
+        "规格型号",
+        "公司编码",
+        "资产类别",
+        "状态",
+        "使用人",
+        "存放位置",
+        "购买日期",
+        "过期时间",
+        "采购价格",
+        "采购币种",
+        "备注",
+      ]
+    : [
+        "name",
+        "assetNo",
+        "specModel",
+        "companyCode",
+        "category",
+        "status",
+        "owner",
+        "location",
+        "purchaseDate",
+        "expiresAt",
+        "purchasePrice",
+        "purchaseCurrency",
+        "note",
+      ];
+  const rows = result.items.map((asset) =>
+    isChinese
+      ? [
+          asset.name,
+          asset.assetNo ?? asset.id,
+          asset.specModel ?? "",
+          asset.companyCode ?? "",
+          asset.category,
+          ASSET_STATUS_LABELS[asset.status]?.zh ?? asset.status,
+          asset.owner,
+          asset.location,
+          asset.purchaseDate,
+          asset.expiresAt ?? "",
+          formatCentsToMoney(asset.purchasePriceCents),
+          asset.purchaseCurrency ?? "CNY",
+          asset.note ?? "",
+        ]
+      : [
+          asset.name,
+          asset.assetNo ?? asset.id,
+          asset.specModel ?? "",
+          asset.companyCode ?? "",
+          asset.category,
+          asset.status,
+          asset.owner,
+          asset.location,
+          asset.purchaseDate,
+          asset.expiresAt ?? "",
+          formatCentsToMoney(asset.purchasePriceCents),
+          asset.purchaseCurrency ?? "CNY",
+          asset.note ?? "",
+        ],
+  );
 
-  const csv = toCsv(rows);
-  return new NextResponse(csv, {
+  const buffer = buildWorkbookBufferFromAoA(
+    isChinese ? "资产导出" : "Assets",
+    [headers, ...rows],
+  );
+  return new NextResponse(buffer, {
     headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="assets-export.csv"`,
+      "Content-Type":
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Content-Disposition": `attachment; filename="assets-export.xlsx"`,
       "Cache-Control": "no-store",
     },
   });

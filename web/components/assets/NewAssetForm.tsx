@@ -79,7 +79,7 @@ export default function NewAssetForm({ locale = "en", categories, companies }: P
     companyCode: firstCompany,
     owner: "",
     location: "",
-    purchaseDate: new Date().toISOString().slice(0, 10),
+    purchaseDate: "",
     expiresAt: "",
     note: "",
     purchasePrice: "",
@@ -336,7 +336,6 @@ export default function NewAssetForm({ locale = "en", categories, companies }: P
           <div className="relative">
             <Input
               id="asset-purchase-date"
-              required
               value={formState.purchaseDate}
               placeholder="YYYY-MM-DD"
               className="bg-background pr-10"

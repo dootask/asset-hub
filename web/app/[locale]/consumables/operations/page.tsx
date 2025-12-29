@@ -136,15 +136,15 @@ export default async function ConsumableOperationsPage({
         title={isChinese ? "耗材操作审计" : "Consumable Operation Audit"}
         description={
           isChinese
-            ? "追踪采购、入库、出库、预留等操作，可按条件筛选并导出 CSV 报表。"
-            : "Track purchase, inbound, outbound, and reservation logs with filters and CSV export."
+            ? "追踪采购、入库、出库、预留等操作，可按条件筛选并导出 XLSX 报表。"
+            : "Track purchase, inbound, outbound, and reservation logs with filters and XLSX export."
         }
         actions={
           <DownloadLink
             href={exportHref}
             className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
           >
-            {isChinese ? "导出 CSV" : "Export CSV"}
+            {isChinese ? "导出 XLSX" : "Export XLSX"}
           </DownloadLink>
         }
       />

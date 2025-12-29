@@ -34,7 +34,7 @@ const HELP_SECTIONS: SectionConfig[] = [
           points: [
             "按状态、类别、所属公司或关键字筛选（资产名称/编号/规格型号/使用人等），并支持排序与分页。",
             "列表项可跳转到资产详情，便于继续操作或查看审批记录。",
-            "导出按钮会根据当前筛选条件生成 CSV（导出权限可能受管理员/授权限制）。",
+            "导出按钮会根据当前筛选条件生成 XLSX（导出权限可能受管理员/授权限制）。",
           ],
         },
         {
@@ -80,7 +80,7 @@ const HELP_SECTIONS: SectionConfig[] = [
           title: "Imports/Exports & Inventory",
           points: [
             "Import assets in bulk using templates with validation feedback; leaving asset numbers blank can auto-generate from the category prefix (or fall back to the system ID).",
-            "Export the current filtered dataset to CSV for downstream analytics.",
+            "Export the current filtered dataset to XLSX for downstream analytics.",
             "Inventory tasks capture physical counts, differences, and downloadable results.",
           ],
         },
@@ -358,7 +358,7 @@ const HELP_SECTIONS: SectionConfig[] = [
           points: [
             "系统管理下的“报表统计”展示操作明细与汇总指标。",
             "可按时间区间、操作类型、操作者等维度筛选。",
-            "支持导出为 CSV，用于二次加工或外部审计。",
+            "支持导出为 XLSX，用于二次加工或外部审计。",
           ],
         },
         {
@@ -387,7 +387,7 @@ const HELP_SECTIONS: SectionConfig[] = [
           points: [
             "The System › Reports page lists operational logs with aggregate stats.",
             "Filter by timeframe, action type, or operator to slice the data.",
-            "Export CSVs for finance reviews or compliance evidence.",
+            "Export XLSX files for finance reviews or compliance evidence.",
           ],
         },
         {

@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { listConsumables } from "@/lib/repositories/consumables";
 import type { ConsumableStatus } from "@/lib/types/consumable";
-import { CONSUMABLE_STATUSES } from "@/lib/types/consumable";
+import {
+  CONSUMABLE_STATUSES,
+  CONSUMABLE_STATUS_LABELS,
+} from "@/lib/types/consumable";
 import { formatCentsToMoney } from "@/lib/utils/money";
+import { buildWorkbookBufferFromAoA } from "@/lib/utils/xlsx";
 
 const STATUS_ALLOW_LIST = new Set<ConsumableStatus>(CONSUMABLE_STATUSES);
 
@@ -15,27 +19,10 @@ function parseStatus(value: string | null): ConsumableStatus[] | undefined {
   return statuses.length ? (statuses as ConsumableStatus[]) : undefined;
 }
 
-function toCsv(rows: Record<string, string | number>[]) {
-  const headers = Object.keys(rows[0] ?? {});
-  const lines = [
-    headers.join(","),
-    ...rows.map((row) =>
-      headers
-        .map((header) => {
-          const value = String(row[header] ?? "");
-          if (value.includes(",") || value.includes('"') || value.includes("\n")) {
-            return `"${value.replace(/"/g, '""')}"`;
-          }
-          return value;
-        })
-        .join(","),
-    ),
-  ];
-  return lines.join("\n");
-}
-
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
+  const lang = (searchParams.get("lang") ?? "en").toLowerCase();
+  const isChinese = lang === "zh";
   const companyParam = searchParams.get("company");
   const normalizedCompany =
     companyParam && companyParam.trim().length > 0
@@ -55,27 +42,83 @@ export async function GET(request: Request) {
       { status: 404 },
     );
   }
-  const rows = result.items.map((item) => ({
-    name: item.name,
-    consumableNo: item.consumableNo ?? item.id,
-    specModel: item.specModel ?? "",
-    companyCode: item.companyCode ?? "",
-    category: item.category,
-    quantity: item.quantity,
-    unit: item.unit,
-    keeper: item.keeper,
-    location: item.location,
-    safetyStock: item.safetyStock,
-    status: item.status,
-    purchasePrice: formatCentsToMoney(item.purchasePriceCents),
-    purchaseCurrency: item.purchaseCurrency ?? "CNY",
-    description: item.description ?? "",
-  }));
-  const csv = toCsv(rows);
-  return new NextResponse(csv, {
+  const headers = isChinese
+    ? [
+        "耗材名称",
+        "耗材编号",
+        "规格型号",
+        "公司编码",
+        "耗材类别",
+        "数量",
+        "单位",
+        "保管人",
+        "存放位置",
+        "安全库存",
+        "状态",
+        "采购价格",
+        "采购币种",
+        "备注",
+      ]
+    : [
+        "name",
+        "consumableNo",
+        "specModel",
+        "companyCode",
+        "category",
+        "quantity",
+        "unit",
+        "keeper",
+        "location",
+        "safetyStock",
+        "status",
+        "purchasePrice",
+        "purchaseCurrency",
+        "description",
+      ];
+  const rows = result.items.map((item) =>
+    isChinese
+      ? [
+          item.name,
+          item.consumableNo ?? item.id,
+          item.specModel ?? "",
+          item.companyCode ?? "",
+          item.category,
+          item.quantity,
+          item.unit,
+          item.keeper,
+          item.location,
+          item.safetyStock,
+          CONSUMABLE_STATUS_LABELS[item.status]?.zh ?? item.status,
+          formatCentsToMoney(item.purchasePriceCents),
+          item.purchaseCurrency ?? "CNY",
+          item.description ?? "",
+        ]
+      : [
+          item.name,
+          item.consumableNo ?? item.id,
+          item.specModel ?? "",
+          item.companyCode ?? "",
+          item.category,
+          item.quantity,
+          item.unit,
+          item.keeper,
+          item.location,
+          item.safetyStock,
+          item.status,
+          formatCentsToMoney(item.purchasePriceCents),
+          item.purchaseCurrency ?? "CNY",
+          item.description ?? "",
+        ],
+  );
+  const buffer = buildWorkbookBufferFromAoA(
+    isChinese ? "耗材导出" : "Consumables",
+    [headers, ...rows],
+  );
+  return new NextResponse(buffer, {
     headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": 'attachment; filename="consumables-export.csv"',
+      "Content-Type":
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Content-Disposition": 'attachment; filename="consumables-export.xlsx"',
       "Cache-Control": "no-store",
     },
   });

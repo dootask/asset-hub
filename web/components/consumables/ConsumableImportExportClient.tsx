@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -44,6 +45,7 @@ export default function ConsumableImportExportClient({ locale, categories, compa
   const [status, setStatus] = useState<string | undefined>(undefined);
   const [company, setCompany] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [allOrNothing, setAllOrNothing] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
@@ -64,7 +66,7 @@ export default function ConsumableImportExportClient({ locale, categories, compa
     event.preventDefault();
     const selectedFile = selectedFiles[0] ?? null;
     if (!selectedFile) {
-      setImportError(isChinese ? "请选择 CSV 文件" : "Please select a CSV file");
+      setImportError(isChinese ? "请选择 XLSX 文件" : "Please select an XLSX file");
       setImportResult(null);
       return;
     }
@@ -75,6 +77,7 @@ export default function ConsumableImportExportClient({ locale, categories, compa
       const client = await getApiClient();
       const formData = new FormData();
       formData.append("file", selectedFile);
+      formData.append("allOrNothing", allOrNothing ? "1" : "0");
       const response = await client.post<{
         data: ImportResult;
         message?: string;
@@ -111,7 +114,7 @@ export default function ConsumableImportExportClient({ locale, categories, compa
             {isChinese ? "导出耗材数据" : "Export consumables"}
           </h2>
           <p className="text-sm text-muted-foreground">
-            {isChinese ? "按条件筛选后导出 CSV，以便备份或批量维护。" : "Filter consumables and export to CSV for backup or bulk editing."}
+            {isChinese ? "按条件筛选后导出 XLSX，以便备份或批量维护。" : "Filter consumables and export to XLSX for backup or bulk editing."}
           </p>
         </div>
         <div className="mt-4 grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
@@ -176,7 +179,7 @@ export default function ConsumableImportExportClient({ locale, categories, compa
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <Button onClick={handleDownloadExport}>
-            {isChinese ? "下载 CSV" : "Download CSV"}
+            {isChinese ? "下载 XLSX" : "Download XLSX"}
           </Button>
           <Button variant="outline" onClick={handleDownloadTemplate}>
             {isChinese ? "下载模板" : "Download template"}
@@ -195,9 +198,9 @@ export default function ConsumableImportExportClient({ locale, categories, compa
         </div>
         <form className="mt-4 space-y-4" onSubmit={handleImport}>
           <div className="space-y-3">
-            <Label>{isChinese ? "选择 CSV 文件" : "Choose CSV file"}</Label>
+            <Label>{isChinese ? "选择 XLSX 文件" : "Choose XLSX file"}</Label>
             <FileUpload
-              accept=".csv,text/csv"
+              accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
               maxFiles={1}
               multiple={false}
               value={selectedFiles}
@@ -212,10 +215,10 @@ export default function ConsumableImportExportClient({ locale, categories, compa
                   <Upload className="h-6 w-6 text-muted-foreground" />
                 </div>
                 <p className="text-sm font-medium">
-                  {isChinese ? "拖拽 CSV 文件到此处" : "Drag & drop CSV here"}
+                  {isChinese ? "拖拽 XLSX 文件到此处" : "Drag & drop XLSX here"}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {isChinese ? "仅支持单个 CSV 文件" : "Single CSV file"}
+                  {isChinese ? "仅支持单个 XLSX 文件" : "Single XLSX file"}
                 </p>
                 <FileUploadTrigger asChild>
                   <Button variant="outline" size="sm" type="button">
@@ -248,14 +251,18 @@ export default function ConsumableImportExportClient({ locale, categories, compa
                 ))}
               </FileUploadList>
             </FileUpload>
-            <p className="text-xs text-muted-foreground">
+            <label className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Checkbox
+                checked={allOrNothing}
+                onCheckedChange={(checked) => setAllOrNothing(Boolean(checked))}
+              />
               {isChinese
-                ? "请确保至少包含列：name, category, companyCode, quantity, unit, keeper, location, safetyStock（可选：consumableNo, specModel, status=archived/归档, purchasePrice, purchaseCurrency, description；编号留空可自动生成）。"
-                : "Make sure the file includes at least: name, category, companyCode, quantity, unit, keeper, location, safetyStock (optional: consumableNo, specModel, status=archived, purchasePrice, purchaseCurrency, description; blank No. can be auto-generated)."}
-            </p>
+                ? "导入中有任意失败则整批作废"
+                : "Cancel the entire import if any row fails"}
+            </label>
           </div>
           {importError && (
-            <div className="rounded-2xl border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm text-destructive">
+            <div className="rounded-2xl border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm text-destructive whitespace-pre-line">
               {importError}
             </div>
           )}

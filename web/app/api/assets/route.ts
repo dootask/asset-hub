@@ -95,7 +95,6 @@ function sanitizePayload(payload: Partial<CreateAssetPayload>): CreateAssetPaylo
     "companyCode",
     "owner",
     "location",
-    "purchaseDate",
   ];
 
   for (const field of requiredFields) {
@@ -166,11 +165,18 @@ function sanitizePayload(payload: Partial<CreateAssetPayload>): CreateAssetPaylo
     purchasePriceCents = asInteger;
   }
 
+  const purchaseDate =
+    sanitizeOptionalDate(
+      (payload as { purchaseDate?: unknown }).purchaseDate,
+      "购入日期",
+    ) ?? "";
+
   return {
     ...payload,
     companyCode: company.code,
     assetNo: assetNo || undefined,
     specModel: specModel || undefined,
+    purchaseDate,
     expiresAt: sanitizeOptionalDate((payload as { expiresAt?: unknown }).expiresAt, "过期时间"),
     note: sanitizeOptionalText((payload as { note?: unknown }).note, "备注", 5000),
     purchasePriceCents,

@@ -53,6 +53,7 @@ export default function AssetImportExportClient({ locale, categories, companies 
     () => new Set(),
   );
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [allOrNothing, setAllOrNothing] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
@@ -94,7 +95,7 @@ export default function AssetImportExportClient({ locale, categories, companies 
     const selectedFile = selectedFiles[0] ?? null;
     if (!selectedFile) {
       setImportError(
-        isChinese ? "请选择要导入的 CSV 文件。" : "Please choose a CSV file.",
+        isChinese ? "请选择要导入的 XLSX 文件。" : "Please choose an XLSX file.",
       );
       setImportResult(null);
       return;
@@ -106,6 +107,7 @@ export default function AssetImportExportClient({ locale, categories, companies 
       const client = await getApiClient();
       const formData = new FormData();
       formData.append("file", selectedFile);
+      formData.append("allOrNothing", allOrNothing ? "1" : "0");
       const response = await client.post<{
         data?: ImportResult;
         message?: string;
@@ -142,8 +144,8 @@ export default function AssetImportExportClient({ locale, categories, companies 
           </h2>
           <p className="text-sm text-muted-foreground">
             {isChinese
-              ? "按条件筛选后下载 CSV，可用于备份或批量编辑。"
-              : "Filter the dataset and download a CSV for backup or bulk editing."}
+              ? "按条件筛选后下载 XLSX，可用于备份或批量编辑。"
+              : "Filter the dataset and download an XLSX for backup or bulk editing."}
           </p>
         </div>
         <div className="mt-4 flex flex-col gap-3">
@@ -253,7 +255,7 @@ export default function AssetImportExportClient({ locale, categories, companies 
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <Button variant="default" onClick={handleDownloadExport}>
-            {isChinese ? "下载筛选结果" : "Download CSV"}
+            {isChinese ? "下载筛选结果" : "Download XLSX"}
           </Button>
           <Button variant="outline" onClick={handleDownloadTemplate}>
             {isChinese ? "下载模板" : "Download Template"}
@@ -268,17 +270,17 @@ export default function AssetImportExportClient({ locale, categories, companies 
           </h2>
           <p className="text-sm text-muted-foreground">
             {isChinese
-              ? "按照模板填写 CSV，可一次性导入多条资产记录。"
-              : "Fill in the CSV template to import multiple assets at once."}
+              ? "按照模板填写 XLSX，可一次性导入多条资产记录。"
+              : "Fill in the XLSX template to import multiple assets at once."}
           </p>
         </div>
         <form className="mt-4 space-y-4" onSubmit={handleImport}>
           <div className="space-y-3">
             <Label className="text-xs text-muted-foreground">
-              {isChinese ? "上传 CSV 文件" : "Upload CSV file"}
+              {isChinese ? "上传 XLSX 文件" : "Upload XLSX file"}
             </Label>
             <FileUpload
-              accept=".csv,text/csv"
+              accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
               maxFiles={1}
               multiple={false}
               value={selectedFiles}
@@ -293,10 +295,10 @@ export default function AssetImportExportClient({ locale, categories, companies 
                   <Upload className="h-6 w-6 text-muted-foreground" />
                 </div>
                 <p className="text-sm font-medium">
-                  {isChinese ? "拖拽 CSV 文件到此处" : "Drag & drop CSV here"}
+                  {isChinese ? "拖拽 XLSX 文件到此处" : "Drag & drop XLSX here"}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {isChinese ? "仅支持单个 CSV，最多 1 个文件" : "Single CSV file, max 1"}
+                  {isChinese ? "仅支持单个 XLSX，最多 1 个文件" : "Single XLSX file, max 1"}
                 </p>
                 <FileUploadTrigger asChild>
                   <Button variant="outline" size="sm" type="button">
@@ -329,14 +331,20 @@ export default function AssetImportExportClient({ locale, categories, companies 
                 ))}
               </FileUploadList>
             </FileUpload>
-            <p className="text-xs text-muted-foreground">
+            <label className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Checkbox
+                checked={allOrNothing}
+                onCheckedChange={(checked) => setAllOrNothing(Boolean(checked))}
+              />
               {isChinese
-                ? "请确保至少包含列：name, category, status, companyCode, owner, location, purchaseDate（可选：assetNo, specModel, expiresAt, purchasePrice, purchaseCurrency）。"
-                : "Make sure the file includes at least: name, category, status, companyCode, owner, location, purchaseDate (optional: assetNo, specModel, expiresAt, purchasePrice, purchaseCurrency)."}
-            </p>
+                ? "导入中有任意失败则整批作废"
+                : "Cancel the entire import if any row fails"}
+            </label>
           </div>
           {importError && (
-            <p className="text-sm text-destructive">{importError}</p>
+            <p className="text-sm text-destructive whitespace-pre-line">
+              {importError}
+            </p>
           )}
           {importResult && (
             <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/5 p-3 text-sm text-emerald-800 dark:text-emerald-200">

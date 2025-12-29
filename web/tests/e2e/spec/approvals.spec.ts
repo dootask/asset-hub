@@ -51,7 +51,7 @@ test.describe("Approvals center", () => {
 
     await expect(app.getByRole("heading", { name: "Approvals" })).toBeVisible();
 
-    const exportLink = app.getByRole("link", { name: "Export CSV" });
+    const exportLink = app.getByRole("link", { name: "Export XLSX" });
     await expect(exportLink).toHaveAttribute("href", /approvals\/export/);
 
     await selectDropdownOption(page, app, "approval-status-filter", /待审批|Pending/);

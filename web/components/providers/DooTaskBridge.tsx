@@ -44,15 +44,9 @@ export default function DooTaskBridge({ locale }: { locale?: string } = {}) {
                 userId: String(normalizedId),
                 nickname: (user as { nickname?: string })?.nickname,
                 email: (user as { email?: string })?.email,
-                token:
-                  token ??
-                  (user as { token?: string })?.token ??
-                  (user as { user_token?: string })?.user_token,
+                token: token ?? (user as { token?: string })?.token,
                 locale,
-                baseUrl:
-                  typeof baseUrl === "string" && baseUrl.trim()
-                    ? baseUrl.trim()
-                    : undefined,
+                baseUrl: typeof baseUrl === "string" && baseUrl.trim() ? baseUrl.trim() : undefined,
               };
 
         setStoredAuth(authPayload);

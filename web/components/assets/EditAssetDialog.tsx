@@ -422,7 +422,6 @@ export default function EditAssetDialog({ asset, locale = "en", categories, comp
                 <div className="relative">
                   <Input
                     id="edit-asset-purchase-date"
-                    required
                     value={formState.purchaseDate}
                     placeholder="YYYY-MM-DD"
                     className="bg-background pr-10"

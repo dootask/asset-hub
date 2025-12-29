@@ -207,7 +207,7 @@ export default function ApprovalsPage({ params }: PageProps) {
               onClick={handleDownloadExport}
               className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
             >
-              {isChinese ? "导出 CSV" : "Export CSV"}
+              {isChinese ? "导出 XLSX" : "Export XLSX"}
             </button>
           </div>
         }
@@ -260,7 +260,7 @@ export default function ApprovalsPage({ params }: PageProps) {
                       <div className="font-medium text-foreground">
                         <Link
                           href={`/${locale}/approvals/${approval.id}`}
-                          className="font-medium text-primary hover:underline line-clamp-2 break-words"
+                          className="font-medium text-primary hover:underline line-clamp-2 wrap-break-word"
                         >
                           {approval.title}
                         </Link>
@@ -274,7 +274,7 @@ export default function ApprovalsPage({ params }: PageProps) {
                       <ApprovalStatusBadge status={approval.status} locale={locale} />
                     </TableCell>
                     <TableCell className="px-4 py-4 text-xs text-muted-foreground whitespace-normal">
-                      <div className="line-clamp-2 break-words">{summary}</div>
+                      <div className="line-clamp-2 wrap-break-word">{summary}</div>
                     </TableCell>
                     <TableCell className="px-4 py-4">
                       {approval.applicantName ?? approval.applicantId ?? "-"}

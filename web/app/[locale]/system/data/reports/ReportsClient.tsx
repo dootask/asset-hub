@@ -296,8 +296,8 @@ export default function ReportsClient({
             </h2>
             <p className="text-sm text-muted-foreground">
               {isChinese
-                ? "下载最新的资产、耗材与审批 CSV，后续将支持自定义模板。"
-                : "Download the latest asset, consumable, and approval CSV exports. Custom templates coming soon."}
+                ? "下载最新的资产、耗材与审批 XLSX，后续将支持自定义模板。"
+                : "Download the latest asset, consumable, and approval XLSX exports. Custom templates coming soon."}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -306,35 +306,35 @@ export default function ReportsClient({
               onClick={handleDownloadAssets}
               className="inline-flex items-center rounded-2xl border px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
             >
-              {isChinese ? "资产 CSV" : "Assets CSV"}
+              {isChinese ? "资产 XLSX" : "Assets XLSX"}
             </button>
             <button
               type="button"
               onClick={handleDownloadAssetOperations}
               className="inline-flex items-center rounded-2xl border px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
             >
-              {isChinese ? "资产操作 CSV" : "Asset Ops CSV"}
+              {isChinese ? "资产操作 XLSX" : "Asset Ops XLSX"}
             </button>
             <button
               type="button"
               onClick={handleDownloadConsumables}
               className="inline-flex items-center rounded-2xl border px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
             >
-              {isChinese ? "耗材 CSV" : "Consumables CSV"}
+              {isChinese ? "耗材 XLSX" : "Consumables XLSX"}
             </button>
             <button
               type="button"
               onClick={handleDownloadConsumableOperations}
               className="inline-flex items-center rounded-2xl border px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
             >
-              {isChinese ? "耗材操作 CSV" : "Consumable Ops CSV"}
+              {isChinese ? "耗材操作 XLSX" : "Consumable Ops XLSX"}
             </button>
             <button
               type="button"
               onClick={handleDownloadApprovals}
               className="inline-flex items-center rounded-2xl border px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
             >
-              {isChinese ? "审批 CSV" : "Approvals CSV"}
+              {isChinese ? "审批 XLSX" : "Approvals XLSX"}
             </button>
           </div>
         </div>

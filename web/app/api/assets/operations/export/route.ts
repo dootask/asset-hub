@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db/client";
+import { buildWorkbookBufferFromAoA } from "@/lib/utils/xlsx";
 
 type Row = {
   id: string;
@@ -18,57 +19,60 @@ type Row = {
   created_at: string;
 };
 
-function escapeCsvValue(value: unknown) {
-  if (value === null || value === undefined) {
-    return "";
-  }
-  const stringValue = typeof value === "string" ? value : value.toString();
-  if (stringValue.includes('"') || stringValue.includes(",") || stringValue.includes("\n")) {
-    return `"${stringValue.replace(/"/g, '""')}"`;
-  }
-  return stringValue;
-}
-
-function buildCsvContent(rows: Row[]) {
-  const headers = [
-    "Operation ID",
-    "Type",
-    "Status",
-    "Asset ID",
-    "Asset No",
-    "Asset Name",
-    "Category",
-    "Asset Status",
-    "Company",
-    "Owner",
-    "Location",
-    "Actor",
-    "Description",
-    "Created At",
-  ];
-
-  const lines = [headers.join(",")];
-  rows.forEach((row) => {
-    lines.push(
-      [
-        row.id,
-        row.type,
-        row.status,
-        row.asset_id,
-        row.asset_no ?? "",
-        row.asset_name,
-        row.asset_category,
-        row.asset_status,
-        row.company_code ?? "",
-        row.owner ?? "",
-        row.location ?? "",
-        row.actor,
-        row.description,
-        row.created_at,
+function buildSheetRows(rows: Row[], lang: string) {
+  const isChinese = lang === "zh";
+  const headers = isChinese
+    ? [
+        "操作ID",
+        "类型",
+        "状态",
+        "资产ID",
+        "资产编号",
+        "资产名称",
+        "类别",
+        "资产状态",
+        "公司",
+        "使用人",
+        "存放位置",
+        "操作人",
+        "说明",
+        "创建时间",
       ]
-        .map(escapeCsvValue)
-        .join(","),
-    );
+    : [
+        "Operation ID",
+        "Type",
+        "Status",
+        "Asset ID",
+        "Asset No",
+        "Asset Name",
+        "Category",
+        "Asset Status",
+        "Company",
+        "Owner",
+        "Location",
+        "Actor",
+        "Description",
+        "Created At",
+      ];
+
+  const lines: Array<Array<string | number>> = [headers];
+  rows.forEach((row) => {
+    lines.push([
+      row.id,
+      row.type,
+      row.status,
+      row.asset_id,
+      row.asset_no ?? "",
+      row.asset_name,
+      row.asset_category,
+      row.asset_status,
+      row.company_code ?? "",
+      row.owner ?? "",
+      row.location ?? "",
+      row.actor,
+      row.description,
+      row.created_at,
+    ]);
   });
 
   const summary = rows.reduce(
@@ -85,24 +89,26 @@ function buildCsvContent(rows: Row[]) {
     },
   );
 
-  lines.push("");
-  lines.push("Summary");
-  lines.push(`Total Operations,${summary.total}`);
+  lines.push([]);
+  lines.push([isChinese ? "汇总" : "Summary"]);
+  lines.push([isChinese ? "操作总数" : "Total Operations", summary.total]);
   Object.entries(summary.status)
     .sort(([a], [b]) => a.localeCompare(b))
     .forEach(([status, count]) => {
-      lines.push(`Status:${status},${count}`);
+      lines.push([`${isChinese ? "状态" : "Status"}:${status}`, count]);
     });
   Object.entries(summary.type)
     .sort(([a], [b]) => a.localeCompare(b))
     .forEach(([type, count]) => {
-      lines.push(`Type:${type},${count}`);
+      lines.push([`${isChinese ? "类型" : "Type"}:${type}`, count]);
     });
 
-  return lines.join("\n");
+  return lines;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const lang = (searchParams.get("lang") ?? "en").toLowerCase();
   const db = getDb();
   const rows = db
     .prepare(
@@ -134,15 +140,19 @@ export async function GET() {
     );
   }
 
-  const csv = buildCsvContent(rows);
-  const filename = `asset-operations-${new Date().toISOString().slice(0, 10)}.csv`;
+  const sheetRows = buildSheetRows(rows, lang);
+  const filename = `asset-operations-${new Date().toISOString().slice(0, 10)}.xlsx`;
 
-  return new NextResponse(csv, {
+  const buffer = buildWorkbookBufferFromAoA(
+    lang === "zh" ? "资产操作" : "Asset Operations",
+    sheetRows,
+  );
+  return new NextResponse(buffer, {
     headers: {
-      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Type":
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "Content-Disposition": `attachment; filename="${filename}"`,
       "Cache-Control": "no-store",
     },
   });
 }
-
