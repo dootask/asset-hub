@@ -201,7 +201,7 @@ export default function AssetListPage({
         }
         actions={
           <AdminOnly>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Link
                 href={withLocale("/assets/new")}
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-2xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow"
