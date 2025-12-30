@@ -117,28 +117,28 @@ export default async function ConsumableListPage({
         }
         actions={
           <AdminOnly>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Link
                 href={withLocale("/consumables/new")}
-                className="inline-flex items-center justify-center rounded-2xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-2xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow"
               >
                 {isChinese ? "新增耗材" : "New Consumable"}
               </Link>
               <Link
                 href={withLocale("/consumables/import-export")}
-                className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
               >
                 {isChinese ? "导入 / 导出" : "Import / Export"}
               </Link>
               <Link
                 href={withLocale("/consumables/settings")}
-                className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
               >
                 {isChinese ? "类别管理" : "Categories"}
               </Link>
               <Link
                 href={withLocale("/consumables/recycle-bin")}
-                className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-2xl border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
               >
                 {isChinese ? "回收站" : "Recycle Bin"}
               </Link>
