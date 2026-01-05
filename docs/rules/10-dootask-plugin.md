@@ -1,7 +1,4 @@
-description: DooTask 插件适配层目录说明与约束（dootask-plugin/）
-globs: ["dootask-plugin/**"]
-alwaysApply: true
----
+# DooTask 插件适配层目录说明与约束（dootask-plugin/）
 
 ## 角色定位
 
@@ -20,6 +17,5 @@ alwaysApply: true
 
 ## 参考
 
-- 项目整体说明：仓库根目录 `AGENTS.md`。
-- 与 Web 应用的职责划分：`.cursor/rules/20-web.mdc`。
-
+- 项目整体说明：仓库根目录 `CLAUDE.md`。
+- 与 Web 应用的职责划分：`docs/rules/20-web.md`。

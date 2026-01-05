@@ -1,7 +1,4 @@
-description: Web 应用目录说明与约束（web/，Next.js 一体化 Web 应用）
-globs: ["web/**"]
-alwaysApply: true
----
+# Web 应用目录说明与约束（web/，Next.js 一体化 Web 应用）
 
 ## 角色定位
 
@@ -26,8 +23,7 @@ alwaysApply: true
 
 ## 参考
 
-- 项目整体说明：仓库根目录 `AGENTS.md`。
-- 功能需求规划：`.cursor/rules/30-feature-plan.mdc`。
-- 页面与 API 路由规划：`.cursor/rules/21-web-routing.mdc`。
+- 项目整体说明：仓库根目录 `CLAUDE.md`。
+- 功能需求规划：`docs/rules/30-feature-plan.md`。
+- 页面与 API 路由规划：`docs/rules/21-web-routing.md`。
 - shadcn/ui 组件安装统一使用 `pnpm dlx shadcn@latest add <component>`。
-

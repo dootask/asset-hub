@@ -1,12 +1,9 @@
-description: 资产操作审批流程设计与约束（采购 → 入库试点，含与 DooTask 待办的集成约定）
-globs: ["web/**"]
-alwaysApply: false
----
+# 资产操作审批流程设计与约束（采购 → 入库试点，含与 DooTask 待办的集成约定）
 
 ## 1. 背景与范围
 
 - 本规则文档用于约束 **资产操作审批流程** 的设计与落地实现，先以「采购 → 入库」作为首条试点主线，后续其它流程（领用、借用/归还、派发、维修、报废等）在此基础上演进。
-- 目标：让 Asset Hub 从“记录工具”升级为可以驱动业务流程的系统，并与 DooTask 的 **待办/审批能力** 打通。
+- 目标：让 Asset Hub 从"记录工具"升级为可以驱动业务流程的系统，并与 DooTask 的 **待办/审批能力** 打通。
 - 本文只定义：**状态机、数据模型、API 形态与宿主集成点**，具体实现细节在 `web/` 代码中展开。
 
 约束前提：
@@ -25,42 +22,60 @@ alwaysApply: false
   - `id`：操作 ID。
   - `asset_id`：关联资产。
   - `type`：操作类型（如 `purchase` / `inbound` / `assign` / `borrow` / `return` / `dispose` 等）。
-  - `status`：该操作本身的状态（如 `draft` / `pending` / `done` / `cancelled` 等）。
-  - `note` / `meta`：备注与扩展字段（JSON）。
+  - `status`：该操作本身的状态（如 `pending` / `done` / `cancelled` 等）。
+  - `description` / `metadata`：备注与扩展字段（JSON）。
   - `created_at` / `updated_at` 等。
 
 > 实际字段以 `lib/db/schema.ts` 中的 DDL 为准，本节只说明抽象关系。
 
 ### 2.2 新增：审批请求表 `asset_approval_requests`
 
-为了承载“审批”语义，引入专门的审批请求实体，核心作用是：
+为了承载"审批"语义，引入专门的审批请求实体，核心作用是：
 
-- 把“**需要审批的业务操作**”抽象成统一的请求（Request）。
+- 把"**需要审批的业务操作**"抽象成统一的请求（Request）。
 - 将审批状态与业务操作状态解耦，但通过外键进行绑定。
 
-建议表结构（逻辑层面）：
+表结构（实际实现）：
 
 - `id`：审批请求 ID。
-- `asset_id`：可选，关联资产 ID（对「入库前采购」场景，可以为空或使用虚拟资产 ID，由后续实现确定）。
-- `operation_id`：可选，关联具体的 `asset_operations.id`；对于以“操作”为中心的审批（推荐），应当必填。
+- `asset_id`：可选，关联资产 ID（对「入库前采购」场景，可以为空）。
+- `consumable_id`：可选，关联耗材 ID（用于耗材相关审批）。
+- `operation_id`：可选，关联具体的 `asset_operations.id`。
+- `consumable_operation_id`：可选，关联具体的 `consumable_operations.id`。
 - `type`：审批类型（例如：`purchase` / `inbound` / `borrow` / `return` / `dispose` / `generic` 等）。
-- `status`：审批状态（见 §3）。
+- `status`：审批状态（见 §3），默认为 `pending`。
 - `title`：审批标题（例如「【采购】MacBook Pro 14 審批」）。
-- `reason` / `content`：申请事由或详细说明。
-- `applicant_id`：发起人（来自 `/api/me` 或 DooTask 注入的用户上下文）。
-- `approver_id`：当前主审批人（首期可以固定为某个角色/用户，后续支持多级/自定义规则）。
+- `reason`：申请事由或详细说明。
+- `applicant_id`：发起人 ID（来自 `/api/me` 或 DooTask 注入的用户上下文）。
+- `applicant_name`：发起人名称（便于展示）。
+- `approver_id`：当前主审批人 ID。
+- `approver_name`：审批人名称（便于展示）。
 - `result`：审批结果简要描述（通过/驳回/撤销原因等）。
 - `external_todo_id`：与 DooTask 待办/审批记录关联的外部 ID（字符串），便于后续更新/关闭。
+- `metadata`：JSON 扩展字段，存储审批配置快照等信息。
+- `deleted_at` / `deleted_by` / `delete_reason`：软删除相关字段。
+- `restored_at` / `restored_by`：恢复相关字段。
 - `created_at` / `updated_at` / `completed_at`：时间戳。
+
+### 2.3 抄送人表 `asset_approval_cc_recipients`
+
+用于存储审批请求的抄送人列表：
+
+- `approval_id`：关联审批请求 ID（外键，级联删除）。
+- `user_id`：抄送人用户 ID。
+- `user_name`：抄送人名称（便于展示）。
+- `created_at`：创建时间。
+
+> 主键为 `(approval_id, user_id)` 复合键。
 
 设计原则：
 
 - **一条业务操作，对应 0..1 条审批请求**：
-  - 对于必须审批的操作（如“采购申请”、“入库确认”），`operation_id` 必须指向相应的 `asset_operations` 记录。
-  - 对于暂不需要独立操作记录的“配置型审批”（后期扩展），可以只用 `asset_approval_requests` 承载。
+  - 对于必须审批的操作（如"采购申请"、"入库确认"），`operation_id` 必须指向相应的 `asset_operations` 记录。
+  - 对于暂不需要独立操作记录的"配置型审批"（后期扩展），可以只用 `asset_approval_requests` 承载。
 - 首期只实现 **单级审批**，后续可在不破坏兼容性的前提下扩展多级流程（例如引入 `asset_approval_steps`）。
 
-### 2.3 配置表 `asset_action_configs`
+### 2.4 配置表 `asset_action_configs`
 
 - 作用：统一定义每种操作的审批策略，供前端表单与后端 API 共同引用。
 - 字段（见 `web/lib/db/schema.ts`）：
@@ -81,15 +96,15 @@ alwaysApply: false
 
 统一使用以下状态枚举：
 
-- `draft`：草稿，仅在客户端或后台临时保存（首期可以不持久化，直接从 `pending` 开始）。
 - `pending`：待审批（已提交，等待审批人处理）。
 - `approved`：已通过。
 - `rejected`：已驳回。
 - `cancelled`：已撤销（通常由申请人发起）。
 
+> 注：原设计中的 `draft` 状态已简化移除，审批请求创建即进入 `pending` 状态。
+
 状态迁移规则：
 
-- （可选）`draft` → `pending`：发起人提交审批。
 - `pending` → `approved`：审批人同意。
 - `pending` → `rejected`：审批人驳回。
 - `pending` → `cancelled`：申请人撤销。
@@ -103,12 +118,12 @@ alwaysApply: false
 
 典型路径：
 
-1. 用户在 Asset Hub 中发起“采购申请”（不一定已有资产记录）：
+1. 用户在 Asset Hub 中发起"采购申请"（不一定已有资产记录）：
    - 表单内容包括：资产名称、类别、预计金额、数量、申请事由等。
    - 后端创建一条 `asset_operations` 记录（`type = "purchase"`，`status = "pending"`）。
    - 同时创建一条 `asset_approval_requests` 记录（`type = "purchase"`，`status = "pending"`），并记录关联的 `operation_id`。
 2. 审批人处理：
-   - 同意：`asset_approval_requests.status` → `approved`；`asset_operations.status` → `done`（或 `approved`，由实现统一）；可根据需要自动生成“待入库”的资产记录（如 `assets.status = "pending-inbound"`）。
+   - 同意：`asset_approval_requests.status` → `approved`；`asset_operations.status` → `done`（或 `approved`，由实现统一）；可根据需要自动生成"待入库"的资产记录（如 `assets.status = "pending-inbound"`）。
    - 驳回：`status` → `rejected`，`asset_operations.status` → `cancelled` 或独立状态；记录 `result` 文本。
    - 撤销：申请人主动取消，`status` → `cancelled`，`asset_operations.status` → `cancelled`。
 
@@ -119,11 +134,11 @@ alwaysApply: false
 
 ### 3.3 入库流程（Inbound）
 
-目标：对“入库确认”也支持审批（可作为可选配置）。
+目标：对"入库确认"也支持审批（可作为可选配置）。
 
 路径示例：
 
-1. 对于已通过采购审批的资产，在实际到货时由管理员发起“入库确认”，创建：
+1. 对于已通过采购审批的资产，在实际到货时由管理员发起"入库确认"，创建：
    - 一条 `asset_operations`（`type = "inbound"`，`status = "pending"`）。
    - 如需要审批，则创建一条 `asset_approval_requests`（`type = "inbound"`，`status = "pending"`）。
 2. 审批人（可能与采购审批人不同）进行确认：
@@ -132,7 +147,7 @@ alwaysApply: false
 
 首期实现建议：
 
-- 优先把“采购审批”打通；“入库审批”可以复用同一机制，但允许在系统配置中做“是否启用入库审批”的开关（后续实现）。
+- 优先把"采购审批"打通；"入库审批"可以复用同一机制，但允许在系统配置中做"是否启用入库审批"的开关（后续实现）。
 
 ---
 
@@ -169,13 +184,17 @@ alwaysApply: false
     - 根据审批结果联动更新 `asset_operations` / `assets`；
     - 调用 DooTask 宿主更新/关闭对应待办（如有）。
 
+- `PUT /api/approvals/:id/approver`
+  - 用途：更换审批人（申请人或管理员可操作）。
+  - 请求体示例：`{ "approver_id": "123", "approver_name": "张三" }`
+
 ### 4.2 与资产详情/操作的衔接 API
 
 - `POST /api/assets/:id/approval`
-  - 用途：在已有资产基础上发起审批（例如“报废”、“借用”等），首期可用于演示入库后场景。
+  - 用途：在已有资产基础上发起审批（例如"报废"、"借用"等），首期可用于演示入库后场景。
   - 行为：创建一个 `asset_operations`（如 `type = "dispose"`），再创建对应的 `asset_approval_requests`。
 
-> 最终实现时，可根据开发体验对路径进行微调，但需保持“审批主资源是 `/api/approvals`，资产侧提供便捷入口”这一原则。
+> 最终实现时，可根据开发体验对路径进行微调，但需保持"审批主资源是 `/api/approvals`，资产侧提供便捷入口"这一原则。
 
 ---
 
@@ -184,12 +203,12 @@ alwaysApply: false
 ### 5.1 资产详情页扩展
 
 - 在现有 `app/assets/[id]/page.tsx` 中：
-  - 增加“发起审批”入口（下拉菜单或按钮），支持选择操作类型（采购/入库/报废等）。
+  - 增加"发起审批"入口（下拉菜单或按钮），支持选择操作类型（采购/入库/报废等）。
   - 在操作时间轴（timeline）中展示与审批相关的节点：
     - 显示审批状态、审批人、结果文案。
     - 点击可跳转到审批详情页 `/apps/asset-hub/approvals/:id`。
-  - “基础信息”卡片提供对话框式的编辑入口，直连 `PUT /api/assets/:id`，确保管理员可以在审批之外维护资产属性。
-  - “操作”表单（`OperationForm`）在用户选择需要审批的类型时，基于 `asset_action_configs` 自动禁用提交按钮并提示转到审批表单。
+  - "基础信息"卡片提供对话框式的编辑入口，直连 `PUT /api/assets/:id`，确保管理员可以在审批之外维护资产属性。
+  - "操作"表单（`OperationForm`）在用户选择需要审批的类型时，基于 `asset_action_configs` 自动禁用提交按钮并提示转到审批表单。
 
 ### 5.2 审批列表与详情页
 
@@ -199,7 +218,7 @@ alwaysApply: false
     - 支持按 `type` / `status` / 时间范围过滤。
   - `/apps/asset-hub/approvals/:id`：审批详情页。
     - 展示基础信息、申请内容、关联资产/操作、审批历史。
-    - 提供“同意/驳回/撤销”操作入口（基于当前用户权限）。
+    - 提供"同意/驳回/撤销"操作入口（基于当前用户权限）。
 - `/apps/asset-hub/system/approval`：审批配置管理界面，用于调整 `requires_approval`、默认审批人以及是否允许覆盖，并立即影响后续审批表单。
 
 ### 5.3 多语言与主题
@@ -238,7 +257,7 @@ alwaysApply: false
 
 - 若 Asset Hub 独立运行（例如开发环境直接访问 `http://localhost:3000/apps/asset-hub`）：
   - `dootask-approvals` 网关应安全降级为 **纯本地逻辑**：
-    - 不抛出错误，仅在 server log 中记录“模拟创建/更新待办”。
+    - 不抛出错误，仅在 server log 中记录"模拟创建/更新待办"。
     - 审批流程在 Asset Hub 内部仍可完整执行。
 
 ---
@@ -246,8 +265,8 @@ alwaysApply: false
 ## 7. 权限与角色（首期简化）
 
 - 鉴于当前项目尚未实现完整的权限系统，审批模块首期策略：
-  - “发起审批”：默认允许任何登录用户（或拥有基础资产操作权限的用户）发起。
-  - “审批操作”：首期可以通过环境配置或简单规则限制为：
+  - "发起审批"：默认允许任何登录用户（或拥有基础资产操作权限的用户）发起。
+  - "审批操作"：首期可以通过环境配置或简单规则限制为：
     - 资产管理员角色（`roles.scope = "asset"`）；
     - 或者指定的一些用户 ID。
 - 后续若引入更完善的角色/权限模型，本规则作为默认策略，可在不破坏旧数据的前提下做增强。
@@ -262,5 +281,4 @@ alwaysApply: false
 4. **前端页面**：扩展资产详情页入口，新增审批列表/详情页面，并与 API 对接。
 5. **宿主集成**：实现 `dootask-approvals` 网关，打通与 DooTask 待办的闭环；根据宿主实际 API 更新本规则文档中的相关约定。
 
-以上规则在实现审批相关功能时应被视为“约束性设计”，如需调整，应先更新本文件再修改代码。
-
+以上规则在实现审批相关功能时应被视为"约束性设计"，如需调整，应先更新本文件再修改代码。
